@@ -27,13 +27,21 @@ _scrapers = []
 async def start_scheduler(store, ws_manager):
     global _scheduler, _playwright, _browser, _scrapers
 
-    # Attempt to launch Playwright/Chromium. On some systems (missing VC++ runtimes,
-    # sandboxed environments) Chromium cannot launch. We log the error and continue
-    # without scrapers so the REST API and WebSocket endpoints remain available.
+    # Attempt to launch a browser. Try msedge channel first (always present on
+    # Windows 11 and avoids SxS/VC++ issues with the bundled Chromium), then
+    # fall back to plain Chromium. If both fail the API still runs without scrapers.
     try:
         from playwright.async_api import async_playwright
         _playwright = await async_playwright().start()
-        _browser = await _playwright.chromium.launch(headless=True)
+        for channel, kwargs in [('msedge', {'channel': 'msedge'}), ('chromium', {})]:
+            try:
+                _browser = await _playwright.chromium.launch(headless=True, **kwargs)
+                logger.info("Browser launched via %s", channel)
+                break
+            except Exception as browser_exc:
+                logger.debug("Browser channel %s failed: %s", channel, browser_exc)
+        else:
+            raise RuntimeError("No usable browser found (tried msedge and chromium)")
         scraper_classes = [
             PlayAlbertaScraper,
             BetMGMScraper,

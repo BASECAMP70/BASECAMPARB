@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash /c/Users/scott/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.4/skills/brainstorming/scripts/start-server.sh --project-dir /c/Users/scott/ARB)",
+      "Bash(cat /c/Users/scott/ARB/.superpowers/brainstorm/*/. server-info)",
+      "Bash(cat /c/Users/scott/ARB/.superpowers/brainstorm/*/.server-info)",
+      "Bash(git add:*)",
+      "Bash(git init:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

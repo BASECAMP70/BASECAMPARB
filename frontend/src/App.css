@@ -1,42 +1,47 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; }
+
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: #1a1d2e; border-bottom: 1px solid #2d3148;
+  position: sticky; top: 0; z-index: 10;
+}
+.app-header h1 { font-size: 1rem; font-weight: 700; letter-spacing: 0.05em; color: #a78bfa; }
+.bankroll-label { font-size: 0.85rem; color: #94a3b8; }
+.bankroll-input {
+  width: 80px; margin-left: 4px; padding: 2px 6px;
+  background: #2d3148; border: 1px solid #4a5568; border-radius: 4px;
+  color: #e2e8f0; font-size: 0.85rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+.book-status-bar { display: flex; gap: 8px; padding: 8px 20px; flex-wrap: wrap; background: #13152a; }
+.book-badge {
+  padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.book-badge.ok { background: #14532d; color: #86efac; }
+.book-badge.error { background: #7f1d1d; color: #fca5a5; }
+.book-badge.stale { background: #78350f; color: #fcd34d; }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 8px 20px; font-size: 0.75rem; color: #64748b;
+     border-bottom: 1px solid #2d3148; text-transform: uppercase; letter-spacing: 0.05em; }
+td { padding: 10px 20px; border-bottom: 1px solid #1e2235; font-size: 0.875rem; }
+tr.expandable:hover { background: #1a1d2e; cursor: pointer; }
+tr.expanded-row { background: #141628; }
+
+.profit-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-weight: 700; font-size: 0.8rem; background: #14532d; color: #86efac;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+.stake-calc { padding: 8px 20px 16px 40px; color: #94a3b8; font-size: 0.85rem; }
+.stake-row { margin: 4px 0; }
+.stake-profit { margin-top: 8px; font-weight: 600; color: #86efac; }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+@keyframes flash-new {
+  0% { background: #854d0e; }
+  100% { background: transparent; }
 }
+.new-flash { animation: flash-new 3s ease-out forwards; }
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
+.sound-toggle { background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 4px; }

@@ -1,35 +1,35 @@
-import asyncio
+"""
+BetMGM scraper.
+
+NOTE: Live URL inspection (March 2024) shows BetMGM redirects all Canadian traffic to a
+US geo-selector page ("Where are you playing from?") listing only US states (Arizona,
+Colorado, Illinois, Indiana, Iowa, ...).  sports.ab.betmgm.ca does not resolve.
+BetMGM operates in Ontario (sports.on.betmgm.ca) but there is no confirmed Alberta URL.
+
+Until an Alberta-specific URL is identified, this scraper returns an empty list.
+
+When an Alberta URL is confirmed, replace ODDS_URL and implement DOM extraction using
+GVC / Roar Digital (Kambi-based) selectors:
+  Event rows:  '.KambiBC-event-item'
+  Teams:       '.KambiBC-bet-offer__participant'
+  Odds:        '.KambiBC-outcome__odds'
+"""
+
 import logging
-import random
-from datetime import datetime, timezone
 from typing import List
 
-from playwright_stealth import stealth_async
-
-from normalizer import normalize_event_name, normalize_market_outcome
-from scrapers.base import OddsRecord, OddsScraper, UA_LIST
+from scrapers.base import OddsRecord, OddsScraper
 
 logger = logging.getLogger(__name__)
 
 
 class BetMGMScraper(OddsScraper):
     BOOK_NAME = "betmgm"
-    ODDS_URL = "https://sports.on.betmgm.ca/en/sports"
-    ODDS_CONTAINER_SELECTOR = ".sports-event-list"  # UPDATE after inspection
+    ODDS_URL = ""  # Not yet confirmed for Alberta
 
     async def fetch_odds(self) -> List[OddsRecord]:
-        context = await self.browser.new_context(user_agent=random.choice(UA_LIST))
-        await stealth_async(context)
-        page = await context.new_page()
-        records: List[OddsRecord] = []
-        try:
-            await page.goto(self.ODDS_URL, wait_until="networkidle", timeout=30_000)
-            await page.wait_for_selector(self.ODDS_CONTAINER_SELECTOR, timeout=15_000)
-            await asyncio.sleep(random.uniform(0.8, 2.5))
-            # TODO: implement extraction after live inspection
-        except Exception as e:
-            logger.warning("%s scrape failed: %s", self.BOOK_NAME, e)
-            raise
-        finally:
-            await context.close()
-        return records
+        logger.debug(
+            "[betmgm] Skipped — no confirmed Alberta URL. "
+            "BetMGM redirects CA traffic to a US geo-selector."
+        )
+        return []

@@ -1,5 +1,11 @@
 import asyncio
+import sys
 from contextlib import asynccontextmanager
+
+# On Windows, asyncio defaults to SelectorEventLoop which cannot spawn subprocesses.
+# Playwright requires subprocess creation, so we must use ProactorEventLoop.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 from datetime import datetime, timezone
 from typing import Any
 

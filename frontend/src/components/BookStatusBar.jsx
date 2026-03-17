@@ -1,10 +1,28 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { fetchBooks } from '../api'
-import { useWebSocket } from '../hooks/useWebSocket'
 
-export default function BookStatusBar() {
+// All 6 Alberta-licensed sportsbooks we monitor
+const ALBERTA_BOOKS = [
+  { name: 'PlayAlberta',        url: 'https://www.playalberta.ca' },
+  { name: 'BetMGM',             url: 'https://sports.betmgm.ca' },
+  { name: 'FanDuel',            url: 'https://www.fanduel.com/sports/alberta' },
+  { name: 'Bet365',             url: 'https://www.bet365.com' },
+  { name: 'Sports Interaction', url: 'https://www.sportsinteraction.com' },
+  { name: 'Betway',             url: 'https://www.betway.com/en-ca' },
+]
+
+function timeSince(iso) {
+  if (!iso) return null
+  const secs = Math.round((Date.now() - new Date(iso)) / 1000)
+  if (secs < 60) return `${secs}s ago`
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
+  return `${Math.floor(secs / 3600)}h ago`
+}
+
+export default function BookStatusBar({ wsMessage }) {
   const [books, setBooks] = useState({})
 
+  // Initial load from REST
   useEffect(() => {
     fetchBooks()
       .then(data => {
@@ -12,39 +30,63 @@ export default function BookStatusBar() {
         for (const b of data.books) map[b.name] = b
         setBooks(map)
       })
-      .catch(console.error)
+      .catch(() => {})
   }, [])
 
-  const handleMessage = useCallback((msg) => {
-    if (msg.type === 'odds_updated') {
-      setBooks(prev => ({
-        ...prev,
-        [msg.book]: {
-          name: msg.book,
-          status: msg.status,
-          last_scraped_at: msg.scraped_at,
-          record_count: msg.record_count,
-          last_error: null,
-        }
-      }))
-    }
-  }, [])
-
-  useWebSocket(handleMessage)
-
-  function timeSince(iso) {
-    if (!iso) return '?'
-    const secs = Math.round((Date.now() - new Date(iso)) / 1000)
-    return secs < 60 ? `${secs}s` : `${Math.round(secs / 60)}m`
-  }
+  // Live updates from WS (passed down from App to avoid a second connection)
+  useEffect(() => {
+    if (!wsMessage || wsMessage.type !== 'odds_updated') return
+    const msg = wsMessage
+    setBooks(prev => ({
+      ...prev,
+      [msg.book]: {
+        name: msg.book,
+        status: msg.status,
+        last_scraped_at: msg.scraped_at,
+        record_count: msg.record_count,
+        last_error: null,
+      },
+    }))
+  }, [wsMessage])
 
   return (
-    <div className="book-status-bar">
-      {Object.values(books).map(b => (
-        <span key={b.name} className={`book-badge ${b.status}`} title={b.last_error || ''}>
-          {b.name} {b.status === 'ok' ? `✓ ${timeSince(b.last_scraped_at)}` : '✗'}
-        </span>
-      ))}
-    </div>
+    <section className="book-section">
+      <div className="book-section-header">
+        <span className="book-section-title">Alberta Sportsbooks</span>
+        <span className="book-section-sub">6 licensed sites monitored · click to open</span>
+      </div>
+      <div className="book-grid">
+        {ALBERTA_BOOKS.map(({ name, url }) => {
+          const data = books[name]
+          const status = data?.status ?? 'idle'
+          const ago = timeSince(data?.last_scraped_at)
+          const count = data?.record_count ?? 0
+          const err = data?.last_error
+
+          return (
+            <a
+              key={name}
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className={`book-card book-card--${status}`}
+              title={err || `Open ${name}`}
+            >
+              <div className="book-card-dot" />
+              <div className="book-card-body">
+                <div className="book-card-name">{name}</div>
+                <div className="book-card-meta">
+                  {status === 'ok'
+                    ? `${count} odds${ago ? ` · ${ago}` : ''}`
+                    : status === 'error'
+                    ? `Error${err ? ': ' + err.slice(0, 28) : ''}`
+                    : 'Awaiting data'}
+                </div>
+              </div>
+            </a>
+          )
+        })}
+      </div>
+    </section>
   )
 }

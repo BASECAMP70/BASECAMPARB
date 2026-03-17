@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "backend",
-      "runtimeExecutable": "C:\\app\\scott\\product\\21c\\dbhomeXE\\python\\bin\\python.exe",
-      "runtimeArgs": ["-m", "uvicorn", "main:app", "--reload", "--port", "8000"],
+      "runtimeExecutable": "C:\\Users\\scott\\ARB\\backend\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": ["run.py"],
       "port": 8000,
       "cwd": "backend"
     },

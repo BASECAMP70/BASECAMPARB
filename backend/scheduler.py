@@ -27,19 +27,27 @@ _scrapers = []
 async def start_scheduler(store, ws_manager):
     global _scheduler, _playwright, _browser, _scrapers
 
-    from playwright.async_api import async_playwright
-    _playwright = await async_playwright().start()
-    _browser = await _playwright.chromium.launch(headless=True)
-
-    scraper_classes = [
-        PlayAlbertaScraper,
-        BetMGMScraper,
-        FanDuelScraper,
-        Bet365Scraper,
-        SportsInteractionScraper,
-        BetwayScraper,
-    ]
-    _scrapers = [cls(_browser) for cls in scraper_classes]
+    # Attempt to launch Playwright/Chromium. On some systems (missing VC++ runtimes,
+    # sandboxed environments) Chromium cannot launch. We log the error and continue
+    # without scrapers so the REST API and WebSocket endpoints remain available.
+    try:
+        from playwright.async_api import async_playwright
+        _playwright = await async_playwright().start()
+        _browser = await _playwright.chromium.launch(headless=True)
+        scraper_classes = [
+            PlayAlbertaScraper,
+            BetMGMScraper,
+            FanDuelScraper,
+            Bet365Scraper,
+            SportsInteractionScraper,
+            BetwayScraper,
+        ]
+        _scrapers = [cls(_browser) for cls in scraper_classes]
+        logger.info("Playwright browser launched — %d scrapers ready", len(_scrapers))
+    except Exception as exc:
+        logger.warning("Playwright/Chromium unavailable (%s: %s) — scrapers disabled, API still running",
+                       type(exc).__name__, exc)
+        _scrapers = []
 
     _scheduler = AsyncIOScheduler()
     _scheduler.add_job(

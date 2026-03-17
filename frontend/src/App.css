@@ -1,47 +1,156 @@
+/* ─── Reset & base ─────────────────────────────────────────────────── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; }
+a { text-decoration: none; }
 
+/* ─── Header ────────────────────────────────────────────────────────── */
 .app-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 20px; background: #1a1d2e; border-bottom: 1px solid #2d3148;
-  position: sticky; top: 0; z-index: 10;
+  padding: 10px 20px; background: #1a1d2e; border-bottom: 1px solid #2d3148;
+  position: sticky; top: 0; z-index: 10; gap: 16px;
 }
-.app-header h1 { font-size: 1rem; font-weight: 700; letter-spacing: 0.05em; color: #a78bfa; }
-.bankroll-label { font-size: 0.85rem; color: #94a3b8; }
+.header-left  { display: flex; align-items: center; gap: 14px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.app-header h1 { font-size: 1rem; font-weight: 700; letter-spacing: 0.05em; color: #a78bfa; white-space: nowrap; }
+
+/* ─── WS Status indicator ───────────────────────────────────────────── */
+.ws-status { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; }
+.ws-dot    { font-size: 0.6rem; line-height: 1; }
+.ws-label  { font-weight: 600; }
+.ws-updated { color: #64748b; }
+
+.ws-live         .ws-dot   { color: #4ade80; }
+.ws-live         .ws-label { color: #4ade80; }
+.ws-connecting   .ws-dot   { color: #94a3b8; }
+.ws-connecting   .ws-label { color: #94a3b8; }
+.ws-reconnecting .ws-dot   { color: #fbbf24; }
+.ws-reconnecting .ws-label { color: #fbbf24; }
+
+/* ─── Bankroll input ────────────────────────────────────────────────── */
+.bankroll-label { font-size: 0.85rem; color: #94a3b8; white-space: nowrap; }
 .bankroll-input {
   width: 80px; margin-left: 4px; padding: 2px 6px;
   background: #2d3148; border: 1px solid #4a5568; border-radius: 4px;
   color: #e2e8f0; font-size: 0.85rem;
 }
+.sound-toggle { background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 4px; }
 
-.book-status-bar { display: flex; gap: 8px; padding: 8px 20px; flex-wrap: wrap; background: #13152a; }
-.book-badge {
-  padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+/* ─── Alberta Sportsbooks panel ─────────────────────────────────────── */
+.book-section {
+  background: #13152a;
+  border-bottom: 1px solid #2d3148;
+  padding: 12px 20px 14px;
 }
-.book-badge.ok { background: #14532d; color: #86efac; }
-.book-badge.error { background: #7f1d1d; color: #fca5a5; }
-.book-badge.stale { background: #78350f; color: #fcd34d; }
+.book-section-header {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;
+}
+.book-section-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: #64748b; }
+.book-section-sub   { font-size: 0.68rem; color: #475569; }
 
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+@media (max-width: 900px) { .book-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 500px) { .book-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.book-card {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 6px; border: 1px solid #2d3148;
+  background: #1a1d2e; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.book-card:hover { background: #20243d; border-color: #4a5568; }
+
+/* Status-specific card colours */
+.book-card--ok    { border-color: #166534; background: #0d1f18; }
+.book-card--ok:hover { background: #0f2a1f; }
+.book-card--error { border-color: #7f1d1d; background: #1c0a0a; }
+.book-card--stale { border-color: #78350f; background: #1c1200; }
+
+/* Indicator dot */
+.book-card-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: #475569;
+}
+.book-card--ok    .book-card-dot { background: #4ade80; box-shadow: 0 0 6px #4ade8088; }
+.book-card--error .book-card-dot { background: #f87171; }
+.book-card--stale .book-card-dot { background: #fbbf24; }
+
+.book-card-body { min-width: 0; }
+.book-card-name {
+  font-size: 0.78rem; font-weight: 600; color: #e2e8f0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.book-card-meta { font-size: 0.68rem; color: #64748b; margin-top: 1px; }
+.book-card--ok    .book-card-meta { color: #86efac; }
+.book-card--error .book-card-meta { color: #fca5a5; }
+.book-card--stale .book-card-meta { color: #fcd34d; }
+
+/* ─── Opportunities table ───────────────────────────────────────────── */
 table { width: 100%; border-collapse: collapse; }
-th { text-align: left; padding: 8px 20px; font-size: 0.75rem; color: #64748b;
-     border-bottom: 1px solid #2d3148; text-transform: uppercase; letter-spacing: 0.05em; }
-td { padding: 10px 20px; border-bottom: 1px solid #1e2235; font-size: 0.875rem; }
-tr.expandable:hover { background: #1a1d2e; cursor: pointer; }
-tr.expanded-row { background: #141628; }
+th {
+  text-align: left; padding: 8px 16px; font-size: 0.7rem; color: #64748b;
+  border-bottom: 1px solid #2d3148; text-transform: uppercase; letter-spacing: 0.06em;
+}
+td { padding: 10px 16px; border-bottom: 1px solid #1e2235; font-size: 0.875rem; vertical-align: top; }
 
+tr.opp-row { cursor: pointer; }
+tr.opp-row:hover { background: #1a1d2e; }
+tr.expanded-row  { background: #141628; }
+
+.td-sport  { white-space: nowrap; color: #94a3b8; font-size: 0.78rem; }
+.td-event  { font-weight: 500; }
+.td-market { color: #94a3b8; font-size: 0.82rem; text-transform: capitalize; }
+.td-profit { white-space: nowrap; }
+.td-toggle { text-align: right; color: #475569; font-size: 0.75rem; padding-left: 4px; }
+
+/* ─── Profit badge ──────────────────────────────────────────────────── */
 .profit-badge {
   display: inline-block; padding: 2px 8px; border-radius: 4px;
   font-weight: 700; font-size: 0.8rem; background: #14532d; color: #86efac;
 }
 
-.stake-calc { padding: 8px 20px 16px 40px; color: #94a3b8; font-size: 0.85rem; }
-.stake-row { margin: 4px 0; }
+/* ─── Bet instructions (always visible) ─────────────────────────────── */
+.bet-instructions { display: flex; flex-direction: column; gap: 3px; }
+
+.bet-leg {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.8rem; color: #cbd5e1;
+}
+.bet-book    { font-weight: 700; color: #a78bfa; white-space: nowrap; }
+.bet-sep     { color: #475569; font-size: 0.65rem; }
+.bet-outcome { color: #94a3b8; text-transform: capitalize; }
+.bet-amount  {
+  font-weight: 700; font-size: 0.85rem; color: #34d399;
+  background: #064e3b33; padding: 0 5px; border-radius: 3px;
+}
+.bet-odds    { color: #475569; font-size: 0.75rem; }
+
+.bet-profit-line {
+  font-size: 0.75rem; color: #4ade80; font-weight: 600;
+  margin-top: 2px; padding-left: 2px;
+}
+
+/* ─── Expanded detail / StakeCalculator ────────────────────────────── */
+.stake-calc { padding: 10px 20px 14px 40px; color: #94a3b8; font-size: 0.85rem; }
+.stake-row  { margin: 4px 0; }
 .stake-profit { margin-top: 8px; font-weight: 600; color: #86efac; }
 
+/* ─── Empty state ───────────────────────────────────────────────────── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 20px; gap: 8px; color: #475569;
+}
+.empty-icon  { font-size: 2.5rem; }
+.empty-title { font-size: 0.95rem; font-weight: 600; color: #64748b; }
+.empty-sub   { font-size: 0.8rem; }
+
+/* ─── Flash animation for new opportunities ─────────────────────────── */
 @keyframes flash-new {
-  0% { background: #854d0e; }
+  0%   { background: #854d0e; }
   100% { background: transparent; }
 }
 .new-flash { animation: flash-new 3s ease-out forwards; }
-
-.sound-toggle { background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 4px; }

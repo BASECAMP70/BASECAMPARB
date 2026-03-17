@@ -8,6 +8,8 @@ import { useOpportunities } from './hooks/useOpportunities'
 
 export const BankrollContext = createContext(100)
 
+const API = 'http://localhost:8000'
+
 const WS_STATUS_CONFIG = {
   connected:    { dot: '●', label: 'Live',           cls: 'ws-live' },
   connecting:   { dot: '●', label: 'Connecting…',    cls: 'ws-connecting' },
@@ -19,6 +21,8 @@ export default function App() {
   const [lastWsMessage, setLastWsMessage] = useState(null)
   const [lastCycleAt, setLastCycleAt] = useState(null)
   const [elapsed, setElapsed] = useState(null)
+  const [scraperRunning, setScraperRunning] = useState(true)
+  const [scraperBusy, setScraperBusy] = useState(false)
   const soundRef = useRef(null)
 
   const { opps, newIds, loadInitial, handleMessage } = useOpportunities()
@@ -26,6 +30,7 @@ export default function App() {
   const handleMessageWithSound = useCallback((msg) => {
     if (msg.type === 'new_opportunity') soundRef.current?.playChime()
     if (msg.type === 'scrape_cycle_complete') setLastCycleAt(Date.now())
+    if (msg.type === 'scraper_state') setScraperRunning(msg.running)
     setLastWsMessage(msg)
     handleMessage(msg)
   }, [handleMessage])
@@ -34,6 +39,14 @@ export default function App() {
 
   useEffect(() => { loadInitial() }, [loadInitial])
 
+  // Fetch initial scraper state on mount
+  useEffect(() => {
+    fetch(`${API}/api/scraper/status`)
+      .then(r => r.json())
+      .then(d => setScraperRunning(d.running))
+      .catch(() => {})
+  }, [])
+
   // Tick elapsed seconds since last scrape cycle
   useEffect(() => {
     if (!lastCycleAt) return
@@ -41,6 +54,20 @@ export default function App() {
     const id = setInterval(() => setElapsed(s => s + 1), 1000)
     return () => clearInterval(id)
   }, [lastCycleAt])
+
+  const toggleScraper = useCallback(async () => {
+    setScraperBusy(true)
+    try {
+      const endpoint = scraperRunning ? '/api/scraper/stop' : '/api/scraper/start'
+      const res = await fetch(`${API}${endpoint}`, { method: 'POST' })
+      const data = await res.json()
+      setScraperRunning(data.running)
+    } catch (e) {
+      console.error('scraper toggle failed', e)
+    } finally {
+      setScraperBusy(false)
+    }
+  }, [scraperRunning])
 
   const { dot, label, cls } = WS_STATUS_CONFIG[wsStatus] ?? WS_STATUS_CONFIG.connecting
 
@@ -61,6 +88,18 @@ export default function App() {
             </div>
           </div>
           <div className="header-right">
+            <button
+              className={`scraper-btn ${scraperRunning ? 'scraper-btn--running' : 'scraper-btn--stopped'}`}
+              onClick={toggleScraper}
+              disabled={scraperBusy}
+              title={scraperRunning ? 'Stop scraping' : 'Start scraping'}
+            >
+              {scraperBusy
+                ? '…'
+                : scraperRunning
+                  ? '⏸ Stop'
+                  : '▶ Start'}
+            </button>
             <label className="bankroll-label">
               Bankroll: $
               <input

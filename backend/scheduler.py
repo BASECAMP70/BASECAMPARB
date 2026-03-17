@@ -79,6 +79,46 @@ async def stop_scheduler():
         await _playwright.stop()
 
 
+def pause_scraping() -> bool:
+    """Pause the scrape job.  Returns True if paused, False if already paused."""
+    if _scheduler is None:
+        return False
+    jobs = _scheduler.get_jobs()
+    if not jobs:
+        return False
+    job = jobs[0]
+    if job.next_run_time is None:
+        return False  # already paused
+    job.pause()
+    logger.info("Scraping paused")
+    return True
+
+
+def resume_scraping() -> bool:
+    """Resume the scrape job.  Returns True if resumed, False if already running."""
+    if _scheduler is None:
+        return False
+    jobs = _scheduler.get_jobs()
+    if not jobs:
+        return False
+    job = jobs[0]
+    if job.next_run_time is not None:
+        return False  # already running
+    job.resume()
+    logger.info("Scraping resumed")
+    return True
+
+
+def scraping_is_running() -> bool:
+    """Return True when the scrape job is active (not paused)."""
+    if _scheduler is None:
+        return False
+    jobs = _scheduler.get_jobs()
+    if not jobs:
+        return False
+    return jobs[0].next_run_time is not None
+
+
 async def _run_cycle(store, ws_manager):
     start = datetime.now(timezone.utc)
     logger.info("Scrape cycle starting")

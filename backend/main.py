@@ -11,10 +11,14 @@ from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 import config
 from calculator import Opportunity
-from scheduler import start_scheduler, stop_scheduler
+from scheduler import (
+    start_scheduler, stop_scheduler,
+    pause_scraping, resume_scraping, scraping_is_running,
+)
 from serializers import serialize_opportunity
 from store import Store
 from ws import WebSocketManager
@@ -38,7 +42,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[config.CORS_ORIGIN],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -87,6 +91,30 @@ def get_books():
             for s in statuses.values()
         ]
     }
+
+
+# ── Scraper control ──────────────────────────────────────────────────────────
+
+@app.get("/api/scraper/status")
+def scraper_status():
+    running = scraping_is_running()
+    return {"running": running}
+
+
+@app.post("/api/scraper/start")
+async def scraper_start():
+    resume_scraping()
+    running = scraping_is_running()
+    await ws_manager.broadcast({"type": "scraper_state", "running": running})
+    return {"running": running}
+
+
+@app.post("/api/scraper/stop")
+async def scraper_stop():
+    pause_scraping()
+    running = scraping_is_running()
+    await ws_manager.broadcast({"type": "scraper_state", "running": running})
+    return {"running": running}
 
 
 @app.websocket("/ws")

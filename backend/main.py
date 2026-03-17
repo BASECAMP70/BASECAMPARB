@@ -1,0 +1,93 @@
+import asyncio
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from typing import Any
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+
+import config
+from calculator import Opportunity
+from scheduler import start_scheduler, stop_scheduler
+from serializers import serialize_opportunity
+from store import Store
+from ws import WebSocketManager
+
+store = Store(
+    stale_seconds=config.ODDS_STALE_SECONDS,
+    evict_seconds=config.ODDS_EVICT_SECONDS,
+)
+ws_manager = WebSocketManager()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await start_scheduler(store, ws_manager)
+    yield
+    await stop_scheduler()
+
+
+app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[config.CORS_ORIGIN],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/api/opportunities")
+def get_opportunities():
+    opps = sorted(store.get_opportunities().values(), key=lambda o: o.margin, reverse=True)
+    return {"opportunities": [serialize_opportunity(o) for o in opps]}
+
+
+@app.get("/api/odds")
+def get_odds():
+    result = {}
+    for book, records in store._odds.items():
+        fresh = [r for r in records
+                 if (datetime.now(timezone.utc) - r.scraped_at).total_seconds()
+                 < config.ODDS_STALE_SECONDS]
+        result[book] = {
+            "record_count": len(fresh),
+            "scraped_at": records[0].scraped_at.isoformat() if records else None,
+            "records": [
+                {
+                    "book": r.book, "sport": r.sport, "event_name": r.event_name,
+                    "market": r.market, "outcome": r.outcome,
+                    "decimal_odds": r.decimal_odds,
+                    "scraped_at": r.scraped_at.isoformat(),
+                }
+                for r in fresh
+            ],
+        }
+    return {"books": result}
+
+
+@app.get("/api/books")
+def get_books():
+    statuses = store.get_book_status()
+    return {
+        "books": [
+            {
+                "name": s.name,
+                "status": s.status,
+                "last_scraped_at": s.last_scraped_at.isoformat() if s.last_scraped_at else None,
+                "record_count": s.record_count,
+                "last_error": s.last_error,
+            }
+            for s in statuses.values()
+        ]
+    }
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await ws_manager.connect(ws)
+    try:
+        while True:
+            await ws.receive_text()  # keep alive; we only push, don't expect messages
+    except WebSocketDisconnect:
+        ws_manager.disconnect(ws)

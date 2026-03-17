@@ -1,0 +1,22 @@
+{
+  "teams": {
+    "EDM": "Edmonton Oilers",
+    "Edmonton": "Edmonton Oilers",
+    "Oilers": "Edmonton Oilers",
+    "CGY": "Calgary Flames",
+    "Calgary": "Calgary Flames",
+    "Flames": "Calgary Flames",
+    "TOR": "Toronto Maple Leafs",
+    "Toronto": "Toronto Maple Leafs",
+    "VAN": "Vancouver Canucks",
+    "Vancouver": "Vancouver Canucks",
+    "Canucks": "Vancouver Canucks",
+    "WPG": "Winnipeg Jets",
+    "Winnipeg": "Winnipeg Jets",
+    "Jets": "Winnipeg Jets",
+    "MTL": "Montreal Canadiens",
+    "Montreal": "Montreal Canadiens",
+    "OTT": "Ottawa Senators",
+    "Ottawa": "Ottawa Senators"
+  }
+}

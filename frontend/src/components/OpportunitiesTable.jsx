@@ -69,6 +69,17 @@ function getColumnLabel(book, market) {
   return (BOOK_MARKET_COLUMN[book] || {})[market] || MARKET_LABEL[market] || market
 }
 
+// Books that natively display American odds (e.g. "+170", "-245")
+const AMERICAN_ODDS_BOOKS = new Set(['bet365'])
+
+// Display odds in the book's native format
+function displayOdds(book, decimal) {
+  if (!AMERICAN_ODDS_BOOKS.has(book)) return decimal.toFixed(2)
+  // decimal → American
+  if (decimal >= 2.0) return '+' + Math.round((decimal - 1) * 100)
+  return '-' + Math.round(100 / (decimal - 1))
+}
+
 // Format an ISO scraped_at timestamp as "Xs ago" / "Xm ago"
 function timeAgo(isoStr) {
   if (!isoStr) return null
@@ -162,7 +173,7 @@ export default function OpportunitiesTable({ opps, newIds }) {
                           {getColumnLabel(leg.book, opp.market)}
                         </span>
                         <span className="bet-amount">${leg.stake}</span>
-                        <span className="bet-odds">@ {leg.odds}</span>
+                        <span className="bet-odds">@ {displayOdds(leg.book, leg.odds)}</span>
                         {leg.scraped_at && (
                           <span className="bet-scraped-at" title={`Odds fetched at ${leg.scraped_at}`}>
                             🕐 {timeAgo(leg.scraped_at)}

@@ -29,6 +29,13 @@ const BOOK_MARKET_COLUMN = {
 const getColumnLabel = (book, market) =>
   (BOOK_MARKET_COLUMN[book] || {})[market] || MARKET_LABEL[market] || market
 
+const AMERICAN_ODDS_BOOKS = new Set(['bet365'])
+function displayOdds(book, decimal) {
+  if (!AMERICAN_ODDS_BOOKS.has(book)) return decimal.toFixed(2)
+  if (decimal >= 2.0) return '+' + Math.round((decimal - 1) * 100)
+  return '-' + Math.round(100 / (decimal - 1))
+}
+
 function timeAgo(isoStr) {
   if (!isoStr) return null
   const secs = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000)
@@ -59,7 +66,7 @@ export default function StakeCalculator({ opportunity }) {
           <span className="stake-market-badge" title="Column name on sportsbook site">
             {getColumnLabel(leg.book, opportunity.market)}
           </span>
-          <span className="stake-meta">@ {leg.decimal_odds} · stake <strong>${stakes[i]}</strong></span>
+          <span className="stake-meta">@ {displayOdds(leg.book, leg.decimal_odds)} · stake <strong>${stakes[i]}</strong></span>
           {leg.scraped_at && (
             <span className="stake-scraped-at" title={`Odds fetched at ${leg.scraped_at}`}>
               🕐 {timeAgo(leg.scraped_at)}

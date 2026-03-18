@@ -18,6 +18,25 @@ const getBookUrl = (book, sport) => { const m = BOOK_SPORT_URL[book] || {}; retu
 
 const MARKET_LABEL = { moneyline: 'Moneyline', spread: 'Spread', totals: 'Over/Under' }
 
+const BOOK_MARKET_COLUMN = {
+  playalberta: { spread: 'Puck Line', moneyline: 'Money Line', totals: 'Total' },
+  bet365:      { spread: 'Puck Line', moneyline: 'Money Line', totals: 'Over/Under' },
+  sportsinteraction: { spread: 'Puck Line', moneyline: 'Money Line', totals: 'Total' },
+  betmgm:      { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Total' },
+  fanduel:     { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Total' },
+  betway:      { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Over/Under' },
+}
+const getColumnLabel = (book, market) =>
+  (BOOK_MARKET_COLUMN[book] || {})[market] || MARKET_LABEL[market] || market
+
+function timeAgo(isoStr) {
+  if (!isoStr) return null
+  const secs = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000)
+  if (secs < 60)   return `${secs}s ago`
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
+  return `${Math.floor(secs / 3600)}h ago`
+}
+
 function calculateStakes(bankroll, legs) {
   const implied = legs.map(l => 1 / l.decimal_odds)
   const arbSum = implied.reduce((a, b) => a + b, 0)
@@ -37,8 +56,15 @@ export default function StakeCalculator({ opportunity }) {
           <span className="stake-book">{BOOK_DISPLAY[leg.book] || leg.book}</span>
           <span className="stake-arrow">→</span>
           <span className="stake-selection">{leg.participant || leg.outcome}</span>
-          <span className="stake-market-badge">{marketLabel}</span>
+          <span className="stake-market-badge" title="Column name on sportsbook site">
+            {getColumnLabel(leg.book, opportunity.market)}
+          </span>
           <span className="stake-meta">@ {leg.decimal_odds} · stake <strong>${stakes[i]}</strong></span>
+          {leg.scraped_at && (
+            <span className="stake-scraped-at" title={`Odds fetched at ${leg.scraped_at}`}>
+              🕐 {timeAgo(leg.scraped_at)}
+            </span>
+          )}
           <a
             className="stake-open-link"
             href={getBookUrl(leg.book, opportunity.sport)}

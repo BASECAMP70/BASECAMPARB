@@ -13,7 +13,8 @@ class OpportunityLeg:
     book: str
     decimal_odds: float
     recommended_stake: float
-    participant: str = ""   # human-readable selection, e.g. "Edmonton Oilers -1.5"
+    participant: str = ""       # human-readable selection, e.g. "Edmonton Oilers -1.5"
+    scraped_at: Optional[datetime] = None  # when this specific odd was fetched
 
 
 @dataclass
@@ -67,13 +68,13 @@ def detect_arbs(records: List[OddsRecord], min_margin: float = 0.005) -> List[Op
         else:
             continue
 
-        # Best odds per outcome per book — tuples of (book, decimal_odds, participant)
-        best_per_outcome: Dict[str, List[Tuple[str, float, str]]] = {}
+        # Best odds per outcome per book — tuples of (book, decimal_odds, participant, scraped_at)
+        best_per_outcome: Dict[str, List[Tuple[str, float, str, Optional[datetime]]]] = {}
         for r in group:
             if r.outcome not in expected_outcomes:
                 continue
             entry = best_per_outcome.setdefault(r.outcome, [])
-            entry.append((r.book, r.decimal_odds, r.participant))
+            entry.append((r.book, r.decimal_odds, r.participant, r.scraped_at))
 
         # Ensure all expected outcomes have at least one record
         if not all(o in best_per_outcome for o in expected_outcomes):
@@ -110,6 +111,7 @@ def detect_arbs(records: List[OddsRecord], min_margin: float = 0.005) -> List[Op
                         decimal_odds=combo[i][1],
                         recommended_stake=0.0,
                         participant=combo[i][2],
+                        scraped_at=combo[i][3],
                     )
                     for i in range(len(expected_outcomes))
                 ]

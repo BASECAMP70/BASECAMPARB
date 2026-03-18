@@ -48,11 +48,34 @@ function getBookUrl(book, sport) {
   return map[sport] || map._default || '#'
 }
 
-// Human-readable market labels
+// Human-readable market labels (generic fallback)
 const MARKET_LABEL = {
   moneyline: 'Moneyline',
   spread:    'Spread',
   totals:    'Over/Under',
+}
+
+// The exact column/field name each sportsbook uses on their site
+const BOOK_MARKET_COLUMN = {
+  playalberta: { spread: 'Puck Line', moneyline: 'Money Line', totals: 'Total' },
+  bet365:      { spread: 'Puck Line', moneyline: 'Money Line', totals: 'Over/Under' },
+  sportsinteraction: { spread: 'Puck Line', moneyline: 'Money Line', totals: 'Total' },
+  betmgm:      { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Total' },
+  fanduel:     { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Total' },
+  betway:      { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Over/Under' },
+}
+
+function getColumnLabel(book, market) {
+  return (BOOK_MARKET_COLUMN[book] || {})[market] || MARKET_LABEL[market] || market
+}
+
+// Format an ISO scraped_at timestamp as "Xs ago" / "Xm ago"
+function timeAgo(isoStr) {
+  if (!isoStr) return null
+  const secs = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000)
+  if (secs < 60)  return `${secs}s ago`
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
+  return `${Math.floor(secs / 3600)}h ago`
 }
 
 function calcLegs(bankroll, outcomes) {
@@ -64,6 +87,7 @@ function calcLegs(bankroll, outcomes) {
     participant: o.participant || o.outcome,
     odds: o.decimal_odds,
     stake: (bankroll * implied[i] / arbSum).toFixed(2),
+    scraped_at: o.scraped_at,
   }))
 }
 
@@ -134,9 +158,16 @@ export default function OpportunitiesTable({ opps, newIds }) {
                         <span className="bet-book-name">{BOOK_DISPLAY[leg.book] || leg.book}</span>
                         <span className="bet-sep">→</span>
                         <span className="bet-selection">{leg.participant}</span>
-                        <span className="bet-market-badge">{MARKET_LABEL[opp.market] || opp.market}</span>
+                        <span className="bet-column-badge" title="Column name on sportsbook site">
+                          {getColumnLabel(leg.book, opp.market)}
+                        </span>
                         <span className="bet-amount">${leg.stake}</span>
                         <span className="bet-odds">@ {leg.odds}</span>
+                        {leg.scraped_at && (
+                          <span className="bet-scraped-at" title={`Odds fetched at ${leg.scraped_at}`}>
+                            🕐 {timeAgo(leg.scraped_at)}
+                          </span>
+                        )}
                         <a
                           className="bet-open-link"
                           href={getBookUrl(leg.book, opp.sport)}

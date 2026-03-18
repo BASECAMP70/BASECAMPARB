@@ -169,6 +169,19 @@ tr.expanded-row  { background: #141628; }
 }
 .bet-open-link:hover { color: #7dd3fc; border-color: #38bdf8; background: #0ea5e910; }
 
+/* "Puck Line" / "Money Line" column label badge — what the sportsbook calls this market */
+.bet-column-badge {
+  font-size: 0.65rem; font-weight: 600;
+  color: #7dd3fc; border: 1px solid #0ea5e955;
+  padding: 0 5px; border-radius: 3px; white-space: nowrap;
+  cursor: help;
+}
+
+/* Scraped-at timestamp */
+.bet-scraped-at {
+  font-size: 0.65rem; color: #475569; white-space: nowrap; cursor: help;
+}
+
 .bet-profit-line {
   font-size: 0.75rem; color: #4ade80; font-weight: 600;
   margin-top: 2px; padding-left: 2px;
@@ -196,6 +209,7 @@ tr.expanded-row  { background: #141628; }
   border: 1px solid #0ea5e933; padding: 0 5px; border-radius: 3px;
 }
 .stake-open-link:hover { color: #7dd3fc; border-color: #38bdf8; background: #0ea5e910; }
+.stake-scraped-at { font-size: 0.62rem; color: #475569; white-space: nowrap; cursor: help; }
 .stake-profit { margin-top: 8px; font-weight: 600; color: #86efac; }
 
 /* ─── Empty state ───────────────────────────────────────────────────── */

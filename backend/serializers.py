@@ -20,6 +20,7 @@ def serialize_opportunity(o: Opportunity) -> Dict[str, Any]:
                 "decimal_odds": leg.decimal_odds,
                 "recommended_stake": leg.recommended_stake,
                 "participant": leg.participant,
+                "scraped_at": leg.scraped_at.isoformat() if leg.scraped_at else None,
             }
             for leg in o.outcomes
         ],

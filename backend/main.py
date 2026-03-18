@@ -67,7 +67,7 @@ def get_odds():
                 {
                     "book": r.book, "sport": r.sport, "event_name": r.event_name,
                     "market": r.market, "outcome": r.outcome,
-                    "decimal_odds": r.decimal_odds,
+                    "decimal_odds": r.decimal_odds, "participant": r.participant,
                     "scraped_at": r.scraped_at.isoformat(),
                 }
                 for r in fresh

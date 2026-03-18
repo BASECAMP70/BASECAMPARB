@@ -13,6 +13,7 @@ class OpportunityLeg:
     book: str
     decimal_odds: float
     recommended_stake: float
+    participant: str = ""   # human-readable selection, e.g. "Edmonton Oilers -1.5"
 
 
 @dataclass
@@ -66,13 +67,13 @@ def detect_arbs(records: List[OddsRecord], min_margin: float = 0.005) -> List[Op
         else:
             continue
 
-        # Best odds per outcome per book
-        best_per_outcome: Dict[str, List[Tuple[str, float]]] = {}
+        # Best odds per outcome per book — tuples of (book, decimal_odds, participant)
+        best_per_outcome: Dict[str, List[Tuple[str, float, str]]] = {}
         for r in group:
             if r.outcome not in expected_outcomes:
                 continue
             entry = best_per_outcome.setdefault(r.outcome, [])
-            entry.append((r.book, r.decimal_odds))
+            entry.append((r.book, r.decimal_odds, r.participant))
 
         # Ensure all expected outcomes have at least one record
         if not all(o in best_per_outcome for o in expected_outcomes):
@@ -82,11 +83,11 @@ def detect_arbs(records: List[OddsRecord], min_margin: float = 0.005) -> List[Op
         for outcome in expected_outcomes:
             best_per_outcome[outcome].sort(key=lambda x: x[1], reverse=True)
 
-        # Try combinations: for each outcome, pick from available (book, odds)
+        # Try combinations: for each outcome, pick from available (book, odds, participant)
         outcome_options = [best_per_outcome[o] for o in expected_outcomes]
 
         for combo in product(*outcome_options):
-            # combo: ((book, odds), (book, odds), ...)
+            # combo: ((book, odds, participant), ...)
             books = [c[0] for c in combo]
             if len(set(books)) < len(books):
                 continue  # duplicate book — skip
@@ -108,6 +109,7 @@ def detect_arbs(records: List[OddsRecord], min_margin: float = 0.005) -> List[Op
                         book=combo[i][0],
                         decimal_odds=combo[i][1],
                         recommended_stake=0.0,
+                        participant=combo[i][2],
                     )
                     for i in range(len(expected_outcomes))
                 ]

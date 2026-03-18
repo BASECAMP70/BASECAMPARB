@@ -19,6 +19,7 @@ def serialize_opportunity(o: Opportunity) -> Dict[str, Any]:
                 "book": leg.book,
                 "decimal_odds": leg.decimal_odds,
                 "recommended_stake": leg.recommended_stake,
+                "participant": leg.participant,
             }
             for leg in o.outcomes
         ],

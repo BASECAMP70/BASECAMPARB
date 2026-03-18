@@ -16,7 +16,10 @@ export default function StakeCalculator({ opportunity }) {
     <div className="stake-calc">
       {opportunity.outcomes.map((leg, i) => (
         <div key={leg.outcome} className="stake-row">
-          <strong>{leg.outcome}</strong>: {leg.book} @ {leg.decimal_odds} → <strong>${stakes[i]}</strong>
+          <span className="stake-book">{leg.book}</span>
+          <span className="stake-arrow">→</span>
+          <span className="stake-selection">{leg.participant || leg.outcome}</span>
+          <span className="stake-meta">@ {leg.decimal_odds} · stake <strong>${stakes[i]}</strong></span>
         </div>
       ))}
       <div className="stake-profit">Guaranteed profit: ${profit} ({(opportunity.margin * 100).toFixed(2)}%)</div>

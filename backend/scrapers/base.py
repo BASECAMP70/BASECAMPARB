@@ -27,6 +27,7 @@ class OddsRecord:
     outcome: str        # canonical: "home", "away", "over", "under", "draw"
     decimal_odds: float
     scraped_at: datetime    # UTC
+    participant: str = ""   # human-readable selection, e.g. "Edmonton Oilers -1.5"
 
 
 class OddsScraper(ABC):

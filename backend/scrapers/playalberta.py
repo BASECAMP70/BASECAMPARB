@@ -139,6 +139,18 @@ class PlayAlbertaScraper(OddsScraper):
                         decimal_odds = odds[odds_idx]
                         odds_idx += 1
 
+                        # Build human-readable participant name
+                        if outcome == "home":
+                            participant = home
+                        elif outcome == "away":
+                            participant = away
+                        elif outcome == "over":
+                            participant = "Over"
+                        elif outcome == "under":
+                            participant = "Under"
+                        else:
+                            participant = outcome.capitalize()
+
                         records.append(OddsRecord(
                             book=self.BOOK_NAME,
                             sport=sport,
@@ -148,6 +160,7 @@ class PlayAlbertaScraper(OddsScraper):
                             outcome=outcome,
                             decimal_odds=decimal_odds,
                             scraped_at=now,
+                            participant=participant,
                         ))
 
             logger.info("[%s] scraped %d records from %d events",

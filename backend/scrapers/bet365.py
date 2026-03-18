@@ -243,6 +243,12 @@ class Bet365Scraper(OddsScraper):
                 market = ev.get("market", "moneyline")
                 event_name = normalize_event_name(f"{home} vs {away}")
 
+                # Build participant labels (include handicap line for spread)
+                home_hcap = ev.get("homeHandicap", "").strip()
+                away_hcap = ev.get("awayHandicap", "").strip()
+                home_participant = f"{home} {home_hcap}".strip() if home_hcap else home
+                away_participant = f"{away} {away_hcap}".strip() if away_hcap else away
+
                 records.append(OddsRecord(
                     book=self.BOOK_NAME,
                     sport=sport,
@@ -252,6 +258,7 @@ class Bet365Scraper(OddsScraper):
                     outcome="home",
                     decimal_odds=home_odds,
                     scraped_at=now,
+                    participant=home_participant,
                 ))
                 records.append(OddsRecord(
                     book=self.BOOK_NAME,
@@ -262,6 +269,7 @@ class Bet365Scraper(OddsScraper):
                     outcome="away",
                     decimal_odds=away_odds,
                     scraped_at=now,
+                    participant=away_participant,
                 ))
 
             logger.info("[%s] scraped %d records from %d raw events",

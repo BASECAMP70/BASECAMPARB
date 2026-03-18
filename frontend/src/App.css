@@ -144,14 +144,22 @@ tr.expanded-row  { background: #141628; }
   display: flex; align-items: center; gap: 6px;
   font-size: 0.8rem; color: #cbd5e1;
 }
-.bet-book    { font-weight: 700; color: #a78bfa; white-space: nowrap; }
-.bet-sep     { color: #475569; font-size: 0.65rem; }
-.bet-outcome { color: #94a3b8; text-transform: capitalize; }
+.bet-book-link {
+  font-weight: 700; color: #a78bfa; white-space: nowrap;
+  text-decoration: none;
+}
+.bet-book-link:hover { color: #c4b5fd; text-decoration: underline; }
+.bet-sep      { color: #475569; font-size: 0.65rem; }
+.bet-selection {
+  color: #e2e8f0; font-weight: 600; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .bet-amount  {
   font-weight: 700; font-size: 0.85rem; color: #34d399;
   background: #064e3b33; padding: 0 5px; border-radius: 3px;
+  white-space: nowrap;
 }
-.bet-odds    { color: #475569; font-size: 0.75rem; }
+.bet-odds    { color: #475569; font-size: 0.75rem; white-space: nowrap; }
 
 .bet-profit-line {
   font-size: 0.75rem; color: #4ade80; font-weight: 600;
@@ -160,7 +168,15 @@ tr.expanded-row  { background: #141628; }
 
 /* ─── Expanded detail / StakeCalculator ────────────────────────────── */
 .stake-calc { padding: 10px 20px 14px 40px; color: #94a3b8; font-size: 0.85rem; }
-.stake-row  { margin: 4px 0; }
+.stake-row  {
+  display: flex; align-items: center; gap: 6px;
+  margin: 5px 0; font-size: 0.82rem;
+}
+.stake-book      { font-weight: 700; color: #a78bfa; white-space: nowrap; }
+.stake-arrow     { color: #475569; }
+.stake-selection { color: #e2e8f0; font-weight: 600; flex: 1; }
+.stake-meta      { color: #94a3b8; white-space: nowrap; }
+.stake-meta strong { color: #34d399; }
 .stake-profit { margin-top: 8px; font-weight: 600; color: #86efac; }
 
 /* ─── Empty state ───────────────────────────────────────────────────── */

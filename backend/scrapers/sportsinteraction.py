@@ -189,11 +189,14 @@ class SportsInteractionScraper(OddsScraper):
                                         outcome = "home" if opt_name in parts[0] else "away"
                                     else:
                                         outcome = "home"
+                                    participant = option.get("name", {}).get("value", "")
                                 elif canonical_market == "totals":
                                     outcome = "over" if "over" in opt_name else "under"
+                                    participant = "Over" if outcome == "over" else "Under"
                                 elif canonical_market == "spread":
                                     parts = event_name.lower().split(" vs ")
                                     outcome = "home" if len(parts) == 2 and opt_name in parts[0] else "away"
+                                    participant = option.get("name", {}).get("value", "")
                                 else:
                                     continue
 
@@ -206,6 +209,7 @@ class SportsInteractionScraper(OddsScraper):
                                     outcome=outcome,
                                     decimal_odds=float(decimal_odds),
                                     scraped_at=now,
+                                    participant=participant,
                                 ))
 
                     if records:
@@ -310,6 +314,7 @@ class SportsInteractionScraper(OddsScraper):
                         event_name=event_name, event_start=now,
                         market="moneyline", outcome="home",
                         decimal_odds=odds[0], scraped_at=now,
+                        participant=home,
                     ))
                 if len(odds) > 1 and odds[1] > 1.0:
                     records.append(OddsRecord(
@@ -317,6 +322,7 @@ class SportsInteractionScraper(OddsScraper):
                         event_name=event_name, event_start=now,
                         market="moneyline", outcome="away",
                         decimal_odds=odds[1], scraped_at=now,
+                        participant=away,
                     ))
 
         finally:

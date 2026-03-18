@@ -4,12 +4,31 @@ import StakeCalculator from './StakeCalculator'
 
 const SPORT_EMOJI = { nhl: '🏒', nfl: '🏈', nba: '🏀', mlb: '⚾', mls: '⚽', soccer: '⚽' }
 
+const BOOK_DISPLAY = {
+  playalberta: 'PlayAlberta',
+  betmgm: 'BetMGM',
+  fanduel: 'FanDuel',
+  bet365: 'Bet365',
+  sportsinteraction: 'Sports Interaction',
+  betway: 'Betway',
+}
+
+const BOOK_URL = {
+  playalberta: 'https://www.playalberta.ca/sports',
+  betmgm: 'https://sports.betmgm.ca',
+  fanduel: 'https://www.fanduel.com/sports/alberta',
+  bet365: 'https://www.bet365.ca/en/sports/ice-hockey/nhl/',
+  sportsinteraction: 'https://www.sportsinteraction.com/en-ca/sports-betting/ice-hockey/',
+  betway: 'https://www.betway.com/en-ca',
+}
+
 function calcLegs(bankroll, outcomes) {
   const implied = outcomes.map(o => 1 / o.decimal_odds)
   const arbSum = implied.reduce((a, b) => a + b, 0)
   return outcomes.map((o, i) => ({
     book: o.book,
     outcome: o.outcome,
+    participant: o.participant || o.outcome,
     odds: o.decimal_odds,
     stake: (bankroll * implied[i] / arbSum).toFixed(2),
   }))
@@ -80,14 +99,22 @@ export default function OpportunitiesTable({ opps, newIds }) {
                   <div className="bet-instructions">
                     {legs.map(leg => (
                       <div key={leg.outcome} className="bet-leg">
-                        <span className="bet-book">{leg.book}</span>
-                        <span className="bet-sep">·</span>
-                        <span className="bet-outcome">{leg.outcome}</span>
+                        <a
+                          className="bet-book-link"
+                          href={BOOK_URL[leg.book] || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {BOOK_DISPLAY[leg.book] || leg.book}
+                        </a>
+                        <span className="bet-sep">→</span>
+                        <span className="bet-selection">{leg.participant}</span>
                         <span className="bet-amount">${leg.stake}</span>
                         <span className="bet-odds">@ {leg.odds}</span>
                       </div>
                     ))}
-                    <div className="bet-profit-line">→ guaranteed +${profit}</div>
+                    <div className="bet-profit-line">Guaranteed profit: +${profit}</div>
                   </div>
                 </td>
                 <td className="td-toggle">{isExp ? '▲' : '▼'}</td>

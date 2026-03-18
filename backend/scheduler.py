@@ -9,12 +9,11 @@ from apscheduler.triggers.interval import IntervalTrigger
 import config
 from calculator import detect_arbs, diff_opportunities
 from serializers import serialize_opportunity
-from scrapers.betmgm import BetMGMScraper
 from scrapers.bet365 import Bet365Scraper
 from scrapers.betway import BetwayScraper
-from scrapers.fanduel import FanDuelScraper
 from scrapers.playalberta import PlayAlbertaScraper
 from scrapers.sportsinteraction import SportsInteractionScraper
+from notifier import notify_new_opportunities
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +43,6 @@ async def start_scheduler(store, ws_manager):
             raise RuntimeError("No usable browser found (tried msedge and chromium)")
         scraper_classes = [
             PlayAlbertaScraper,
-            BetMGMScraper,
-            FanDuelScraper,
             Bet365Scraper,
             SportsInteractionScraper,
             BetwayScraper,
@@ -167,7 +164,10 @@ async def _run_cycle(store, ws_manager):
 
     store.update_opportunities(new_opps_map)
 
-    # Push WS events
+    # Email + push WS events for new opportunities
+    if new:
+        await notify_new_opportunities(new)
+
     for opp in new:
         await ws_manager.broadcast({"type": "new_opportunity", "data": serialize_opportunity(opp)})
 

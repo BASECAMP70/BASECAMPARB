@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { fetchBooks } from '../api'
 
 // All 6 Alberta-licensed sportsbooks we monitor
+// `key` must match the BOOK_NAME used by the backend scraper
 const ALBERTA_BOOKS = [
-  { name: 'PlayAlberta',        url: 'https://www.playalberta.ca' },
-  { name: 'BetMGM',             url: 'https://sports.betmgm.ca' },
-  { name: 'FanDuel',            url: 'https://www.fanduel.com/sports/alberta' },
-  { name: 'Bet365',             url: 'https://www.bet365.com' },
-  { name: 'Sports Interaction', url: 'https://www.sportsinteraction.com' },
-  { name: 'Betway',             url: 'https://www.betway.com/en-ca' },
+  { key: 'playalberta',        name: 'PlayAlberta',        url: 'https://www.playalberta.ca' },
+  { key: 'betmgm',             name: 'BetMGM',             url: 'https://sports.betmgm.ca' },
+  { key: 'fanduel',            name: 'FanDuel',            url: 'https://www.fanduel.com/sports/alberta' },
+  { key: 'bet365',             name: 'Bet365',             url: 'https://www.bet365.ca' },
+  { key: 'sportsinteraction',  name: 'Sports Interaction', url: 'https://www.sportsinteraction.com' },
+  { key: 'betway',             name: 'Betway',             url: 'https://www.betway.com/en-ca' },
 ]
 
 function timeSince(iso) {
@@ -56,8 +57,8 @@ export default function BookStatusBar({ wsMessage }) {
         <span className="book-section-sub">6 licensed sites monitored · click to open</span>
       </div>
       <div className="book-grid">
-        {ALBERTA_BOOKS.map(({ name, url }) => {
-          const data = books[name]
+        {ALBERTA_BOOKS.map(({ key, name, url }) => {
+          const data = books[key]
           const status = data?.status ?? 'idle'
           const ago = timeSince(data?.last_scraped_at)
           const count = data?.record_count ?? 0

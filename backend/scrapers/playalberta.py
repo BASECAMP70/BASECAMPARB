@@ -124,7 +124,9 @@ class PlayAlbertaScraper(OddsScraper):
                 odds = ev["odds"]
                 labels = ev["labels"]
 
-                # Walk market columns; each label owns 1 or 2 odds slots
+                # Walk market columns; each label owns 1 or 2 odds slots.
+                # Collect per-event records so we can post-process spread handicaps.
+                ev_records: List[OddsRecord] = []
                 odds_idx = 0
                 for label in labels:
                     mapping = _LABEL_MAP.get(label)
@@ -139,6 +141,11 @@ class PlayAlbertaScraper(OddsScraper):
                         decimal_odds = odds[odds_idx]
                         odds_idx += 1
 
+                        # Skip implausible spread odds — prevents totals-line values
+                        # (e.g. 71.94 from a misaligned slot) from polluting spread records.
+                        if market == "spread" and not (1.20 <= decimal_odds <= 5.00):
+                            continue
+
                         # Build human-readable participant name
                         if outcome == "home":
                             participant = home
@@ -151,7 +158,7 @@ class PlayAlbertaScraper(OddsScraper):
                         else:
                             participant = outcome.capitalize()
 
-                        records.append(OddsRecord(
+                        ev_records.append(OddsRecord(
                             book=self.BOOK_NAME,
                             sport=sport,
                             event_name=event_name,
@@ -162,6 +169,26 @@ class PlayAlbertaScraper(OddsScraper):
                             scraped_at=now,
                             participant=participant,
                         ))
+
+                # ── Post-process: add +1.5 / -1.5 handicap to spread participant names ──
+                # Infer handicap by comparing moneyline odds:
+                #   home underdog (ML_home > ML_away)  → home gets +1.5, away gets -1.5
+                #   home favourite (ML_home < ML_away) → home gets -1.5, away gets +1.5
+                ml_home = next((r.decimal_odds for r in ev_records
+                                if r.market == "moneyline" and r.outcome == "home"), None)
+                ml_away = next((r.decimal_odds for r in ev_records
+                                if r.market == "moneyline" and r.outcome == "away"), None)
+                if ml_home and ml_away:
+                    home_hcap = "+1.5" if ml_home > ml_away else "-1.5"
+                    away_hcap = "-1.5" if ml_home > ml_away else "+1.5"
+                    for r in ev_records:
+                        if r.market == "spread":
+                            if r.outcome == "home":
+                                r.participant = f"{r.participant} {home_hcap}"
+                            elif r.outcome == "away":
+                                r.participant = f"{r.participant} {away_hcap}"
+
+                records.extend(ev_records)
 
             logger.info("[%s] scraped %d records from %d events",
                         self.BOOK_NAME, len(records), len(raw_events))

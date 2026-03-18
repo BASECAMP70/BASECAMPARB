@@ -13,13 +13,46 @@ const BOOK_DISPLAY = {
   betway: 'Betway',
 }
 
-const BOOK_URL = {
-  playalberta: 'https://www.playalberta.ca/sports',
-  betmgm: 'https://sports.betmgm.ca',
-  fanduel: 'https://www.fanduel.com/sports/alberta',
-  bet365: 'https://www.bet365.ca/en/sports/ice-hockey/nhl/',
-  sportsinteraction: 'https://www.sportsinteraction.com/en-ca/sports-betting/ice-hockey/',
-  betway: 'https://www.betway.com/en-ca',
+// Sport-specific deep links for each book
+const BOOK_SPORT_URL = {
+  playalberta: {
+    nhl:    'https://www.playalberta.ca/sports/hockey',
+    nba:    'https://www.playalberta.ca/sports/basketball',
+    mlb:    'https://www.playalberta.ca/sports/baseball',
+    nfl:    'https://www.playalberta.ca/sports/football',
+    soccer: 'https://www.playalberta.ca/sports/soccer',
+    _default: 'https://www.playalberta.ca/sports',
+  },
+  bet365: {
+    nhl:    'https://www.bet365.ca/en/sports/ice-hockey/nhl/',
+    nba:    'https://www.bet365.ca/en/sports/basketball/',
+    mlb:    'https://www.bet365.ca/en/sports/baseball/',
+    nfl:    'https://www.bet365.ca/en/sports/american-football/',
+    soccer: 'https://www.bet365.ca/en/sports/soccer/',
+    _default: 'https://www.bet365.ca',
+  },
+  sportsinteraction: {
+    nhl:    'https://www.sportsinteraction.com/en-ca/sports-betting/ice-hockey/',
+    nba:    'https://www.sportsinteraction.com/en-ca/sports-betting/basketball/',
+    mlb:    'https://www.sportsinteraction.com/en-ca/sports-betting/baseball/',
+    soccer: 'https://www.sportsinteraction.com/en-ca/sports-betting/soccer/',
+    _default: 'https://www.sportsinteraction.com',
+  },
+  betmgm:  { _default: 'https://sports.betmgm.ca' },
+  fanduel: { _default: 'https://www.fanduel.com/sports/alberta' },
+  betway:  { _default: 'https://www.betway.com/en-ca' },
+}
+
+function getBookUrl(book, sport) {
+  const map = BOOK_SPORT_URL[book] || {}
+  return map[sport] || map._default || '#'
+}
+
+// Human-readable market labels
+const MARKET_LABEL = {
+  moneyline: 'Moneyline',
+  spread:    'Spread',
+  totals:    'Over/Under',
 }
 
 function calcLegs(bankroll, outcomes) {
@@ -95,23 +128,23 @@ export default function OpportunitiesTable({ opps, newIds }) {
                 <td className="td-market">{opp.market}</td>
                 <td className="td-profit"><span className="profit-badge">+{(opp.margin * 100).toFixed(2)}%</span></td>
                 <td className="td-bets">
-                  {/* Always-visible bet instructions with dollar amounts */}
                   <div className="bet-instructions">
                     {legs.map(leg => (
                       <div key={leg.outcome} className="bet-leg">
+                        <span className="bet-book-name">{BOOK_DISPLAY[leg.book] || leg.book}</span>
+                        <span className="bet-sep">→</span>
+                        <span className="bet-selection">{leg.participant}</span>
+                        <span className="bet-market-badge">{MARKET_LABEL[opp.market] || opp.market}</span>
+                        <span className="bet-amount">${leg.stake}</span>
+                        <span className="bet-odds">@ {leg.odds}</span>
                         <a
-                          className="bet-book-link"
-                          href={BOOK_URL[leg.book] || '#'}
+                          className="bet-open-link"
+                          href={getBookUrl(leg.book, opp.sport)}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={e => e.stopPropagation()}
-                        >
-                          {BOOK_DISPLAY[leg.book] || leg.book}
-                        </a>
-                        <span className="bet-sep">→</span>
-                        <span className="bet-selection">{leg.participant}</span>
-                        <span className="bet-amount">${leg.stake}</span>
-                        <span className="bet-odds">@ {leg.odds}</span>
+                          title={`Open ${BOOK_DISPLAY[leg.book] || leg.book}`}
+                        >Open ↗</a>
                       </div>
                     ))}
                     <div className="bet-profit-line">Guaranteed profit: +${profit}</div>

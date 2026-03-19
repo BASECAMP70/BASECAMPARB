@@ -11,6 +11,8 @@
     "Flames": "Calgary Flames",
     "Calgary Flames": "Calgary Flames",
     "CGY Flames": "Calgary Flames",
+    "cal flames": "Calgary Flames",
+    "CAL": "Calgary Flames",
 
     "TOR": "Toronto Maple Leafs",
     "Toronto": "Toronto Maple Leafs",
@@ -93,6 +95,8 @@
     "WSH Capitals": "Washington Capitals",
     "WSH Caps": "Washington Capitals",
     "Caps": "Washington Capitals",
+    "was capitals": "Washington Capitals",
+    "WAS Capitals": "Washington Capitals",
 
     "NYR2": "New York Rangers",
 
@@ -148,6 +152,8 @@
     "Predators": "Nashville Predators",
     "Nashville Predators": "Nashville Predators",
     "NSH Predators": "Nashville Predators",
+    "nas predators": "Nashville Predators",
+    "NAS": "Nashville Predators",
 
     "STL": "St. Louis Blues",
     "St. Louis": "St. Louis Blues",
@@ -181,6 +187,7 @@
     "Utah Mammoth": "Utah Hockey Club",
     "Mammoth": "Utah Hockey Club",
     "UTA Mammoth": "Utah Hockey Club",
+    "uta hockey club": "Utah Hockey Club",
 
     "LAK": "Los Angeles Kings",
     "LA": "Los Angeles Kings",
@@ -215,6 +222,8 @@
     "Golden Knights": "Vegas Golden Knights",
     "Vegas Golden Knights": "Vegas Golden Knights",
     "VGK Golden Knights": "Vegas Golden Knights",
+    "vgs golden knights": "Vegas Golden Knights",
+    "VGS": "Vegas Golden Knights",
 
     "PHX": "Utah Hockey Club",
 
@@ -222,21 +231,25 @@
     "Milwaukee": "Milwaukee Bucks",
     "Bucks": "Milwaukee Bucks",
     "Milwaukee Bucks": "Milwaukee Bucks",
+    "mil bucks": "Milwaukee Bucks",
 
     "BKN": "Brooklyn Nets",
     "Brooklyn": "Brooklyn Nets",
     "Nets": "Brooklyn Nets",
     "Brooklyn Nets": "Brooklyn Nets",
+    "bkn nets": "Brooklyn Nets",
 
     "MIA": "Miami Heat",
     "Miami": "Miami Heat",
     "Heat": "Miami Heat",
     "Miami Heat": "Miami Heat",
+    "mia heat": "Miami Heat",
 
     "ATL": "Atlanta Hawks",
     "Atlanta": "Atlanta Hawks",
     "Hawks": "Atlanta Hawks",
     "Atlanta Hawks": "Atlanta Hawks",
+    "atl hawks": "Atlanta Hawks",
 
     "ORL": "Orlando Magic",
     "Orlando": "Orlando Magic",
@@ -262,6 +275,7 @@
     "Cavaliers": "Cleveland Cavaliers",
     "Cavs": "Cleveland Cavaliers",
     "Cleveland Cavaliers": "Cleveland Cavaliers",
+    "cle cavaliers": "Cleveland Cavaliers",
 
     "DEN": "Denver Nuggets",
     "Denver": "Denver Nuggets",
@@ -271,6 +285,7 @@
     "UTA2": "Utah Jazz",
     "Utah Jazz": "Utah Jazz",
     "Jazz": "Utah Jazz",
+    "uta jazz": "Utah Jazz",
 
     "OKC": "Oklahoma City Thunder",
     "Oklahoma City": "Oklahoma City Thunder",
@@ -286,16 +301,20 @@
     "New Orleans": "New Orleans Pelicans",
     "Pelicans": "New Orleans Pelicans",
     "New Orleans Pelicans": "New Orleans Pelicans",
+    "no pelicans": "New Orleans Pelicans",
+    "NO": "New Orleans Pelicans",
 
     "HOU": "Houston Rockets",
     "Houston": "Houston Rockets",
     "Rockets": "Houston Rockets",
     "Houston Rockets": "Houston Rockets",
+    "hou rockets": "Houston Rockets",
 
     "SAS": "San Antonio Spurs",
     "San Antonio": "San Antonio Spurs",
     "Spurs": "San Antonio Spurs",
     "San Antonio Spurs": "San Antonio Spurs",
+    "sas spurs": "San Antonio Spurs",
 
     "POR": "Portland Trail Blazers",
     "Portland": "Portland Trail Blazers",
@@ -305,6 +324,7 @@
     "SAC": "Sacramento Kings",
     "Sacramento": "Sacramento Kings",
     "Sacramento Kings": "Sacramento Kings",
+    "sac kings": "Sacramento Kings",
 
     "GSW": "Golden State Warriors",
     "Golden State": "Golden State Warriors",
@@ -319,11 +339,15 @@
     "LAL": "Los Angeles Lakers",
     "Lakers": "Los Angeles Lakers",
     "Los Angeles Lakers": "Los Angeles Lakers",
+    "la lakers": "Los Angeles Lakers",
+    "LA Lakers": "Los Angeles Lakers",
 
     "PHX2": "Phoenix Suns",
     "Phoenix": "Phoenix Suns",
     "Suns": "Phoenix Suns",
     "Phoenix Suns": "Phoenix Suns",
+    "phx suns": "Phoenix Suns",
+    "PHX": "Phoenix Suns",
 
     "BOS2": "Boston Celtics",
     "Celtics": "Boston Celtics",
@@ -332,6 +356,7 @@
     "CHI2": "Chicago Bulls",
     "Bulls": "Chicago Bulls",
     "Chicago Bulls": "Chicago Bulls",
+    "chi bulls": "Chicago Bulls",
 
     "TOR2": "Toronto Raptors",
     "Raptors": "Toronto Raptors",
@@ -340,6 +365,7 @@
     "NYK": "New York Knicks",
     "Knicks": "New York Knicks",
     "New York Knicks": "New York Knicks",
+    "ny knicks": "New York Knicks",
 
     "MIN2": "Minnesota Timberwolves",
     "Timberwolves": "Minnesota Timberwolves",
@@ -351,18 +377,31 @@
     "Mavs": "Dallas Mavericks",
     "Dallas Mavericks": "Dallas Mavericks",
 
+    "PHI3": "Philadelphia 76ers",
+    "76ers": "Philadelphia 76ers",
+    "Sixers": "Philadelphia 76ers",
+    "Philadelphia 76ers": "Philadelphia 76ers",
+    "phi 76ers": "Philadelphia 76ers",
+    "PHI 76ers": "Philadelphia 76ers",
+
+    "DAL3": "Dallas Mavericks",
+    "dal mavs": "Dallas Mavericks",
+
     "NYY": "New York Yankees",
     "New York Yankees": "New York Yankees",
     "Yankees": "New York Yankees",
+    "ny yankees": "New York Yankees",
 
     "NYM": "New York Mets",
     "New York Mets": "New York Mets",
     "Mets": "New York Mets",
+    "ny mets": "New York Mets",
 
     "SFG": "San Francisco Giants",
     "San Francisco": "San Francisco Giants",
     "Giants": "San Francisco Giants",
     "San Francisco Giants": "San Francisco Giants",
+    "sf giants": "San Francisco Giants",
 
     "PHI2": "Philadelphia Phillies",
     "Phillies": "Philadelphia Phillies",
@@ -374,6 +413,121 @@
 
     "LAD": "Los Angeles Dodgers",
     "Dodgers": "Los Angeles Dodgers",
-    "Los Angeles Dodgers": "Los Angeles Dodgers"
+    "Los Angeles Dodgers": "Los Angeles Dodgers",
+
+    "CHC": "Chicago Cubs",
+    "Cubs": "Chicago Cubs",
+    "Chicago Cubs": "Chicago Cubs",
+    "chi cubs": "Chicago Cubs",
+
+    "CWS": "Chicago White Sox",
+    "White Sox": "Chicago White Sox",
+    "Chicago White Sox": "Chicago White Sox",
+    "chi white sox": "Chicago White Sox",
+
+    "WSN": "Washington Nationals",
+    "Nationals": "Washington Nationals",
+    "Washington Nationals": "Washington Nationals",
+    "was nationals": "Washington Nationals",
+    "WAS Nationals": "Washington Nationals",
+
+    "MIL2": "Milwaukee Brewers",
+    "Brewers": "Milwaukee Brewers",
+    "Milwaukee Brewers": "Milwaukee Brewers",
+    "mil brewers": "Milwaukee Brewers",
+
+    "PIT": "Pittsburgh Pirates",
+    "Pirates": "Pittsburgh Pirates",
+    "Pittsburgh Pirates": "Pittsburgh Pirates",
+    "pit pirates": "Pittsburgh Pirates",
+
+    "SDG": "San Diego Padres",
+    "San Diego": "San Diego Padres",
+    "Padres": "San Diego Padres",
+    "San Diego Padres": "San Diego Padres",
+    "sd padres": "San Diego Padres",
+
+    "KCR": "Kansas City Royals",
+    "Kansas City": "Kansas City Royals",
+    "Royals": "Kansas City Royals",
+    "Kansas City Royals": "Kansas City Royals",
+    "kc royals": "Kansas City Royals",
+
+    "SEA2": "Seattle Mariners",
+    "Mariners": "Seattle Mariners",
+    "Seattle Mariners": "Seattle Mariners",
+    "sea mariners": "Seattle Mariners",
+
+    "TBR": "Tampa Bay Rays",
+    "Rays": "Tampa Bay Rays",
+    "Tampa Bay Rays": "Tampa Bay Rays",
+    "tb rays": "Tampa Bay Rays",
+
+    "DET2": "Detroit Tigers",
+    "Tigers": "Detroit Tigers",
+    "Detroit Tigers": "Detroit Tigers",
+    "det tigers": "Detroit Tigers",
+
+    "BAL": "Baltimore Orioles",
+    "Orioles": "Baltimore Orioles",
+    "Baltimore Orioles": "Baltimore Orioles",
+    "bal orioles": "Baltimore Orioles",
+
+    "STL2": "St. Louis Cardinals",
+    "Cardinals": "St. Louis Cardinals",
+    "St. Louis Cardinals": "St. Louis Cardinals",
+    "St Louis Cardinals": "St. Louis Cardinals",
+    "stl cardinals": "St. Louis Cardinals",
+
+    "CIN": "Cincinnati Reds",
+    "Reds": "Cincinnati Reds",
+    "Cincinnati Reds": "Cincinnati Reds",
+    "cin reds": "Cincinnati Reds",
+
+    "COL2": "Colorado Rockies",
+    "Rockies": "Colorado Rockies",
+    "Colorado Rockies": "Colorado Rockies",
+    "col rockies": "Colorado Rockies",
+
+    "ARI2": "Arizona Diamondbacks",
+    "Diamondbacks": "Arizona Diamondbacks",
+    "D-backs": "Arizona Diamondbacks",
+    "Arizona Diamondbacks": "Arizona Diamondbacks",
+    "ari diamondbacks": "Arizona Diamondbacks",
+
+    "CLE2": "Cleveland Guardians",
+    "Guardians": "Cleveland Guardians",
+    "Cleveland Guardians": "Cleveland Guardians",
+    "cle guardians": "Cleveland Guardians",
+
+    "MIN2": "Minnesota Twins",
+    "Twins": "Minnesota Twins",
+    "Minnesota Twins": "Minnesota Twins",
+    "min twins": "Minnesota Twins",
+
+    "ATL2": "Atlanta Braves",
+    "Braves": "Atlanta Braves",
+    "Atlanta Braves": "Atlanta Braves",
+    "atl braves": "Atlanta Braves",
+
+    "TEX": "Texas Rangers",
+    "Texas Rangers": "Texas Rangers",
+    "tex rangers": "Texas Rangers",
+
+    "HOU2": "Houston Astros",
+    "Astros": "Houston Astros",
+    "Houston Astros": "Houston Astros",
+    "hou astros": "Houston Astros",
+
+    "OAK": "Oakland Athletics",
+    "Athletics": "Oakland Athletics",
+    "A's": "Oakland Athletics",
+    "Oakland Athletics": "Oakland Athletics",
+    "oak athletics": "Oakland Athletics",
+
+    "TOR3": "Toronto Blue Jays",
+    "Blue Jays": "Toronto Blue Jays",
+    "Toronto Blue Jays": "Toronto Blue Jays",
+    "tor blue jays": "Toronto Blue Jays"
   }
 }

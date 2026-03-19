@@ -10,6 +10,7 @@ import config
 from calculator import detect_arbs, diff_opportunities
 from serializers import serialize_opportunity
 from scrapers.bet365 import Bet365Scraper
+from scrapers.bet99 import Bet99Scraper
 from scrapers.betway import BetwayScraper
 from scrapers.playalberta import PlayAlbertaScraper
 from scrapers.sportsinteraction import SportsInteractionScraper
@@ -46,6 +47,7 @@ async def start_scheduler(store, ws_manager):
             Bet365Scraper,
             SportsInteractionScraper,
             BetwayScraper,
+            Bet99Scraper,
         ]
         _scrapers = [cls(_browser) for cls in scraper_classes]
         logger.info("Playwright browser launched — %d scrapers ready", len(_scrapers))

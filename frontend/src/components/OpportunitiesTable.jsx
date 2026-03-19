@@ -126,7 +126,7 @@ export default function OpportunitiesTable({ opps, newIds }) {
       <div className="empty-state">
         <div className="empty-icon">📊</div>
         <div className="empty-title">No arbitrage opportunities right now</div>
-        <div className="empty-sub">Monitoring 4 Alberta sportsbooks every 45 seconds</div>
+        <div className="empty-sub">Monitoring 5 Alberta sportsbooks every 45 seconds</div>
       </div>
     )
   }

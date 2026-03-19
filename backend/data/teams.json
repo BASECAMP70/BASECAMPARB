@@ -154,8 +154,10 @@
     "St Louis": "St. Louis Blues",
     "Blues": "St. Louis Blues",
     "St. Louis Blues": "St. Louis Blues",
+    "St Louis Blues": "St. Louis Blues",
     "STL Blues": "St. Louis Blues",
     "st. louis blues": "St. Louis Blues",
+    "st louis blues": "St. Louis Blues",
 
     "COL": "Colorado Avalanche",
     "Colorado": "Colorado Avalanche",
@@ -176,6 +178,9 @@
     "Utah": "Utah Hockey Club",
     "Utah Hockey Club": "Utah Hockey Club",
     "UTA": "Utah Hockey Club",
+    "Utah Mammoth": "Utah Hockey Club",
+    "Mammoth": "Utah Hockey Club",
+    "UTA Mammoth": "Utah Hockey Club",
 
     "LAK": "Los Angeles Kings",
     "LA": "Los Angeles Kings",

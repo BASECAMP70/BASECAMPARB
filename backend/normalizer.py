@@ -1,31 +1,71 @@
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Optional, Tuple
 
+from rapidfuzz import process as fuzz_process, fuzz
+
+logger = logging.getLogger(__name__)
+
 _TEAMS_PATH = Path(__file__).parent / "data" / "teams.json"
 _teams: dict[str, str] = {}
+_canonical_names: list[str] = []   # unique canonical values for fuzzy matching
+_fuzzy_cache: dict[str, str] = {}  # lowercased token -> resolved canonical
+
+_FUZZY_THRESHOLD = 80  # minimum score (0-100) to accept a fuzzy match
 
 
 def _load_teams() -> dict[str, str]:
-    """Return a case-insensitive token -> canonical name lookup.
-
-    Includes both the raw keys from teams.json and the canonical values
-    (lowercased) mapped to themselves, so full team names like
-    'Edmonton Oilers' resolve correctly.
-    """
-    global _teams
+    """Return a case-insensitive token -> canonical name lookup."""
+    global _teams, _canonical_names
     if not _teams:
         data = json.loads(_TEAMS_PATH.read_text())
         raw: dict[str, str] = data["teams"]
-        # Build lowercase key -> canonical value mapping
         lookup: dict[str, str] = {}
+        canonicals: set[str] = set()
         for token, canonical in raw.items():
             lookup[token.lower()] = canonical
-            # Also map the canonical name itself (lowercased) back to canonical
             lookup[canonical.lower()] = canonical
+            canonicals.add(canonical)
         _teams = lookup
+        _canonical_names = sorted(canonicals)
     return _teams
+
+
+def _resolve_team(token: str) -> str:
+    """Exact lookup first; fall back to RapidFuzz if no exact match found.
+
+    token must already be lowercased.
+    """
+    teams = _load_teams()
+
+    # 1. Exact (case-insensitive) lookup
+    result = teams.get(token)
+    if result:
+        return result
+
+    # 2. Fuzzy cache hit
+    if token in _fuzzy_cache:
+        return _fuzzy_cache[token]
+
+    # 3. RapidFuzz against all canonical names
+    match = fuzz_process.extractOne(
+        token,
+        _canonical_names,
+        scorer=fuzz.token_sort_ratio,
+        score_cutoff=_FUZZY_THRESHOLD,
+    )
+    if match:
+        canonical = match[0]
+        logger.debug("Fuzzy match: %r -> %r (score=%s)", token, canonical, match[1])
+        _fuzzy_cache[token] = canonical
+        _teams[token] = canonical   # cache in exact lookup for next call
+        return canonical
+
+    # 4. No match — return token as-is
+    logger.warning("Unknown team token, no fuzzy match found: %r", token)
+    return token
 
 
 _MARKET_MAP: dict[str, str] = {
@@ -53,11 +93,11 @@ _OUTCOME_MAP: dict[str, str] = {
 
 def normalize_event_name(raw: str) -> str:
     """Return canonical event name: 'Team A vs Team B' in alphabetical order."""
-    teams = _load_teams()
     s = raw.strip().lower()
     # Normalize separators
     s = re.sub(r"\s+at\s+", " vs ", s)
     s = re.sub(r"\s+@\s+", " vs ", s)
+    s = re.sub(r"\s+[-–—]\s+", " vs ", s)   # handle "Home - Away" (Betway format)
     s = re.sub(r"\s+v\s+", " vs ", s)
     s = re.sub(r"\s+vs\.\s+", " vs ", s)
     parts = s.split(" vs ", 1)
@@ -65,10 +105,8 @@ def normalize_event_name(raw: str) -> str:
         return s  # can't parse, return as-is
     token_a = parts[0].strip()
     token_b = parts[1].strip()
-    # Look up each token using the lowercase key (tokens are already lowercased)
-    team_a = teams.get(token_a, token_a)
-    team_b = teams.get(token_b, token_b)
-    # Alphabetical order
+    team_a = _resolve_team(token_a)
+    team_b = _resolve_team(token_b)
     pair = sorted([team_a, team_b])
     return f"{pair[0]} vs {pair[1]}"
 

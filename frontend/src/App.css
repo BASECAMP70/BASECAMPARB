@@ -227,3 +227,106 @@ tr.expanded-row  { background: #141628; }
   100% { background: transparent; }
 }
 .new-flash { animation: flash-new 3s ease-out forwards; }
+
+/* ─── Mobile (≤ 640px) ───────────────────────────────────────────────── */
+@media (max-width: 640px) {
+
+  /* Header: wrap into two rows */
+  .app-header {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .header-left  { flex: 1 1 100%; }
+  .header-right { flex: 1 1 100%; justify-content: space-between; }
+  .app-header h1 { font-size: 0.88rem; }
+  .bankroll-label { font-size: 0.78rem; }
+  .bankroll-input { width: 64px; }
+
+  /* Book panel */
+  .book-section { padding: 10px 12px 12px; }
+
+  /* ── Opportunities: table → stacked cards ── */
+  table, thead, tbody, tr, td, th { display: block; width: 100%; box-sizing: border-box; }
+  thead { display: none; }
+
+  tr.opp-row {
+    background: #1a1d2e;
+    border: 1px solid #2d3148;
+    border-radius: 8px;
+    margin: 8px 12px 0;
+    padding: 10px 12px;
+    width: calc(100% - 24px);
+    cursor: pointer;
+  }
+  tr.opp-row:hover { background: #1e2240; }
+
+  /* Top meta line: sport + market inline */
+  .td-sport {
+    display: inline;
+    color: #64748b;
+    font-size: 0.7rem;
+    padding: 0;
+  }
+  .td-market {
+    display: inline;
+    color: #64748b;
+    font-size: 0.7rem;
+    padding: 0;
+    margin-left: 6px;
+    text-transform: capitalize;
+  }
+  .td-market::before { content: '· '; color: #334155; }
+
+  /* Event name */
+  .td-event {
+    font-size: 0.88rem;
+    padding: 3px 0 6px;
+    border-bottom: 1px solid #2d3148;
+  }
+
+  /* Profit badge */
+  .td-profit { padding: 6px 0 4px; }
+
+  /* Hide expand toggle — whole card is tappable */
+  .td-toggle { display: none; }
+
+  /* Bet instructions */
+  .td-bets { padding: 0; }
+
+  .bet-leg {
+    flex-wrap: wrap;
+    gap: 3px 6px;
+    padding: 5px 0;
+    border-bottom: 1px solid #1e2235;
+    align-items: baseline;
+  }
+  .bet-leg:last-of-type { border-bottom: none; }
+
+  /* Selection wraps to its own line */
+  .bet-selection {
+    flex: 1 1 100%;
+    font-size: 0.8rem;
+    white-space: normal;
+  }
+  .bet-scraped-at { display: none; }
+
+  .bet-profit-line { margin-top: 6px; font-size: 0.78rem; }
+
+  /* Expanded detail row */
+  tr.expanded-row {
+    background: #141628;
+    border: 1px solid #2d3148;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    margin: 0 12px 8px;
+    width: calc(100% - 24px);
+  }
+  tr.expanded-row td { padding: 0; }
+
+  /* Stake calculator on mobile */
+  .stake-calc { padding: 10px 12px 14px; }
+  .stake-row  { flex-wrap: wrap; gap: 4px; }
+  .stake-selection { flex: 1 1 100%; font-size: 0.8rem; white-space: normal; }
+  .stake-scraped-at { display: none; }
+}

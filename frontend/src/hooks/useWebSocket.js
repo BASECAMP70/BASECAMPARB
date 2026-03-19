@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-const WS_URL = 'ws://localhost:8000/ws'
+// Derive WS URL from current page host — works from any device on the network
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
 const BACKOFF = [1000, 2000, 4000, 8000, 30000]
 
 export function useWebSocket(onMessage) {

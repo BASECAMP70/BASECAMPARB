@@ -8,7 +8,7 @@ import { useOpportunities } from './hooks/useOpportunities'
 
 export const BankrollContext = createContext(100)
 
-const API = 'http://localhost:8000'
+const API = ''  // relative — proxied by Vite in dev, same origin in prod
 
 const WS_STATUS_CONFIG = {
   connected:    { dot: '●', label: 'Live',           cls: 'ws-live' },

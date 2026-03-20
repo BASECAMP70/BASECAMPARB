@@ -1,5 +1,5 @@
 """
-Bet99 scraper — Alberta market (bet99.net).
+Bet99 scraper — Alberta market (bet99.com).
 
 Bet99 runs on the Altenar sportsbook platform.  All odds are available
 via a public REST API — no browser or authentication required.
@@ -61,7 +61,7 @@ _TID_TOTALS    = 412   # Total (incl. OT)
 
 class Bet99Scraper(OddsScraper):
     BOOK_NAME = "bet99"
-    ODDS_URL  = "https://bet99.net/odds/"
+    ODDS_URL  = "https://bet99.com/sports/hockey"
 
     async def fetch_odds(self) -> List[OddsRecord]:
         now = datetime.now(timezone.utc)
@@ -77,7 +77,7 @@ class Bet99Scraper(OddsScraper):
         headers = {
             "User-Agent": random.choice(UA_LIST),
             "Accept": "application/json",
-            "Referer": "https://bet99.net/",
+            "Referer": "https://bet99.com/",
         }
         async with aiohttp.ClientSession(
             headers=headers,

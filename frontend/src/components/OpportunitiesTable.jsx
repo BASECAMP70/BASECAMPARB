@@ -41,6 +41,13 @@ const BOOK_SPORT_URL = {
   betmgm:  { _default: 'https://sports.betmgm.ca' },
   fanduel: { _default: 'https://www.fanduel.com/sports/alberta' },
   betway:  { _default: 'https://www.betway.com/en-ca' },
+  bet99:   {
+    nhl:    'https://bet99.com/sports/hockey',
+    nba:    'https://bet99.com/sports/basketball',
+    mlb:    'https://bet99.com/sports/baseball',
+    soccer: 'https://bet99.com/sports/soccer',
+    _default: 'https://bet99.com/sports',
+  },
 }
 
 function getBookUrl(book, sport) {
@@ -63,6 +70,7 @@ const BOOK_MARKET_COLUMN = {
   betmgm:      { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Total' },
   fanduel:     { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Total' },
   betway:      { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Over/Under' },
+  bet99:       { spread: 'Puck Line', moneyline: 'Money Line',  totals: 'Total' },
 }
 
 function getColumnLabel(book, market) {

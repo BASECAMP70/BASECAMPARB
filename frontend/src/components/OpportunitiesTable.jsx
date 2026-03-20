@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, Fragment } from 'react'
 import { BankrollContext } from '../App'
 import StakeCalculator from './StakeCalculator'
 
@@ -162,10 +162,9 @@ export default function OpportunitiesTable({ opps, newIds }) {
           const profit = (bankroll * opp.margin).toFixed(2)
 
           return (
-            <>
+            <Fragment key={opp.id}>
               {/* Summary row */}
               <tr
-                key={opp.id}
                 className={`opp-row ${isNew ? 'new-flash' : ''}`}
                 onClick={() => toggleExpand(opp.id)}
               >
@@ -219,7 +218,7 @@ export default function OpportunitiesTable({ opps, newIds }) {
                   </td>
                 </tr>
               )}
-            </>
+            </Fragment>
           )
         })}
       </tbody>

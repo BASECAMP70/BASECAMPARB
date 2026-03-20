@@ -320,6 +320,8 @@
     "Portland": "Portland Trail Blazers",
     "Trail Blazers": "Portland Trail Blazers",
     "Portland Trail Blazers": "Portland Trail Blazers",
+    "por trail blazers": "Portland Trail Blazers",
+    "POR Trail Blazers": "Portland Trail Blazers",
 
     "SAC": "Sacramento Kings",
     "Sacramento": "Sacramento Kings",
@@ -371,6 +373,8 @@
     "Timberwolves": "Minnesota Timberwolves",
     "T-Wolves": "Minnesota Timberwolves",
     "Minnesota Timberwolves": "Minnesota Timberwolves",
+    "min timberwolves": "Minnesota Timberwolves",
+    "MIN Timberwolves": "Minnesota Timberwolves",
 
     "DAL2": "Dallas Mavericks",
     "Mavericks": "Dallas Mavericks",
@@ -410,6 +414,8 @@
     "BOS3": "Boston Red Sox",
     "Red Sox": "Boston Red Sox",
     "Boston Red Sox": "Boston Red Sox",
+    "bos red sox": "Boston Red Sox",
+    "BOS Red Sox": "Boston Red Sox",
 
     "LAD": "Los Angeles Dodgers",
     "Dodgers": "Los Angeles Dodgers",
@@ -528,6 +534,13 @@
     "TOR3": "Toronto Blue Jays",
     "Blue Jays": "Toronto Blue Jays",
     "Toronto Blue Jays": "Toronto Blue Jays",
-    "tor blue jays": "Toronto Blue Jays"
+    "tor blue jays": "Toronto Blue Jays",
+
+    "LAA": "Los Angeles Angels",
+    "Angels": "Los Angeles Angels",
+    "Los Angeles Angels": "Los Angeles Angels",
+    "la angels": "Los Angeles Angels",
+    "LA Angels": "Los Angeles Angels",
+    "Anaheim Angels": "Los Angeles Angels"
   }
 }

@@ -111,6 +111,25 @@ def normalize_event_name(raw: str) -> str:
     return f"{pair[0]} vs {pair[1]}"
 
 
+def normalize_participant(raw: str) -> str:
+    """Return a canonical participant label, preserving any trailing handicap suffix.
+
+    E.g. "OTT Senators -1.5"  -> "Ottawa Senators -1.5"
+         "VAN Canucks +1.5"   -> "Vancouver Canucks +1.5"
+         "NAS Predators"       -> "Nashville Predators"
+    """
+    raw = raw.strip()
+    # Split off a trailing handicap like "-1.5", "+1.5", "(-1.5)", "(+1.5)"
+    m = re.match(r"^(.*?)\s*(\()?([+-]\d+(?:\.\d+)?)\)?$", raw)
+    if m:
+        team_part = m.group(1).strip()
+        handicap = m.group(3)
+        resolved = _resolve_team(team_part.lower())
+        return f"{resolved} {handicap}"
+    else:
+        return _resolve_team(raw.lower())
+
+
 def normalize_market_outcome(raw_market: str, raw_outcome: str) -> Optional[Tuple[str, str]]:
     """Return (canonical_market, canonical_outcome) or None if unrecognized."""
     market = _MARKET_MAP.get(raw_market.strip().lower())

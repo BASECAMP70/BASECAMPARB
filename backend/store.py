@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, List
 from scrapers.base import OddsRecord
 from calculator import Opportunity
+from normalizer import normalize_participant
 
 
 @dataclass
@@ -36,6 +37,10 @@ class Store:
             )
             # Retain existing records — do not overwrite
         else:
+            # Normalize participant display names on ingest
+            for r in (records or []):
+                if r.participant and r.participant not in ("Over", "Under", "Draw"):
+                    r.participant = normalize_participant(r.participant)
             self._odds[book] = records or []
             self._book_status[book] = BookStatus(
                 name=book,

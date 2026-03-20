@@ -59,6 +59,29 @@ a { text-decoration: none; }
   background: #0d1f18; border-color: #166534; color: #4ade80;
 }
 
+.email-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 5px; border: 1px solid;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.email-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.email-btn--active {
+  background: #0d1a2e; border-color: #1d4ed8; color: #93c5fd;
+}
+.email-btn--active:hover:not(:disabled) {
+  background: #1c1200; border-color: #78350f; color: #fbbf24;
+}
+
+.email-btn--paused {
+  background: #1c1a0d; border-color: #713f12; color: #fcd34d;
+}
+.email-btn--paused:hover:not(:disabled) {
+  background: #0d1a2e; border-color: #1d4ed8; color: #93c5fd;
+}
+
 /* ─── Alberta Sportsbooks panel ─────────────────────────────────────── */
 .book-section {
   background: #13152a;
@@ -127,6 +150,7 @@ tr.expanded-row  { background: #141628; }
 
 .td-sport  { white-space: nowrap; color: #94a3b8; font-size: 0.78rem; }
 .td-event  { font-weight: 500; }
+.game-date { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
 .td-market { color: #94a3b8; font-size: 0.82rem; text-transform: capitalize; }
 .td-profit { white-space: nowrap; }
 .td-toggle { text-align: right; color: #475569; font-size: 0.75rem; padding-left: 4px; }

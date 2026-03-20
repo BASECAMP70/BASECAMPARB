@@ -78,6 +78,23 @@ async def stop_scheduler():
         await _playwright.stop()
 
 
+_email_paused: bool = False
+
+
+def pause_email() -> None:
+    global _email_paused
+    _email_paused = True
+
+
+def resume_email() -> None:
+    global _email_paused
+    _email_paused = False
+
+
+def email_is_paused() -> bool:
+    return _email_paused
+
+
 def pause_scraping() -> bool:
     """Pause the scrape job.  Returns True if paused, False if already paused."""
     if _scheduler is None:
@@ -167,7 +184,7 @@ async def _run_cycle(store, ws_manager):
     store.update_opportunities(new_opps_map)
 
     # Email + push WS events for new opportunities
-    if new:
+    if new and not _email_paused:
         await notify_new_opportunities(new)
 
     for opp in new:

@@ -18,6 +18,7 @@ from calculator import Opportunity
 from scheduler import (
     start_scheduler, stop_scheduler,
     pause_scraping, resume_scraping, scraping_is_running,
+    pause_email, resume_email, email_is_paused,
 )
 from serializers import serialize_opportunity
 from store import Store
@@ -115,6 +116,27 @@ async def scraper_stop():
     running = scraping_is_running()
     await ws_manager.broadcast({"type": "scraper_state", "running": running})
     return {"running": running}
+
+
+# ── Email notification control ───────────────────────────────────────────────
+
+@app.get("/api/email/status")
+def email_status():
+    return {"paused": email_is_paused()}
+
+
+@app.post("/api/email/pause")
+async def email_pause():
+    pause_email()
+    await ws_manager.broadcast({"type": "email_state", "paused": True})
+    return {"paused": True}
+
+
+@app.post("/api/email/resume")
+async def email_resume():
+    resume_email()
+    await ws_manager.broadcast({"type": "email_state", "paused": False})
+    return {"paused": False}
 
 
 @app.websocket("/ws")

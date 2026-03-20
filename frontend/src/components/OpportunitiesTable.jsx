@@ -80,6 +80,17 @@ function displayOdds(book, decimal) {
   return '-' + Math.round(100 / (decimal - 1))
 }
 
+// Format an ISO event_start as "Today 7:05 PM" or "Mar 22 7:05 PM"
+function formatGameDate(isoStr) {
+  if (!isoStr) return null
+  const d = new Date(isoStr)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  if (isToday) return `Today ${time}`
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + time
+}
+
 // Format an ISO scraped_at timestamp as "Xs ago" / "Xm ago"
 function timeAgo(isoStr) {
   if (!isoStr) return null
@@ -159,7 +170,12 @@ export default function OpportunitiesTable({ opps, newIds }) {
                 onClick={() => toggleExpand(opp.id)}
               >
                 <td className="td-sport">{SPORT_EMOJI[opp.sport] || '🎯'} {opp.sport.toUpperCase()}</td>
-                <td className="td-event">{opp.event_name}</td>
+                <td className="td-event">
+                  <div>{opp.event_name}</div>
+                  {opp.event_start && (
+                    <div className="game-date">{formatGameDate(opp.event_start)}</div>
+                  )}
+                </td>
                 <td className="td-market">{opp.market}</td>
                 <td className="td-profit"><span className="profit-badge">+{(opp.margin * 100).toFixed(2)}%</span></td>
                 <td className="td-bets">

@@ -23,6 +23,8 @@ export default function App() {
   const [elapsed, setElapsed] = useState(null)
   const [scraperRunning, setScraperRunning] = useState(true)
   const [scraperBusy, setScraperBusy] = useState(false)
+  const [emailPaused, setEmailPaused] = useState(false)
+  const [emailBusy, setEmailBusy] = useState(false)
   const soundRef = useRef(null)
 
   const { opps, newIds, loadInitial, handleMessage } = useOpportunities()
@@ -31,6 +33,7 @@ export default function App() {
     if (msg.type === 'new_opportunity') soundRef.current?.playChime()
     if (msg.type === 'scrape_cycle_complete') setLastCycleAt(Date.now())
     if (msg.type === 'scraper_state') setScraperRunning(msg.running)
+    if (msg.type === 'email_state') setEmailPaused(msg.paused)
     setLastWsMessage(msg)
     handleMessage(msg)
   }, [handleMessage])
@@ -39,11 +42,15 @@ export default function App() {
 
   useEffect(() => { loadInitial() }, [loadInitial])
 
-  // Fetch initial scraper state on mount
+  // Fetch initial scraper + email state on mount
   useEffect(() => {
     fetch(`${API}/api/scraper/status`)
       .then(r => r.json())
       .then(d => setScraperRunning(d.running))
+      .catch(() => {})
+    fetch(`${API}/api/email/status`)
+      .then(r => r.json())
+      .then(d => setEmailPaused(d.paused))
       .catch(() => {})
   }, [])
 
@@ -54,6 +61,20 @@ export default function App() {
     const id = setInterval(() => setElapsed(s => s + 1), 1000)
     return () => clearInterval(id)
   }, [lastCycleAt])
+
+  const toggleEmail = useCallback(async () => {
+    setEmailBusy(true)
+    try {
+      const endpoint = emailPaused ? '/api/email/resume' : '/api/email/pause'
+      const res = await fetch(`${API}${endpoint}`, { method: 'POST' })
+      const data = await res.json()
+      setEmailPaused(data.paused)
+    } catch (e) {
+      console.error('email toggle failed', e)
+    } finally {
+      setEmailBusy(false)
+    }
+  }, [emailPaused])
 
   const toggleScraper = useCallback(async () => {
     setScraperBusy(true)
@@ -94,11 +115,15 @@ export default function App() {
               disabled={scraperBusy}
               title={scraperRunning ? 'Stop scraping' : 'Start scraping'}
             >
-              {scraperBusy
-                ? '…'
-                : scraperRunning
-                  ? '⏸ Stop'
-                  : '▶ Start'}
+              {scraperBusy ? '…' : scraperRunning ? '⏸ Stop' : '▶ Start'}
+            </button>
+            <button
+              className={`email-btn ${emailPaused ? 'email-btn--paused' : 'email-btn--active'}`}
+              onClick={toggleEmail}
+              disabled={emailBusy}
+              title={emailPaused ? 'Resume email alerts' : 'Pause email alerts'}
+            >
+              {emailBusy ? '…' : emailPaused ? '✉ Alerts Off' : '✉ Alerts On'}
             </button>
             <label className="bankroll-label">
               Bankroll: $

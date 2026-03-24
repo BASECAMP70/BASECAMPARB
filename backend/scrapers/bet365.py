@@ -122,26 +122,22 @@ class Bet365Scraper(OddsScraper):
 
             raw = await page.evaluate("""() => {
                 // ── Strategy ────────────────────────────────────────────────────
-                // bet365 NHL page layout after regional redirect (e.g. on.bet365.ca):
+                // bet365 NHL page layout (after regional redirect):
                 //
-                //  gl-MarketGroupContainer  ← the one container that holds hockey fixtures
-                //    ├─ cpm-ParticipantFixtureDetailsIceHockey + rcl-Market  ← fixture rows
-                //    └─ cpm-ParticipantOdds gl-Participant_General Handicap  ← puck-line odds
+                //  Multiple gl-MarketGroupContainer blocks stacked on the page.
+                //  We look for the Money Line group first (by its header label),
+                //  then fall back to any container that has non-Handicap participant
+                //  odds (2 per fixture = home + away money-line prices).
                 //
-                // The container holds the main puck-line odds FIRST (N games × 2 sides),
-                // followed by alternate lines.  We walk up from outerFixtures[0] to find
-                // the nearest gl-MarketGroupContainer, then take only the first fc*2
-                // Handicap odds elements — those are the -1.5/+1.5 main puck line.
+                //  Fixture rows: cpm-ParticipantFixtureDetailsIceHockey + rcl-Market
+                //  ML odds:      cpm-ParticipantOdds gl-Participant_General   (no Handicap class)
 
                 const FIXTURE_SEL = '[class*="cpm-ParticipantFixtureDetailsIceHockey"][class*="rcl-Market"]';
+                const ML_ODDS_SEL  = '[class*="cpm-ParticipantOdds"][class*="gl-Participant_General"]:not([class*="Handicap"])';
 
                 const priceText = (el) => {
                     const inner = el && el.querySelector('[class*="_Odds"]');
                     return (inner || el) ? (inner || el).textContent.trim() : '';
-                };
-                const handicapText = (el) => {
-                    const hEl = el && el.querySelector('[class*="_Handicap"]');
-                    return hEl ? hEl.textContent.trim() : '';
                 };
                 const getTeams = (fix) => {
                     const teamEls = fix.querySelectorAll('[class*="_TeamContainer"]');
@@ -156,25 +152,32 @@ class Bet365Scraper(OddsScraper):
                 if (!outerFixtures.length) return [];
                 const fc = outerFixtures.length;
 
-                // ── Find nearest gl-MarketGroupContainer from first fixture ─────
-                const hockeyContainer = (() => {
-                    let el = outerFixtures[0].parentElement;
-                    for (let i = 0; i < 15 && el; i++) {
-                        if (el.className.includes('gl-MarketGroupContainer')) return el;
-                        el = el.parentElement;
+                // ── Find a money-line market group container ──────────────────
+                const allContainers = [...document.querySelectorAll('[class*="gl-MarketGroupContainer"]')];
+
+                let mlContainer = null;
+
+                // 1) Look for a container whose header says "Money Line"
+                for (const c of allContainers) {
+                    const lbl = c.querySelector('[class*="gl-MarketGroupLabel"], [class*="gl-Market_HeaderLabel"]');
+                    if (lbl && lbl.textContent.toLowerCase().includes('money line')) {
+                        mlContainer = c;
+                        break;
                     }
-                    return null;
-                })();
-                if (!hockeyContainer) return [];
+                }
 
-                // Take first fc*2 Handicap elements — the main ±1.5 puck-line odds
-                const plOdds = [
-                    ...hockeyContainer.querySelectorAll(
-                        '[class*="cpm-ParticipantOdds"][class*="gl-Participant_General"][class*="Handicap"]'
-                    )
-                ].slice(0, fc * 2);
+                // 2) Fallback: any container with enough non-Handicap participant odds
+                if (!mlContainer) {
+                    for (const c of allContainers) {
+                        const odds = c.querySelectorAll(ML_ODDS_SEL);
+                        if (odds.length >= fc * 2) { mlContainer = c; break; }
+                    }
+                }
 
-                if (plOdds.length < fc * 2) return [];  // not enough odds, bail
+                if (!mlContainer) return [];
+
+                const mlOdds = [...mlContainer.querySelectorAll(ML_ODDS_SEL)].slice(0, fc * 2);
+                if (mlOdds.length < fc * 2) return [];
 
                 const results = [];
                 for (let i = 0; i < fc; i++) {
@@ -182,11 +185,11 @@ class Bet365Scraper(OddsScraper):
                     if (!home || !away) continue;
                     results.push({
                         home, away,
-                        homeOdds: priceText(plOdds[i * 2]),
-                        awayOdds: priceText(plOdds[i * 2 + 1]),
-                        homeHandicap: handicapText(plOdds[i * 2]),
-                        awayHandicap: handicapText(plOdds[i * 2 + 1]),
-                        market: 'spread',
+                        homeOdds: priceText(mlOdds[i * 2]),
+                        awayOdds: priceText(mlOdds[i * 2 + 1]),
+                        homeHandicap: '',
+                        awayHandicap: '',
+                        market: 'moneyline',
                     });
                 }
                 return results;

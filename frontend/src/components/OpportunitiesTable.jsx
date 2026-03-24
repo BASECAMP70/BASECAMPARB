@@ -40,7 +40,13 @@ const BOOK_SPORT_URL = {
   },
   betmgm:  { _default: 'https://sports.betmgm.ca' },
   fanduel: { _default: 'https://www.fanduel.com/sports/alberta' },
-  betway:  { _default: 'https://www.betway.com/en-ca' },
+  betway:  {
+    nhl:    'https://betway.com/g/en-ca/sports/gr/ice-hockey/nhl/',
+    nba:    'https://betway.com/g/en-ca/sports/gr/basketball/nba/',
+    mlb:    'https://betway.com/g/en-ca/sports/gr/baseball/mlb/',
+    soccer: 'https://betway.com/g/en-ca/sports/cat/soccer/',
+    _default: 'https://betway.com/g/en-ca/sports',
+  },
   bet99:   {
     nhl:    'https://bet99.com/sports/hockey',
     nba:    'https://bet99.com/sports/basketball',
@@ -62,18 +68,27 @@ const MARKET_LABEL = {
   totals:    'Over/Under',
 }
 
-// The exact column/field name each sportsbook uses on their site
-const BOOK_MARKET_COLUMN = {
-  playalberta: { spread: 'Puck Line', moneyline: 'Money Line', totals: 'Total' },
-  bet365:      { spread: 'Puck Line', moneyline: 'Money Line', totals: 'Over/Under' },
-  sportsinteraction: { spread: 'Puck Line', moneyline: 'Money Line', totals: 'Total' },
-  betmgm:      { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Total' },
-  fanduel:     { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Total' },
-  betway:      { spread: 'Spread',    moneyline: 'Moneyline',   totals: 'Over/Under' },
-  bet99:       { spread: 'Puck Line', moneyline: 'Money Line',  totals: 'Total' },
+// Spread label varies by sport — hockey=Puck Line, basketball=Point Spread, baseball=Run Line
+function spreadLabel(sport) {
+  if (sport === 'nba') return 'Point Spread'
+  if (sport === 'mlb') return 'Run Line'
+  return 'Puck Line'   // NHL default
 }
 
-function getColumnLabel(book, market) {
+// The exact column/field name each sportsbook uses on their site
+// spread is sport-dependent so it receives the sport as a second arg
+const BOOK_MARKET_COLUMN = {
+  playalberta:       { moneyline: 'Money Line', totals: 'Total' },
+  bet365:            { moneyline: 'Money Line', totals: 'Over/Under' },
+  sportsinteraction: { moneyline: 'Money Line', totals: 'Total' },
+  betmgm:            { moneyline: 'Moneyline',  totals: 'Total' },
+  fanduel:           { moneyline: 'Moneyline',  totals: 'Total' },
+  betway:            { moneyline: 'Moneyline',  totals: 'Over/Under' },
+  bet99:             { moneyline: 'Money Line', totals: 'Total' },
+}
+
+function getColumnLabel(book, market, sport) {
+  if (market === 'spread') return spreadLabel(sport)
   return (BOOK_MARKET_COLUMN[book] || {})[market] || MARKET_LABEL[market] || market
 }
 
@@ -193,7 +208,7 @@ export default function OpportunitiesTable({ opps, newIds }) {
                         <span className="bet-sep">→</span>
                         <span className="bet-selection">{leg.participant}</span>
                         <span className="bet-column-badge" title="Column name on sportsbook site">
-                          {getColumnLabel(leg.book, opp.market)}
+                          {getColumnLabel(leg.book, opp.market, opp.sport)}
                         </span>
                         <span className="bet-amount">${leg.stake}</span>
                         <span className="bet-odds">@ {displayOdds(leg.book, leg.odds)}</span>

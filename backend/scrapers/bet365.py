@@ -91,12 +91,13 @@ def _parse_odds(text: str) -> "float | None":
 
 class Bet365Scraper(OddsScraper):
     BOOK_NAME = "bet365"
-    # NHL landing page — shows puck-line odds for all of today's games
+    # Initial URL — bet365.ca redirects to a regional SPA (e.g. on.bet365.ca/#/HO/)
     ODDS_URL = "https://www.bet365.ca/en/sports/ice-hockey/nhl/"
-    # Alternate path appended to whatever domain bet365 redirects to
-    NHL_PATH = "/en/sports/ice-hockey/nhl/"
-    # Outer fixture rows carry the rcl-Market class; sub-elements do not
-    ODDS_CONTAINER_SELECTOR = '[class*="cpm-ParticipantFixtureDetailsIceHockey"][class*="rcl-Market"]'
+    # After the initial redirect lands, navigate to the full NHL competition listing.
+    # 18000083 is the stable bet365 competition ID for the NHL.
+    NHL_HASH = "#/HH/18000083/"
+    # Wait for the first NHL fixture to appear
+    ODDS_CONTAINER_SELECTOR = '[class*="cpm-ParticipantFixtureDetailsIceHockey"]:not([class*="Hidden"])'
 
     async def fetch_odds(self) -> List[OddsRecord]:
         context = await self.browser.new_context(
@@ -111,86 +112,106 @@ class Bet365Scraper(OddsScraper):
         now = datetime.now(timezone.utc)
 
         try:
-            # bet365.ca redirects to a regional domain (e.g. on.bet365.ca) but lands
-            # on the correct NHL page — the URL will contain "Ice_Hockey" in the hash.
-            # We do NOT attempt a second navigation; the redirect destination is correct.
+            # Step 1: navigate to get the regional domain (e.g. on.bet365.ca)
             await page.goto(self.ODDS_URL, wait_until="domcontentloaded", timeout=30_000)
-            await asyncio.sleep(random.uniform(2.0, 3.0))
+            await asyncio.sleep(random.uniform(1.5, 2.5))
+
+            # Step 2: navigate to the full NHL competition page on the resolved domain.
+            # The homepage (#/HO/) only shows a 2-game spotlight; #/HH/18000083/ shows
+            # the complete upcoming NHL schedule with Spread / Total / Money columns.
+            base_url = page.url.split("#")[0]
+            await page.goto(base_url + self.NHL_HASH, wait_until="domcontentloaded", timeout=20_000)
+            await asyncio.sleep(random.uniform(1.5, 2.5))
 
             await page.wait_for_selector(self.ODDS_CONTAINER_SELECTOR, timeout=20_000)
-            await asyncio.sleep(random.uniform(2.0, 3.5))
+            await asyncio.sleep(random.uniform(1.5, 2.5))
 
             raw = await page.evaluate("""() => {
-                // ── Strategy ────────────────────────────────────────────────────
-                // bet365 NHL page layout (after regional redirect):
+                // ── DOM structure (verified 2025-03-25) ─────────────────────────
+                // gl-MarketGroupContainer
+                //   cpm-MarketFixture  (fixture column — team names)
+                //     cpm-ParticipantFixtureDetailsIceHockey           (visible)
+                //     cpm-ParticipantFixtureDetailsIceHockey Hidden    (skip)
+                //     ...
+                //   cpm-MarketOdds  (Spread column)
+                //     cpm-MarketOddsHeader  "Spread"
+                //     cpm-ParticipantOdds gl-Participant_General cpm-ParticipantHandicap50 ...
+                //   cpm-MarketOdds  (Total column)
+                //     cpm-MarketOddsHeader  "Total"
+                //     cpm-ParticipantOdds gl-Participant_General cpm-ParticipantHandicap50 ...
+                //   cpm-MarketOdds  (Money column)
+                //     cpm-MarketOddsHeader  "Money"
+                //     cpm-ParticipantOdds gl-Participant_General cpm-ParticipantHandicap50 ...
+                //     NOTE: ALL odds buttons (Spread, Total, Money) carry the cpm-ParticipantHandicap50
+                //     class for styling.  We scope to moneyCol so no :not(Handicap) filter is needed.
                 //
-                //  Multiple gl-MarketGroupContainer blocks stacked on the page.
-                //  We look for the Money Line group first (by its header label),
-                //  then fall back to any container that has non-Handicap participant
-                //  odds (2 per fixture = home + away money-line prices).
-                //
-                //  Fixture rows: cpm-ParticipantFixtureDetailsIceHockey + rcl-Market
-                //  ML odds:      cpm-ParticipantOdds gl-Participant_General   (no Handicap class)
+                // Team name:  .cpm-ParticipantFixtureDetailsIceHockey_Team  (exact class token)
+                // Odds text:  inner span  .cpm-ParticipantOdds_Odds
 
-                const FIXTURE_SEL = '[class*="cpm-ParticipantFixtureDetailsIceHockey"][class*="rcl-Market"]';
-                const ML_ODDS_SEL  = '[class*="cpm-ParticipantOdds"][class*="gl-Participant_General"]:not([class*="Handicap"])';
+                const FIXTURE_SEL = '[class*="cpm-ParticipantFixtureDetailsIceHockey"]:not([class*="Hidden"])';
+                // All participant odds buttons inside the Money column (scoped, so no Handicap filter needed)
+                const ML_ODDS_SEL  = '[class*="cpm-ParticipantOdds"][class*="gl-Participant_General"]';
 
-                const priceText = (el) => {
-                    const inner = el && el.querySelector('[class*="_Odds"]');
-                    return (inner || el) ? (inner || el).textContent.trim() : '';
+                const oddsText = (el) => {
+                    const span = el && el.querySelector('[class*="cpm-ParticipantOdds_Odds"]');
+                    return (span || el) ? (span || el).textContent.trim() : '';
                 };
-                const getTeams = (fix) => {
-                    const teamEls = fix.querySelectorAll('[class*="_TeamContainer"]');
-                    if (teamEls.length >= 2)
-                        return [teamEls[0].textContent.trim(), teamEls[1].textContent.trim()];
-                    const txt = fix.textContent.replace(/\\d+:\\d+\\s*(AM|PM).*/i, '').trim();
-                    const m = txt.match(/^(.{3,25}?)([A-Z].{3,25})$/);
-                    return m ? [m[1].trim(), m[2].trim()] : [txt, ''];
-                };
-
-                const outerFixtures = [...document.querySelectorAll(FIXTURE_SEL)];
-                if (!outerFixtures.length) return [];
-                const fc = outerFixtures.length;
-
-                // ── Find a money-line market group container ──────────────────
-                const allContainers = [...document.querySelectorAll('[class*="gl-MarketGroupContainer"]')];
-
-                let mlContainer = null;
-
-                // 1) Look for a container whose header says "Money Line"
-                for (const c of allContainers) {
-                    const lbl = c.querySelector('[class*="gl-MarketGroupLabel"], [class*="gl-Market_HeaderLabel"]');
-                    if (lbl && lbl.textContent.toLowerCase().includes('money line')) {
-                        mlContainer = c;
-                        break;
-                    }
-                }
-
-                // 2) Fallback: any container with enough non-Handicap participant odds
-                if (!mlContainer) {
-                    for (const c of allContainers) {
-                        const odds = c.querySelectorAll(ML_ODDS_SEL);
-                        if (odds.length >= fc * 2) { mlContainer = c; break; }
-                    }
-                }
-
-                if (!mlContainer) return [];
-
-                const mlOdds = [...mlContainer.querySelectorAll(ML_ODDS_SEL)].slice(0, fc * 2);
-                if (mlOdds.length < fc * 2) return [];
 
                 const results = [];
-                for (let i = 0; i < fc; i++) {
-                    const [home, away] = getTeams(outerFixtures[i]);
-                    if (!home || !away) continue;
-                    results.push({
-                        home, away,
-                        homeOdds: priceText(mlOdds[i * 2]),
-                        awayOdds: priceText(mlOdds[i * 2 + 1]),
-                        homeHandicap: '',
-                        awayHandicap: '',
-                        market: 'moneyline',
-                    });
+                const containers = document.querySelectorAll('[class*="gl-MarketGroupContainer"]');
+
+                for (const container of containers) {
+                    // Non-Hidden NHL fixture rows inside this container
+                    const fixRows = [...container.querySelectorAll(FIXTURE_SEL)];
+                    if (!fixRows.length) continue;
+
+                    // Find the "Money" market odds column (direct child/descendant cpm-MarketOdds
+                    // whose cpm-MarketOddsHeader says "Money")
+                    const oddsColumns = container.querySelectorAll('[class*="cpm-MarketOdds"]');
+                    let moneyCol = null;
+                    for (const col of oddsColumns) {
+                        const hdr = col.querySelector('[class*="cpm-MarketOddsHeader"]');
+                        if (hdr && /money/i.test(hdr.textContent)) {
+                            moneyCol = col;
+                            break;
+                        }
+                    }
+                    if (!moneyCol) continue;
+
+                    // All odds buttons inside the Money column
+                    const mlOdds = [...moneyCol.querySelectorAll(ML_ODDS_SEL)];
+                    const gameCount = Math.floor(mlOdds.length / 2);
+                    if (!gameCount) continue;
+
+                    // The spotlight section repeats the same game fixture element for each
+                    // sub-market (period betting, props, etc.).  Collect unique game pairs
+                    // (first occurrence of each home+away team combination) to align with
+                    // the money-line odds that are ordered per game.
+                    const seen = new Set();
+                    const uniqueGames = [];
+                    for (const fix of fixRows) {
+                        const teamEls = fix.querySelectorAll('.cpm-ParticipantFixtureDetailsIceHockey_Team');
+                        if (teamEls.length < 2) continue;
+                        const home = teamEls[0].textContent.trim();
+                        const away = teamEls[1].textContent.trim();
+                        if (!home || !away) continue;
+                        const key = home + '|' + away;
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            uniqueGames.push({ home, away });
+                        }
+                        if (uniqueGames.length >= gameCount) break;
+                    }
+
+                    for (let i = 0; i < uniqueGames.length; i++) {
+                        const { home, away } = uniqueGames[i];
+                        results.push({
+                            home, away,
+                            homeOdds: oddsText(mlOdds[i * 2]),
+                            awayOdds: oddsText(mlOdds[i * 2 + 1]),
+                            market: 'moneyline',
+                        });
+                    }
                 }
                 return results;
             }""")

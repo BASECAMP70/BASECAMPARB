@@ -92,15 +92,9 @@ function getColumnLabel(book, market, sport) {
   return (BOOK_MARKET_COLUMN[book] || {})[market] || MARKET_LABEL[market] || market
 }
 
-// Books that natively display American odds (e.g. "+170", "-245")
-const AMERICAN_ODDS_BOOKS = new Set(['bet365'])
-
-// Display odds in the book's native format
+// All books display decimal odds
 function displayOdds(book, decimal) {
-  if (!AMERICAN_ODDS_BOOKS.has(book)) return decimal.toFixed(2)
-  // decimal → American
-  if (decimal >= 2.0) return '+' + Math.round((decimal - 1) * 100)
-  return '-' + Math.round(100 / (decimal - 1))
+  return decimal.toFixed(2)
 }
 
 // Format an ISO event_start as "Today 7:05 PM" or "Mar 22 7:05 PM"

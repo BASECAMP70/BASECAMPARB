@@ -24,12 +24,6 @@ from calculator import Opportunity
 logger = logging.getLogger(__name__)
 
 
-def _american(decimal: float) -> str:
-    """Convert decimal odds to American odds string."""
-    if decimal >= 2.0:
-        return f"+{round((decimal - 1) * 100)}"
-    return f"-{round(100 / (decimal - 1))}"
-
 
 def _build_email(opportunities: List[Opportunity]) -> tuple[str, str, str]:
     """Return (subject, plain_text, html) for the opportunity digest."""
@@ -54,7 +48,7 @@ def _build_email(opportunities: List[Opportunity]) -> tuple[str, str, str]:
         lines_plain.append(f"  Stake $100 across:")
         for leg in opp.outcomes:
             stake = f"${leg.recommended_stake:.2f}"
-            odds_str = _american(leg.decimal_odds) if "bet365" in leg.book else f"{leg.decimal_odds:.2f}"
+            odds_str = f"{leg.decimal_odds:.2f}"
             lines_plain.append(f"    {leg.book:20s}  {leg.participant:30s}  {odds_str:>6}  {stake}")
         lines_plain.append("")
 
@@ -64,7 +58,7 @@ def _build_email(opportunities: List[Opportunity]) -> tuple[str, str, str]:
             f"<td style='padding:4px 8px'>{leg.book}</td>"
             f"<td style='padding:4px 8px'>{leg.participant}</td>"
             f"<td style='padding:4px 8px;text-align:right'>"
-            f"{'<b>' + _american(leg.decimal_odds) + '</b>' if 'bet365' in leg.book else leg.decimal_odds:.2f}</td>"
+            f"<b>{leg.decimal_odds:.2f}</b></td>"
             f"<td style='padding:4px 8px;text-align:right'>${leg.recommended_stake:.2f}</td>"
             f"</tr>"
             for leg in opp.outcomes

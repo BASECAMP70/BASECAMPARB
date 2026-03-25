@@ -29,11 +29,8 @@ const BOOK_MARKET_COLUMN = {
 const getColumnLabel = (book, market) =>
   (BOOK_MARKET_COLUMN[book] || {})[market] || MARKET_LABEL[market] || market
 
-const AMERICAN_ODDS_BOOKS = new Set(['bet365'])
 function displayOdds(book, decimal) {
-  if (!AMERICAN_ODDS_BOOKS.has(book)) return decimal.toFixed(2)
-  if (decimal >= 2.0) return '+' + Math.round((decimal - 1) * 100)
-  return '-' + Math.round(100 / (decimal - 1))
+  return decimal.toFixed(2)
 }
 
 function timeAgo(isoStr) {

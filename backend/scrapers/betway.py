@@ -235,21 +235,8 @@ class BetwayScraper(OddsScraper):
         if not ev:
             return []
 
-        # Build a slug-based deep-link using team CNames (e.g. minnesota-wild-vs-florida-panthers)
-        # URL format mirrors the group URL: /g/en/sports/ev/{cat}/{sub}/{group}/{away}-vs-{home}/
-        away_cname  = ev.get("AwayTeamCName", "")
-        home_cname  = ev.get("HomeTeamCName", "")
-        cat_cname   = ev.get("CategoryCName", "")
-        sub_cname   = ev.get("SubCategoryCName", "")
-        grp_cname   = ev.get("GroupCName", "")
-        if all([away_cname, home_cname, cat_cname, sub_cname, grp_cname]):
-            event_url = (
-                f"https://betway.com/g/en-ca/sports/cat/"
-                f"{cat_cname}/{sub_cname}/{grp_cname}/"
-                f"{away_cname}-vs-{home_cname}/"
-            )
-        else:
-            event_url = f"https://betway.com/g/en-ca/sports/cat/{event_id}/" if event_id else ""
+        # Deep-link directly to the event page using the numeric event ID
+        event_url = f"https://betway.com/g/en-ca/sports/event/{event_id}" if event_id else ""
 
         # Event start time
         ms = ev.get("Milliseconds", 0)

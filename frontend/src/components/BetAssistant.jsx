@@ -32,11 +32,11 @@ const BOOK_SPORT_URL = {
     default: 'https://www.bet365.ca',
   },
   betway: {
-    nhl:    'https://betway.com/g/en/sports/grp/ice-hockey/north-america/nhl',
-    nba:    'https://betway.com/g/en/sports/grp/basketball/usa/nba',
-    mlb:    'https://betway.com/g/en/sports/grp/baseball/usa/mlb',
-    soccer: 'https://betway.com/g/en/sports/cat/soccer/',
-    default: 'https://betway.com/g/en/sports',
+    nhl:    'https://betway.com/g/en-ca/sports/grp/ice-hockey/north-america/nhl',
+    nba:    'https://betway.com/g/en-ca/sports/grp/basketball/usa/nba',
+    mlb:    'https://betway.com/g/en-ca/sports/grp/baseball/usa/mlb',
+    soccer: 'https://betway.com/g/en-ca/sports/cat/soccer/',
+    default: 'https://betway.com/g/en-ca/sports',
   },
   sportsinteraction: {
     nhl:    'https://www.sportsinteraction.com/en-ca/sports-betting/ice-hockey/',

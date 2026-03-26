@@ -16,6 +16,7 @@ class OpportunityLeg:
     recommended_stake: float
     participant: str = ""       # human-readable selection, e.g. "Edmonton Oilers -1.5"
     scraped_at: Optional[datetime] = None  # when this specific odd was fetched
+    event_url: str = ""         # deep link to the event page on the book's site
 
 
 @dataclass
@@ -170,6 +171,7 @@ def detect_arbs(records: List[OddsRecord], min_margin: float = 0.005) -> List[Op
                 recommended_stake=0.0,
                 participant=combo[i].participant,
                 scraped_at=combo[i].scraped_at,
+                event_url=combo[i].event_url,
             )
             for i in range(len(participants))
         ]

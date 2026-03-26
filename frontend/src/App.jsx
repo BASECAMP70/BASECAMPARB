@@ -2,6 +2,7 @@ import { useState, createContext, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import BookStatusBar from './components/BookStatusBar'
 import OpportunitiesTable from './components/OpportunitiesTable'
+import BetAssistant from './components/BetAssistant'
 import AlertSound from './components/AlertSound'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useOpportunities } from './hooks/useOpportunities'
@@ -18,6 +19,7 @@ const WS_STATUS_CONFIG = {
 
 export default function App() {
   const [bankroll, setBankroll] = useState(100)
+  const [activeBettingOpp, setActiveBettingOpp] = useState(null)
   const [lastWsMessage, setLastWsMessage] = useState(null)
   const [lastCycleAt, setLastCycleAt] = useState(null)
   const [elapsed, setElapsed] = useState(null)
@@ -139,7 +141,8 @@ export default function App() {
           </div>
         </header>
         <BookStatusBar wsMessage={lastWsMessage} />
-        <OpportunitiesTable opps={opps} newIds={newIds} />
+        <OpportunitiesTable opps={opps} newIds={newIds} onPlaceBets={setActiveBettingOpp} />
+        <BetAssistant opportunity={activeBettingOpp} onClose={() => setActiveBettingOpp(null)} />
       </div>
     </BankrollContext.Provider>
   )

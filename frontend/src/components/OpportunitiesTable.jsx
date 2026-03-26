@@ -141,7 +141,7 @@ function calcLegs(bankroll, outcomes) {
   }))
 }
 
-export default function OpportunitiesTable({ opps, newIds }) {
+export default function OpportunitiesTable({ opps, newIds, onPlaceBets }) {
   const [expanded, setExpanded] = useState(new Set())
   const bankroll = useContext(BankrollContext)
 
@@ -151,6 +151,16 @@ export default function OpportunitiesTable({ opps, newIds }) {
     if (bNew !== aNew) return bNew - aNew
     return b.margin - a.margin
   })
+
+  function handlePlaceBets(e, opp) {
+    e.stopPropagation()
+    // Open each book's event page in a new tab simultaneously
+    opp.outcomes.forEach(leg => {
+      const url = leg.event_url || getBookUrl(leg.book, opp.sport)
+      window.open(url, '_blank', 'noopener')
+    })
+    if (onPlaceBets) onPlaceBets(opp)
+  }
 
   function toggleExpand(id) {
     setExpanded(prev => {
@@ -239,6 +249,15 @@ export default function OpportunitiesTable({ opps, newIds }) {
                     ))}
                     <div className="bet-profit-line">Guaranteed profit: +${profit}</div>
                   </div>
+                </td>
+                <td className="td-action">
+                  <button
+                    className="place-bets-btn"
+                    onClick={e => handlePlaceBets(e, opp)}
+                    title="Open each book to the game page and launch Bet Assistant"
+                  >
+                    Place Bets
+                  </button>
                 </td>
                 <td className="td-toggle">{isExp ? '▲' : '▼'}</td>
               </tr>

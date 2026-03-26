@@ -88,6 +88,15 @@ _SPORT_ID_MAP = {
     6: "nfl",
 }
 
+# Sport key → SI URL path segment for event deep links
+_SPORT_URL_PATH = {
+    "nhl":    "ice-hockey",
+    "nba":    "basketball",
+    "mlb":    "baseball",
+    "nfl":    "american-football",
+    "soccer": "soccer",
+}
+
 _MARKET_NAME_MAP = {
     "money line": "moneyline",
     "moneyline": "moneyline",
@@ -147,6 +156,7 @@ class SportsInteractionScraper(OddsScraper):
                         name = fixture.get("name", {}).get("value", "")
                         stage = fixture.get("stage", "")
                         start_raw = fixture.get("startDate", "")
+                        fixture_id = fixture.get("id", "")
 
                         if stage not in ("PreMatch", ""):
                             continue
@@ -163,6 +173,11 @@ class SportsInteractionScraper(OddsScraper):
                             event_start = now
 
                         sport = _SPORT_ID_MAP.get(sport_id, "nhl")
+                        sport_path = _SPORT_URL_PATH.get(sport, "ice-hockey")
+                        event_url = (
+                            f"https://www.sportsinteraction.com/en-ca/sports-betting/{sport_path}/{fixture_id}/"
+                            if fixture_id else ""
+                        )
                         option_markets = fixture.get("optionMarkets", [])
 
                         for market in option_markets:
@@ -208,6 +223,7 @@ class SportsInteractionScraper(OddsScraper):
                                     decimal_odds=float(decimal_odds),
                                     scraped_at=now,
                                     participant=participant,
+                                    event_url=event_url,
                                 ))
 
                     if records:

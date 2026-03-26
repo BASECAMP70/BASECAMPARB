@@ -28,6 +28,7 @@ class OddsRecord:
     decimal_odds: float
     scraped_at: datetime    # UTC
     participant: str = ""   # human-readable selection, e.g. "Edmonton Oilers -1.5"
+    event_url: str = ""     # deep link to the event page on the book's site (if available)
 
 
 class OddsScraper(ABC):

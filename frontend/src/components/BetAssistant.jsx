@@ -15,12 +15,13 @@ const SPORT_EMOJI = {
 // Sport-level fallback URLs — kept in sync with OpportunitiesTable.jsx BOOK_SPORT_URL
 const BOOK_SPORT_URL = {
   playalberta: {
-    nhl:    'https://www.playalberta.ca/sports/hockey',
-    nba:    'https://www.playalberta.ca/sports/basketball',
-    mlb:    'https://www.playalberta.ca/sports/baseball',
-    nfl:    'https://www.playalberta.ca/sports/football',
-    soccer: 'https://www.playalberta.ca/sports/soccer',
-    default: 'https://www.playalberta.ca/sports',
+    // stg-XXXXX IDs confirmed via live browser inspection of playalberta.ca/sports
+    nhl:    'https://playalberta.ca/sports/hockey/nhl/stg-19217',
+    nba:    'https://playalberta.ca/sports/basketball/nba/stg-19658',
+    mlb:    'https://playalberta.ca/sports/baseball/mlb/stg-20831',
+    nfl:    'https://playalberta.ca/sports/football/nfl/stg-19218',
+    soccer: 'https://playalberta.ca/sports/soccer/sp-1',
+    default: 'https://playalberta.ca/sports',
   },
   bet365: {
     nhl:    'https://www.bet365.ca/en/sports/ice-hockey/nhl/',
@@ -31,11 +32,11 @@ const BOOK_SPORT_URL = {
     default: 'https://www.bet365.ca',
   },
   betway: {
-    nhl:    'https://betway.com/g/en-ca/sports/grp/ice-hockey/north-america/nhl',
-    nba:    'https://betway.com/g/en-ca/sports/grp/basketball/usa/nba',
-    mlb:    'https://betway.com/g/en-ca/sports/grp/baseball/usa/mlb',
-    soccer: 'https://betway.com/g/en-ca/sports/cat/soccer/',
-    default: 'https://betway.com/g/en-ca/sports',
+    nhl:    'https://betway.com/g/en/sports/grp/ice-hockey/north-america/nhl',
+    nba:    'https://betway.com/g/en/sports/grp/basketball/usa/nba',
+    mlb:    'https://betway.com/g/en/sports/grp/baseball/usa/mlb',
+    soccer: 'https://betway.com/g/en/sports/cat/soccer/',
+    default: 'https://betway.com/g/en/sports',
   },
   sportsinteraction: {
     nhl:    'https://www.sportsinteraction.com/en-ca/sports-betting/ice-hockey/',

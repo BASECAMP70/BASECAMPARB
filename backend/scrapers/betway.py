@@ -20,9 +20,9 @@ API approach (no browser needed):
     2. POST GetEventsWithMultipleMarkets — returns events + markets + outcomes
 
   Supported sports and their market cnames (discovered via API probing):
-    NHL:      money-line, -puck-line----1-5
-    NBA:      money-line, -point-spread---0
-    MLB:      money-line, -run-line---0
+    NHL:      money-line
+    NBA:      money-line
+    MLB:      money-line
     Soccer:   draw-no-bet  (2-way, no draw market available in CA)
 """
 
@@ -53,9 +53,9 @@ _CLIENT_INTEGRATOR_ID = 1
 
 # (group_cname, category_cname, subcat_cname, sport_key, market_cnames)
 _SPORT_CONFIGS: List[Tuple[str, str, str, str, List[str]]] = [
-    ("nhl",            "ice-hockey",  "north-america", "nhl",    ["money-line", "-puck-line----1-5"]),
-    ("nba",            "basketball",  "usa",           "nba",    ["money-line", "-point-spread---0"]),
-    ("mlb",            "baseball",    "usa",           "mlb",    ["money-line", "-run-line---0"]),
+    ("nhl",            "ice-hockey",  "north-america", "nhl",    ["money-line"]),
+    ("nba",            "basketball",  "usa",           "nba",    ["money-line"]),
+    ("mlb",            "baseball",    "usa",           "mlb",    ["money-line"]),
     ("premier-league", "soccer",      "england",       "soccer", ["draw-no-bet"]),
     ("la-liga",        "soccer",      "spain",         "soccer", ["draw-no-bet"]),
     ("bundesliga",     "soccer",      "germany",       "soccer", ["draw-no-bet"]),
@@ -82,8 +82,6 @@ def _canonical_market(cname: str) -> str:
     """Map a Betway market cname to our canonical market key."""
     if "money-line" in cname or "draw-no-bet" in cname:
         return "moneyline"
-    if any(s in cname for s in ("puck-line", "run-line", "point-spread")):
-        return "spread"
     return ""
 
 

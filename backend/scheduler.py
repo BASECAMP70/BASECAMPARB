@@ -136,6 +136,13 @@ def scraping_is_running() -> bool:
 
 
 async def _run_cycle(store, ws_manager):
+    try:
+        await _run_cycle_inner(store, ws_manager)
+    except Exception as exc:
+        logger.error("Unhandled exception in scrape cycle: %s: %s", type(exc).__name__, exc, exc_info=True)
+
+
+async def _run_cycle_inner(store, ws_manager):
     start = datetime.now(timezone.utc)
     logger.info("Scrape cycle starting")
 

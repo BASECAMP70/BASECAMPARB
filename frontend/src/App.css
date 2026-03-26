@@ -150,7 +150,8 @@ tr.expanded-row  { background: #141628; }
 
 .td-sport  { white-space: nowrap; color: #94a3b8; font-size: 0.78rem; }
 .td-event  { font-weight: 500; }
-.game-date { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
+.game-date  { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
+.detected-at { font-size: 0.68rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; }
 .td-market { color: #94a3b8; font-size: 0.82rem; text-transform: capitalize; }
 .td-profit { white-space: nowrap; }
 .td-toggle { text-align: right; color: #475569; font-size: 0.75rem; padding-left: 4px; }

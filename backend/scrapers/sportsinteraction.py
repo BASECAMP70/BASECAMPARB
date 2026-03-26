@@ -93,8 +93,6 @@ _MARKET_NAME_MAP = {
     "moneyline": "moneyline",
     "1x2": "moneyline",
     "match winner": "moneyline",
-    "puck line": "spread",
-    "spread": "spread",
     "total": "totals",
     "over/under": "totals",
     "game total": "totals",

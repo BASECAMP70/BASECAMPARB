@@ -63,8 +63,9 @@ def _resolve_team(token: str) -> str:
         _teams[token] = canonical   # cache in exact lookup for next call
         return canonical
 
-    # 4. No match — return token as-is
-    logger.warning("Unknown team token, no fuzzy match found: %r", token)
+    # 4. No match — return token as-is (suppress repeated warnings via cache)
+    _fuzzy_cache[token] = token  # cache so we don't warn again
+    logger.debug("Unknown team token, no fuzzy match found: %r", token)
     return token
 
 

@@ -117,6 +117,17 @@ function timeAgo(isoStr) {
   return `${Math.floor(secs / 3600)}h ago`
 }
 
+// Format an ISO detected_at as "Today 3:22 PM" or "Mar 26 3:22 PM"
+function formatDetectedAt(isoStr) {
+  if (!isoStr) return null
+  const d = new Date(isoStr)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  if (isToday) return `Today ${time}`
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + time
+}
+
 function calcLegs(bankroll, outcomes) {
   const implied = outcomes.map(o => 1 / o.decimal_odds)
   const arbSum = implied.reduce((a, b) => a + b, 0)
@@ -193,7 +204,12 @@ export default function OpportunitiesTable({ opps, newIds }) {
                   )}
                 </td>
                 <td className="td-market">{opp.market}</td>
-                <td className="td-profit"><span className="profit-badge">+{(opp.margin * 100).toFixed(2)}%</span></td>
+                <td className="td-profit">
+                  <span className="profit-badge">+{(opp.margin * 100).toFixed(2)}%</span>
+                  {opp.detected_at && (
+                    <div className="detected-at">🕵️ {formatDetectedAt(opp.detected_at)}</div>
+                  )}
+                </td>
                 <td className="td-bets">
                   <div className="bet-instructions">
                     {legs.map(leg => (

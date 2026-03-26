@@ -26,12 +26,15 @@ from scrapers.base import OddsRecord, OddsScraper, UA_LIST
 logger = logging.getLogger(__name__)
 
 # Map PlayAlberta label text → (canonical_market, outcome_order)
-# outcome_order is a list of canonical outcomes that correspond to the odds columns
+# outcome_order is a list of canonical outcomes that correspond to the odds columns.
+# Spread/puck-line/total are kept here so the odds-index counter advances correctly
+# even though we only emit moneyline records.
 _LABEL_MAP = {
-    "money line": ("moneyline", ["home", "away"]),
+    "money line": ("moneyline", ["home", "away"]),   # order overridden at runtime for "@" games
     "ml":         ("moneyline", ["home", "away"]),
     "spread":     ("spread",    ["home", "away"]),
     "puck line":  ("spread",    ["home", "away"]),
+    "run line":   ("spread",    ["home", "away"]),
     "total":      ("totals",    ["over", "under"]),
     "over/under": ("totals",    ["over", "under"]),
     "home":       ("moneyline", ["home"]),
@@ -90,17 +93,26 @@ class PlayAlbertaScraper(OddsScraper):
                         const awayEl = row.querySelector('.bto-sb-team-away .bto-sb-team-name');
                         if (!homeEl || !awayEl) continue;
 
-                        const home = homeEl.textContent.trim();
-                        const away = awayEl.textContent.trim();
+                        const cssFirst  = homeEl.textContent.trim();
+                        const cssSecond = awayEl.textContent.trim();
+                        const sepEl = row.querySelector('.bto-sb-team-separator');
+                        const separator = sepEl ? sepEl.textContent.trim() : '';
                         const timeEl = row.querySelector('.bto-sb-event-time');
                         const timeText = timeEl ? timeEl.textContent.trim() : '';
 
-                        // All decimal odds in column order
+                        // All decimal odds in column order.
+                        // Use a strict regex so concatenated values like "1.51.45"
+                        // (spread handicap + odds run together) are rejected — only
+                        // clean decimals with a single decimal point are accepted.
+                        const parseOdd = t => {
+                            const m = t.trim().match(/^(\d+\.\d+)$/);
+                            return m ? parseFloat(m[1]) : NaN;
+                        };
                         const odds = [...row.querySelectorAll('.bto-sb-odd')]
-                            .map(el => parseFloat(el.textContent.trim()))
+                            .map(el => parseOdd(el.textContent))
                             .filter(n => !isNaN(n) && n > 1.0);
 
-                        events.push({ sport, home, away, timeText, odds, labels });
+                        events.push({ sport, cssFirst, cssSecond, separator, timeText, odds, labels });
                     }
                 }
                 return events;
@@ -118,14 +130,30 @@ class PlayAlbertaScraper(OddsScraper):
                 if not sport:
                     sport = sport_raw or "unknown"
 
-                home = ev["home"]
-                away = ev["away"]
+                # PlayAlberta uses "Away @ Home" for North American sports:
+                #   .bto-sb-team-home (cssFirst)  = the AWAY team displayed first
+                #   .bto-sb-team-away (cssSecond) = the HOME team displayed second
+                # For soccer "vs" games the order is conventional (home first).
+                separator = ev.get("separator", "")
+                css_first  = ev["cssFirst"]
+                css_second = ev["cssSecond"]
+                if separator == "@":
+                    home = css_second   # second displayed = actual home
+                    away = css_first    # first displayed  = actual away
+                    # Odds array is in display order: away-team odds first
+                    ml_outcomes = ["away", "home"]
+                else:
+                    home = css_first
+                    away = css_second
+                    ml_outcomes = ["home", "away"]
+
                 event_name = normalize_event_name(f"{home} vs {away}")
                 odds = ev["odds"]
                 labels = ev["labels"]
 
                 # Walk market columns; each label owns 1 or 2 odds slots.
-                # Collect per-event records so we can post-process spread handicaps.
+                # We only emit moneyline records but still advance the index
+                # for spread/total columns so subsequent columns stay aligned.
                 ev_records: List[OddsRecord] = []
                 odds_idx = 0
                 for label in labels:
@@ -135,15 +163,18 @@ class PlayAlbertaScraper(OddsScraper):
                         continue
                     market, outcomes = mapping
 
+                    # For money-line labels use the separator-aware outcome order
+                    if market == "moneyline" and label in ("money line", "ml"):
+                        outcomes = ml_outcomes
+
                     for outcome in outcomes:
                         if odds_idx >= len(odds):
                             break
                         decimal_odds = odds[odds_idx]
                         odds_idx += 1
 
-                        # Skip implausible spread odds — prevents totals-line values
-                        # (e.g. 71.94 from a misaligned slot) from polluting spread records.
-                        if market == "spread" and not (1.20 <= decimal_odds <= 5.00):
+                        # Only emit moneyline records
+                        if market != "moneyline":
                             continue
 
                         # Build human-readable participant name
@@ -169,24 +200,6 @@ class PlayAlbertaScraper(OddsScraper):
                             scraped_at=now,
                             participant=participant,
                         ))
-
-                # ── Post-process: add +1.5 / -1.5 handicap to spread participant names ──
-                # Infer handicap by comparing moneyline odds:
-                #   home underdog (ML_home > ML_away)  → home gets +1.5, away gets -1.5
-                #   home favourite (ML_home < ML_away) → home gets -1.5, away gets +1.5
-                ml_home = next((r.decimal_odds for r in ev_records
-                                if r.market == "moneyline" and r.outcome == "home"), None)
-                ml_away = next((r.decimal_odds for r in ev_records
-                                if r.market == "moneyline" and r.outcome == "away"), None)
-                if ml_home and ml_away:
-                    home_hcap = "+1.5" if ml_home > ml_away else "-1.5"
-                    away_hcap = "-1.5" if ml_home > ml_away else "+1.5"
-                    for r in ev_records:
-                        if r.market == "spread":
-                            if r.outcome == "home":
-                                r.participant = f"{r.participant} {home_hcap}"
-                            elif r.outcome == "away":
-                                r.participant = f"{r.participant} {away_hcap}"
 
                 records.extend(ev_records)
 

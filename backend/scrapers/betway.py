@@ -235,7 +235,7 @@ class BetwayScraper(OddsScraper):
         if not ev:
             return []
 
-        event_url = f"https://betway.com/g/en-ca/sports/ev/{event_id}/" if event_id else ""
+        event_url = f"https://betway.com/g/en/sports/ev/{event_id}/" if event_id else ""
 
         # Event start time
         ms = ev.get("Milliseconds", 0)

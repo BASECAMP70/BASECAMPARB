@@ -112,7 +112,12 @@ class PlayAlbertaScraper(OddsScraper):
                             .map(el => parseOdd(el.textContent))
                             .filter(n => !isNaN(n) && n > 1.0);
 
-                        events.push({ sport, cssFirst, cssSecond, separator, timeText, odds, labels });
+                        // Extract per-game deep link (e.g. /sports/hockey/nhl/dal-stars-@-ny-islanders/sm-2343314)
+                        const eventLink = row.querySelector('a[href*="/sports/"]');
+                        const eventPath = eventLink ? eventLink.getAttribute('href') : '';
+                        const eventUrl = eventPath ? 'https://playalberta.ca' + eventPath : '';
+
+                        events.push({ sport, cssFirst, cssSecond, separator, timeText, odds, labels, eventUrl });
                     }
                 }
                 return events;
@@ -150,6 +155,7 @@ class PlayAlbertaScraper(OddsScraper):
                 event_name = normalize_event_name(f"{home} vs {away}")
                 odds = ev["odds"]
                 labels = ev["labels"]
+                event_url = ev.get("eventUrl", "")
 
                 # Walk market columns; each label owns 1 or 2 odds slots.
                 # We only emit moneyline records but still advance the index
@@ -199,6 +205,7 @@ class PlayAlbertaScraper(OddsScraper):
                             decimal_odds=decimal_odds,
                             scraped_at=now,
                             participant=participant,
+                            event_url=event_url,
                         ))
 
                 records.extend(ev_records)

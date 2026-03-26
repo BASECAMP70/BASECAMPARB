@@ -13,7 +13,8 @@ const BOOK_DISPLAY = {
   betway: 'Betway',
 }
 
-// Sport-specific deep links for each book
+// Sport-specific deep links for each book.
+// Base paths confirmed from scraper ODDS_URLs; sport sub-paths derived from site structure.
 const BOOK_SPORT_URL = {
   playalberta: {
     nhl:    'https://www.playalberta.ca/sports/hockey',
@@ -35,15 +36,17 @@ const BOOK_SPORT_URL = {
     nhl:    'https://www.sportsinteraction.com/en-ca/sports-betting/ice-hockey/',
     nba:    'https://www.sportsinteraction.com/en-ca/sports-betting/basketball/',
     mlb:    'https://www.sportsinteraction.com/en-ca/sports-betting/baseball/',
+    nfl:    'https://www.sportsinteraction.com/en-ca/sports-betting/american-football/',
     soccer: 'https://www.sportsinteraction.com/en-ca/sports-betting/soccer/',
-    _default: 'https://www.sportsinteraction.com',
+    _default: 'https://www.sportsinteraction.com/en-ca/',
   },
   betmgm:  { _default: 'https://sports.betmgm.ca' },
   fanduel: { _default: 'https://www.fanduel.com/sports/alberta' },
+  // Betway Canadian site — /grp/ paths confirmed from URL structure: /grp/{category}/{subcat}/{league}
   betway:  {
-    nhl:    'https://betway.com/g/en-ca/sports/gr/ice-hockey/nhl/',
-    nba:    'https://betway.com/g/en-ca/sports/gr/basketball/nba/',
-    mlb:    'https://betway.com/g/en-ca/sports/gr/baseball/mlb/',
+    nhl:    'https://betway.com/g/en-ca/sports/grp/ice-hockey/north-america/nhl',
+    nba:    'https://betway.com/g/en-ca/sports/grp/basketball/usa/nba',
+    mlb:    'https://betway.com/g/en-ca/sports/grp/baseball/usa/mlb',
     soccer: 'https://betway.com/g/en-ca/sports/cat/soccer/',
     _default: 'https://betway.com/g/en-ca/sports',
   },

@@ -12,34 +12,45 @@ const SPORT_EMOJI = {
   nhl: '🏒', nba: '🏀', mlb: '⚾', nfl: '🏈', soccer: '⚽',
 }
 
-// Sport-level fallback URLs when no event_url is available
+// Sport-level fallback URLs — kept in sync with OpportunitiesTable.jsx BOOK_SPORT_URL
 const BOOK_SPORT_URL = {
   playalberta: {
-    nhl: 'https://www.playalberta.ca/sports/hockey/nhl',
-    nba: 'https://www.playalberta.ca/sports/basketball/nba',
-    mlb: 'https://www.playalberta.ca/sports/baseball/mlb',
-    nfl: 'https://www.playalberta.ca/sports/football/nfl',
+    nhl:    'https://www.playalberta.ca/sports/hockey',
+    nba:    'https://www.playalberta.ca/sports/basketball',
+    mlb:    'https://www.playalberta.ca/sports/baseball',
+    nfl:    'https://www.playalberta.ca/sports/football',
     soccer: 'https://www.playalberta.ca/sports/soccer',
     default: 'https://www.playalberta.ca/sports',
   },
   bet365: {
-    nhl: 'https://www.on.bet365.ca/#/HH/18000083/',
-    nba: 'https://www.on.bet365.ca/#/HH/18000009/',
-    mlb: 'https://www.on.bet365.ca/#/HH/18000014/',
-    nfl: 'https://www.on.bet365.ca/#/HH/18000006/',
-    soccer: 'https://www.on.bet365.ca/#/HH/18000002/',
-    default: 'https://www.on.bet365.ca/',
+    nhl:    'https://www.bet365.ca/en/sports/ice-hockey/nhl/',
+    nba:    'https://www.bet365.ca/en/sports/basketball/',
+    mlb:    'https://www.bet365.ca/en/sports/baseball/',
+    nfl:    'https://www.bet365.ca/en/sports/american-football/',
+    soccer: 'https://www.bet365.ca/en/sports/soccer/',
+    default: 'https://www.bet365.ca',
   },
   betway: {
-    default: 'https://betway.com/g/en-ca/sports/',
+    nhl:    'https://betway.com/g/en-ca/sports/grp/ice-hockey/north-america/nhl',
+    nba:    'https://betway.com/g/en-ca/sports/grp/basketball/usa/nba',
+    mlb:    'https://betway.com/g/en-ca/sports/grp/baseball/usa/mlb',
+    soccer: 'https://betway.com/g/en-ca/sports/cat/soccer/',
+    default: 'https://betway.com/g/en-ca/sports',
   },
   sportsinteraction: {
-    nhl: 'https://www.sportsinteraction.com/en-ca/sports-betting/ice-hockey/',
-    nba: 'https://www.sportsinteraction.com/en-ca/sports-betting/basketball/',
-    mlb: 'https://www.sportsinteraction.com/en-ca/sports-betting/baseball/',
-    nfl: 'https://www.sportsinteraction.com/en-ca/sports-betting/american-football/',
+    nhl:    'https://www.sportsinteraction.com/en-ca/sports-betting/ice-hockey/',
+    nba:    'https://www.sportsinteraction.com/en-ca/sports-betting/basketball/',
+    mlb:    'https://www.sportsinteraction.com/en-ca/sports-betting/baseball/',
+    nfl:    'https://www.sportsinteraction.com/en-ca/sports-betting/american-football/',
     soccer: 'https://www.sportsinteraction.com/en-ca/sports-betting/soccer/',
     default: 'https://www.sportsinteraction.com/en-ca/',
+  },
+  bet99: {
+    nhl:    'https://bet99.com/sports/hockey',
+    nba:    'https://bet99.com/sports/basketball',
+    mlb:    'https://bet99.com/sports/baseball',
+    soccer: 'https://bet99.com/sports/soccer',
+    default: 'https://bet99.com/sports',
   },
 }
 

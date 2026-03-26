@@ -244,12 +244,12 @@ class BetwayScraper(OddsScraper):
         grp_cname   = ev.get("GroupCName", "")
         if all([away_cname, home_cname, cat_cname, sub_cname, grp_cname]):
             event_url = (
-                f"https://betway.com/g/en-ca/sports/ev/"
+                f"https://betway.com/g/en-ca/sports/cat/"
                 f"{cat_cname}/{sub_cname}/{grp_cname}/"
                 f"{away_cname}-vs-{home_cname}/"
             )
         else:
-            event_url = f"https://betway.com/g/en-ca/sports/ev/{event_id}/" if event_id else ""
+            event_url = f"https://betway.com/g/en-ca/sports/cat/{event_id}/" if event_id else ""
 
         # Event start time
         ms = ev.get("Milliseconds", 0)

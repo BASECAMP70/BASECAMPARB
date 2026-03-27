@@ -100,20 +100,21 @@ class PlayAlbertaScraper(OddsScraper):
                         const timeEl = row.querySelector('.bto-sb-event-time');
                         const timeText = timeEl ? timeEl.textContent.trim() : '';
 
-                        // All decimal odds in column order.
-                        // Use a strict regex so concatenated values like "1.51.45"
-                        // (spread handicap + odds run together) are rejected — only
-                        // clean decimals with a single decimal point are accepted.
-                        // Also cap at 30.0: integer spreads (e.g. +5) concatenate with
-                        // odds to produce valid-looking decimals like "51.93" which
-                        // would otherwise sneak through as moneyline odds.
-                        const parseOdd = t => {
-                            const m = t.trim().match(/^(\d+\.\d+)$/);
+                        // Extract odds from each .bto-sb-odd cell using DOM structure:
+                        //   1-span cell (+ optional comment): pure moneyline odd  → keep
+                        //   2-span cell: handicap + odds concatenated              → skip
+                        //   (e.g. <span>5</span><span>1.94</span> for NBA +5 spread)
+                        // This is more reliable than numeric capping and handles all
+                        // spread sizes (integer or decimal) across all sports.
+                        const parseOdd = el => {
+                            const spans = el.querySelectorAll('span');
+                            if (spans.length !== 1) return NaN;   // 0 or 2+ spans = not a clean ML odd
+                            const m = spans[0].textContent.trim().match(/^(\d+\.\d+)$/);
                             return m ? parseFloat(m[1]) : NaN;
                         };
                         const odds = [...row.querySelectorAll('.bto-sb-odd')]
-                            .map(el => parseOdd(el.textContent))
-                            .filter(n => !isNaN(n) && n > 1.0 && n < 30.0);
+                            .map(el => parseOdd(el))
+                            .filter(n => !isNaN(n) && n > 1.0);
 
                         // Extract per-game deep link (e.g. /sports/hockey/nhl/dal-stars-@-ny-islanders/sm-2343314)
                         const eventLink = row.querySelector('a[href*="/sports/"]');

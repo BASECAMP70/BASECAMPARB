@@ -43,13 +43,12 @@ const BOOK_SPORT_URL = {
   },
   betmgm:  { _default: 'https://sports.betmgm.ca' },
   fanduel: { _default: 'https://www.fanduel.com/sports/alberta' },
-  // Betway — /g/en/ confirmed from public URLs; /grp/{category}/{subcat}/{league} structure
   betway:  {
-    nhl:    'https://betway.com/g/en/sports/grp/ice-hockey/north-america/nhl',
-    nba:    'https://betway.com/g/en/sports/grp/basketball/usa/nba',
-    mlb:    'https://betway.com/g/en/sports/grp/baseball/usa/mlb',
-    soccer: 'https://betway.com/g/en/sports/cat/soccer/',
-    _default: 'https://betway.com/g/en/sports',
+    nhl:    'https://betway.com/g/en-ca/sports/grp/ice-hockey/north-america/nhl',
+    nba:    'https://betway.com/g/en-ca/sports/grp/basketball/usa/nba',
+    mlb:    'https://betway.com/g/en-ca/sports/grp/baseball/usa/mlb',
+    soccer: 'https://betway.com/g/en-ca/sports/cat/soccer/',
+    _default: 'https://betway.com/g/en-ca/sports',
   },
   bet99:   {
     nhl:    'https://bet99.com/sports/hockey',

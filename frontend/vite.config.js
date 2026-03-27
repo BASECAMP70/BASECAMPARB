@@ -7,8 +7,8 @@ export default defineConfig({
   server: {
     host: true,       // bind to 0.0.0.0 — accessible from phones on the same network
     proxy: {
-      '/api': 'http://localhost:8000',
-      '/ws':  { target: 'ws://localhost:8000', ws: true },
+      '/api': 'http://localhost:8001',
+      '/ws':  { target: 'ws://localhost:8001', ws: true },
     },
   },
 })

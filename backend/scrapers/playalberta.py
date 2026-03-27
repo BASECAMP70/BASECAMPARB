@@ -70,9 +70,9 @@ class PlayAlbertaScraper(OddsScraper):
         now = datetime.now(timezone.utc)
 
         try:
-            await page.goto(self.ODDS_URL, wait_until="domcontentloaded", timeout=30_000)
-            # Wait for sport blocks to appear
-            await page.wait_for_selector(self.ODDS_CONTAINER_SELECTOR, timeout=20_000)
+            await page.goto(self.ODDS_URL, wait_until="networkidle", timeout=45_000)
+            # Wait for sport blocks to appear — increase timeout for slow SPA render
+            await page.wait_for_selector(self.ODDS_CONTAINER_SELECTOR, timeout=35_000)
             await asyncio.sleep(random.uniform(2.0, 4.0))
 
             raw_events = await page.evaluate("""() => {

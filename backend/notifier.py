@@ -12,6 +12,7 @@ If SMTP_USER or SMTP_PASS are empty the notifier logs a warning and skips sendin
 """
 
 import logging
+from datetime import timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import List
@@ -20,6 +21,10 @@ import aiosmtplib
 
 import config
 from calculator import Opportunity
+
+# Alberta runs on Mountain Time.  Use a fixed UTC-7 offset labelled MST.
+# (MDT = UTC-6 in summer, but the user requested "MST" branding.)
+_MST = timezone(timedelta(hours=-7), "MST")
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +43,7 @@ def _build_email(opportunities: List[Opportunity]) -> tuple[str, str, str]:
 
     for opp in opportunities:
         margin_pct = f"{opp.margin * 100:.2f}%"
-        event_dt = opp.event_start.strftime("%b %d %H:%M UTC")
+        event_dt = opp.event_start.astimezone(_MST).strftime("%b %d %-I:%M %p MST")
 
         # Plain text block
         lines_plain.append(f"{'─' * 50}")
@@ -49,18 +54,28 @@ def _build_email(opportunities: List[Opportunity]) -> tuple[str, str, str]:
         for leg in opp.outcomes:
             stake = f"${leg.recommended_stake:.2f}"
             odds_str = f"{leg.decimal_odds:.2f}"
-            lines_plain.append(f"    {leg.book:20s}  {leg.participant:30s}  {odds_str:>6}  {stake}")
+            url = leg.event_url or ""
+            url_str = f"  → {url}" if url else ""
+            lines_plain.append(f"    {leg.book:20s}  {leg.participant:30s}  {odds_str:>6}  {stake}{url_str}")
         lines_plain.append("")
 
         # HTML block
         leg_rows = "".join(
-            f"<tr>"
-            f"<td style='padding:4px 8px'>{leg.book}</td>"
-            f"<td style='padding:4px 8px'>{leg.participant}</td>"
-            f"<td style='padding:4px 8px;text-align:right'>"
-            f"<b>{leg.decimal_odds:.2f}</b></td>"
-            f"<td style='padding:4px 8px;text-align:right'>${leg.recommended_stake:.2f}</td>"
-            f"</tr>"
+            (
+                f"<tr>"
+                f"<td style='padding:4px 8px'>{leg.book}</td>"
+                f"<td style='padding:4px 8px'>{leg.participant}</td>"
+                f"<td style='padding:4px 8px;text-align:right'><b>{leg.decimal_odds:.2f}</b></td>"
+                f"<td style='padding:4px 8px;text-align:right'>${leg.recommended_stake:.2f}</td>"
+                f"<td style='padding:4px 8px;text-align:center'>"
+                + (
+                    f"<a href='{leg.event_url}' style='background:#22c55e;color:#fff;padding:3px 10px;"
+                    f"border-radius:4px;text-decoration:none;font-size:0.8em;white-space:nowrap'>Place Bet ↗</a>"
+                    if leg.event_url else
+                    f"<span style='color:#9ca3af;font-size:0.8em'>—</span>"
+                )
+                + f"</td></tr>"
+            )
             for leg in opp.outcomes
         )
         lines_html.append(
@@ -74,6 +89,7 @@ def _build_email(opportunities: List[Opportunity]) -> tuple[str, str, str]:
             f"<th style='padding:4px 8px;text-align:left'>Selection</th>"
             f"<th style='padding:4px 8px;text-align:right'>Odds</th>"
             f"<th style='padding:4px 8px;text-align:right'>Stake</th>"
+            f"<th style='padding:4px 8px;text-align:center'>Bet</th>"
             f"</tr></thead><tbody>{leg_rows}</tbody></table></div>"
         )
 

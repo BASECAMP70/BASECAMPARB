@@ -148,7 +148,11 @@ export default function OpportunitiesTable({ opps, newIds, onPlaceBets }) {
   const [expanded, setExpanded] = useState(new Set())
   const bankroll = useContext(BankrollContext)
 
-  const sorted = Object.values(opps).sort((a, b) => {
+  const now = Date.now()
+  const sorted = Object.values(opps).filter(opp => {
+    if (!opp.event_start) return true
+    return new Date(opp.event_start).getTime() > now
+  }).sort((a, b) => {
     const aNew = newIds.has(a.id) ? 1 : 0
     const bNew = newIds.has(b.id) ? 1 : 0
     if (bNew !== aNew) return bNew - aNew

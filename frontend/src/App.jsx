@@ -99,7 +99,8 @@ export default function App() {
       <div className="app">
         <header className="app-header">
           <div className="header-left">
-            <h1>ARB FINDER — Alberta</h1>
+            <img src="/logo.svg" alt="Arbitrator logo" style={{height:'32px',marginRight:'10px',verticalAlign:'middle'}} />
+            <h1>Arbitrator</h1>
             <div className={`ws-status ${cls}`}>
               <span className="ws-dot">{dot}</span>
               <span className="ws-label">{label}</span>

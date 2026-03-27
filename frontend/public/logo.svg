@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Diamond shape -->
+  <polygon points="24,4 44,24 24,44 4,24" fill="#1d4ed8" stroke="#3b82f6" stroke-width="1.5"/>
+  <!-- A letterform -->
+  <text x="24" y="31" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="bold" fill="white" letter-spacing="-1">A</text>
+  <!-- Small tick/check at top right corner -->
+  <circle cx="38" cy="10" r="6" fill="#22c55e"/>
+  <polyline points="35,10 37.5,12.5 42,7.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

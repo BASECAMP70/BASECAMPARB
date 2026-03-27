@@ -104,13 +104,16 @@ class PlayAlbertaScraper(OddsScraper):
                         // Use a strict regex so concatenated values like "1.51.45"
                         // (spread handicap + odds run together) are rejected — only
                         // clean decimals with a single decimal point are accepted.
+                        // Also cap at 30.0: integer spreads (e.g. +5) concatenate with
+                        // odds to produce valid-looking decimals like "51.93" which
+                        // would otherwise sneak through as moneyline odds.
                         const parseOdd = t => {
                             const m = t.trim().match(/^(\d+\.\d+)$/);
                             return m ? parseFloat(m[1]) : NaN;
                         };
                         const odds = [...row.querySelectorAll('.bto-sb-odd')]
                             .map(el => parseOdd(el.textContent))
-                            .filter(n => !isNaN(n) && n > 1.0);
+                            .filter(n => !isNaN(n) && n > 1.0 && n < 30.0);
 
                         // Extract per-game deep link (e.g. /sports/hockey/nhl/dal-stars-@-ny-islanders/sm-2343314)
                         const eventLink = row.querySelector('a[href*="/sports/"]');

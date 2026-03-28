@@ -43,7 +43,8 @@ def _build_email(opportunities: List[Opportunity]) -> tuple[str, str, str]:
 
     for opp in opportunities:
         margin_pct = f"{opp.margin * 100:.2f}%"
-        event_dt = opp.event_start.astimezone(_MST).strftime("%b %d %-I:%M %p MST")
+        _dt = opp.event_start.astimezone(_MST)
+        event_dt = _dt.strftime("%b %d %I:%M %p MST").replace(" 0", " ", 1)
 
         # Plain text block
         lines_plain.append(f"{'─' * 50}")

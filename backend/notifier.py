@@ -109,10 +109,14 @@ async def notify_new_opportunities(opportunities: List[Opportunity]) -> None:
 
     subject, plain, html = _build_email(opportunities)
 
+    recipients = [config.ARB_EMAIL]
+    if config.ARB_SMS:
+        recipients.append(config.ARB_SMS)
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = config.SMTP_USER
-    msg["To"] = config.ARB_EMAIL
+    msg["To"] = ", ".join(recipients)
     msg.attach(MIMEText(plain, "plain"))
     msg.attach(MIMEText(html, "html"))
 
@@ -124,10 +128,11 @@ async def notify_new_opportunities(opportunities: List[Opportunity]) -> None:
             username=config.SMTP_USER,
             password=config.SMTP_PASS,
             start_tls=True,
+            recipients=recipients,
         )
         logger.info(
             "[notifier] Emailed %d opportunity alert(s) to %s",
-            len(opportunities), config.ARB_EMAIL,
+            len(opportunities), ", ".join(recipients),
         )
     except Exception as exc:
         logger.warning("[notifier] Failed to send email: %s", exc)

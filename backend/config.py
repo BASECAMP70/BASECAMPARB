@@ -15,3 +15,4 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")          # set in .env to enable emails
 SMTP_PASS = os.getenv("SMTP_PASS", "")          # Gmail: use an App Password
 ARB_EMAIL = os.getenv("ARB_EMAIL", "scott@basecampinc.ca")
+ARB_SMS   = os.getenv("ARB_SMS",   "4036066665@msg.telus.com")

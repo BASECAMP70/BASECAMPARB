@@ -11,6 +11,7 @@ const BOOK_DISPLAY = {
   bet365: 'Bet365',
   sportsinteraction: 'Sports Interaction',
   betway: 'Betway',
+  polymarket: 'Polymarket',
 }
 
 // Sport-specific deep links for each book.
@@ -56,6 +57,12 @@ const BOOK_SPORT_URL = {
     mlb:    'https://bet99.com/sports/baseball',
     soccer: 'https://bet99.com/sports/soccer',
     _default: 'https://bet99.com/sports',
+  },
+  polymarket: {
+    nba:    'https://polymarket.com/sports/basketball',
+    nhl:    'https://polymarket.com/sports/hockey',
+    mlb:    'https://polymarket.com/sports/baseball',
+    _default: 'https://polymarket.com/sports',
   },
 }
 

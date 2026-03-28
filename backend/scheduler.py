@@ -13,6 +13,7 @@ from scrapers.bet365 import Bet365Scraper
 # from scrapers.bet99 import Bet99Scraper  # suppressed
 from scrapers.betway import BetwayScraper
 from scrapers.playalberta import PlayAlbertaScraper
+from scrapers.polymarket import PolymarketScraper
 from scrapers.sportsinteraction import SportsInteractionScraper
 from notifier import notify_new_opportunities
 
@@ -47,6 +48,7 @@ async def start_scheduler(store, ws_manager):
             Bet365Scraper,
             SportsInteractionScraper,
             BetwayScraper,
+            PolymarketScraper,
             # Bet99Scraper,  # suppressed
         ]
         _scrapers = [cls(_browser) for cls in scraper_classes]

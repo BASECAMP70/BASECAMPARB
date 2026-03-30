@@ -1,10 +1,7 @@
 """Kalshi prediction market scraper via PMXT SDK."""
-import logging
 import os
 
 from scrapers.pmxt_base import PmxtScraper
-
-logger = logging.getLogger(__name__)
 
 
 class KalshiScraper(PmxtScraper):

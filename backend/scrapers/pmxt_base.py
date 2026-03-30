@@ -36,7 +36,7 @@ class PmxtScraper(OddsScraper):
             return []
 
         records: List[OddsRecord] = []
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         for sport in _SPORTS:
             try:

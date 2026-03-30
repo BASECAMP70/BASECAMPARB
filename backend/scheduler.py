@@ -33,9 +33,6 @@ _scrapers = []
 async def start_scheduler(store, ws_manager):
     global _scheduler, _playwright, _browser, _scrapers
 
-    # Attempt to launch a browser. Try msedge channel first (always present on
-    # Windows 11 and avoids SxS/VC++ issues with the bundled Chromium), then
-    # fall back to plain Chromium. If both fail the API still runs without scrapers.
     # Browser-free scrapers — always active regardless of Playwright availability
     _browser_free_scrapers = [
         PolymarketScraper(None),

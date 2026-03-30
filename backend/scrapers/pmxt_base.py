@@ -87,7 +87,7 @@ class PmxtScraper(OddsScraper):
         except Exception:
             event_start = now
 
-        event_url = getattr(market, "url", None) or f"https://{self.BOOK_NAME}.com"
+        event_url = getattr(market, "url", None) or ""
 
         records = []
         for participant, outcome_str, price in [

@@ -15,6 +15,11 @@ from scrapers.betway import BetwayScraper
 from scrapers.playalberta import PlayAlbertaScraper
 from scrapers.polymarket import PolymarketScraper
 from scrapers.sportsinteraction import SportsInteractionScraper
+from scrapers.kalshi import KalshiScraper
+from scrapers.limitless import LimitlessScraper
+from scrapers.probable import ProbableScraper
+from scrapers.myriad import MyriadScraper
+from scrapers.opinion import OpinionScraper
 from notifier import notify_new_opportunities
 
 logger = logging.getLogger(__name__)
@@ -31,6 +36,16 @@ async def start_scheduler(store, ws_manager):
     # Attempt to launch a browser. Try msedge channel first (always present on
     # Windows 11 and avoids SxS/VC++ issues with the bundled Chromium), then
     # fall back to plain Chromium. If both fail the API still runs without scrapers.
+    # Browser-free scrapers — always active regardless of Playwright availability
+    _browser_free_scrapers = [
+        PolymarketScraper(None),
+        KalshiScraper(None),
+        LimitlessScraper(None),
+        ProbableScraper(None),
+        MyriadScraper(None),
+        OpinionScraper(None),
+    ]
+
     try:
         from playwright.async_api import async_playwright
         _playwright = await async_playwright().start()
@@ -43,20 +58,19 @@ async def start_scheduler(store, ws_manager):
                 logger.debug("Browser channel %s failed: %s", channel, browser_exc)
         else:
             raise RuntimeError("No usable browser found (tried msedge and chromium)")
-        scraper_classes = [
-            PlayAlbertaScraper,
-            Bet365Scraper,
-            SportsInteractionScraper,
-            BetwayScraper,
-            PolymarketScraper,
-            # Bet99Scraper,  # suppressed
+        browser_scrapers = [
+            PlayAlbertaScraper(_browser),
+            Bet365Scraper(_browser),
+            SportsInteractionScraper(_browser),
+            BetwayScraper(_browser),
+            # Bet99Scraper(_browser),  # suppressed
         ]
-        _scrapers = [cls(_browser) for cls in scraper_classes]
+        _scrapers = browser_scrapers + _browser_free_scrapers
         logger.info("Playwright browser launched — %d scrapers ready", len(_scrapers))
     except Exception as exc:
-        logger.warning("Playwright/Chromium unavailable (%s: %s) — scrapers disabled, API still running",
+        logger.warning("Playwright/Chromium unavailable (%s: %s) — browser scrapers disabled",
                        type(exc).__name__, exc)
-        _scrapers = []
+        _scrapers = _browser_free_scrapers
 
     _scheduler = AsyncIOScheduler()
     _scheduler.add_job(

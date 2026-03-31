@@ -100,7 +100,7 @@ export default function App() {
         <header className="app-header">
           <div className="header-left">
             <img src="/logo.svg" alt="Arbiter logo" style={{height:'32px',marginRight:'10px',verticalAlign:'middle'}} />
-            <h1>Arbiter</h1>
+            <h1>Arbiter <span style={{fontSize:'0.55em',fontWeight:400,color:'#64748b',letterSpacing:'0.05em'}}>v1.0.0</span></h1>
             <div className={`ws-status ${cls}`}>
               <span className="ws-dot">{dot}</span>
               <span className="ws-label">{label}</span>

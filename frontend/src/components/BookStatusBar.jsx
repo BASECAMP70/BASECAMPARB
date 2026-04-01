@@ -10,6 +10,7 @@ const ALBERTA_BOOKS = [
   { key: 'betway',             name: 'Betway',             url: 'https://betway.com/g/en-ca/sports' },
   { key: 'bet99',              name: 'Bet99',              url: 'https://bet99.com/sports/hockey' },
   { key: 'polymarket',         name: 'Polymarket',         url: 'https://polymarket.com/sports' },
+  { key: 'myriad',             name: 'Myriad',             url: 'https://myriad.markets/markets?topic=Sports' },
 ]
 
 function timeSince(iso) {
@@ -54,7 +55,7 @@ export default function BookStatusBar({ wsMessage }) {
     <section className="book-section">
       <div className="book-section-header">
         <span className="book-section-title">Alberta Sportsbooks</span>
-        <span className="book-section-sub">6 sites monitored · click to open</span>
+        <span className="book-section-sub">7 sites monitored · click to open</span>
       </div>
       <div className="book-grid">
         {ALBERTA_BOOKS.map(({ key, name, url }) => {

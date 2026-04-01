@@ -12,6 +12,7 @@ const BOOK_DISPLAY = {
   sportsinteraction: 'Sports Interaction',
   betway: 'Betway',
   polymarket: 'Polymarket',
+  myriad:     'Myriad',
 }
 
 // Sport-specific deep links for each book.
@@ -63,6 +64,12 @@ const BOOK_SPORT_URL = {
     nhl:    'https://polymarket.com/sports/hockey',
     mlb:    'https://polymarket.com/sports/baseball',
     _default: 'https://polymarket.com/sports',
+  },
+  myriad: {
+    nba:    'https://myriad.markets/markets?topic=Sports',
+    nhl:    'https://myriad.markets/markets?topic=Sports',
+    mlb:    'https://myriad.markets/markets?topic=Sports',
+    _default: 'https://myriad.markets/markets?topic=Sports',
   },
 }
 

@@ -185,7 +185,7 @@ class PolymarketScraper(OddsScraper):
 
             slug      = market.get("slug", "")
             event_url = (
-                f"https://polymarket.com/event/{slug}"
+                f"https://polymarket.com/sports/{sport_key}/{slug}"
                 if slug else "https://polymarket.com/sports"
             )
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { fetchBooks } from '../api'
 
 // Sportsbooks and prediction markets we actively monitor
@@ -23,8 +23,9 @@ function timeSince(iso) {
 
 export default function BookStatusBar({ wsMessage }) {
   const [books, setBooks] = useState({})
+  const [enabled, setEnabled] = useState({})
 
-  // Initial load from REST
+  // Initial load
   useEffect(() => {
     fetchBooks()
       .then(data => {
@@ -33,34 +34,62 @@ export default function BookStatusBar({ wsMessage }) {
         setBooks(map)
       })
       .catch(() => {})
+    fetch('/api/scraper/books')
+      .then(r => r.json())
+      .then(data => {
+        const map = {}
+        for (const b of data.books) map[b.name] = b.enabled
+        setEnabled(map)
+      })
+      .catch(() => {})
   }, [])
 
-  // Live updates from WS (passed down from App to avoid a second connection)
+  // Live updates from WS
   useEffect(() => {
-    if (!wsMessage || wsMessage.type !== 'odds_updated') return
-    const msg = wsMessage
-    setBooks(prev => ({
-      ...prev,
-      [msg.book]: {
-        name: msg.book,
-        status: msg.status,
-        last_scraped_at: msg.scraped_at,
-        record_count: msg.record_count,
-        last_error: null,
-      },
-    }))
+    if (!wsMessage) return
+    if (wsMessage.type === 'odds_updated') {
+      const msg = wsMessage
+      setBooks(prev => ({
+        ...prev,
+        [msg.book]: {
+          name: msg.book,
+          status: msg.status,
+          last_scraped_at: msg.scraped_at,
+          record_count: msg.record_count,
+          last_error: null,
+        },
+      }))
+    }
+    if (wsMessage.type === 'scraper_book_state') {
+      setEnabled(prev => ({ ...prev, [wsMessage.book]: wsMessage.enabled }))
+    }
   }, [wsMessage])
+
+  const toggleBook = useCallback(async (key, currentlyEnabled, e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const endpoint = currentlyEnabled ? `/api/scraper/${key}/disable` : `/api/scraper/${key}/enable`
+    setEnabled(prev => ({ ...prev, [key]: !currentlyEnabled }))
+    try {
+      await fetch(endpoint, { method: 'POST' })
+    } catch {
+      setEnabled(prev => ({ ...prev, [key]: currentlyEnabled }))
+    }
+  }, [])
+
+  const enabledCount = ALBERTA_BOOKS.filter(b => enabled[b.key] !== false).length
 
   return (
     <section className="book-section">
       <div className="book-section-header">
         <span className="book-section-title">Alberta Sportsbooks</span>
-        <span className="book-section-sub">7 sites monitored · click to open</span>
+        <span className="book-section-sub">{enabledCount} of {ALBERTA_BOOKS.length} enabled · click to open</span>
       </div>
       <div className="book-grid">
         {ALBERTA_BOOKS.map(({ key, name, url }) => {
           const data = books[key]
-          const status = data?.status ?? 'idle'
+          const isEnabled = enabled[key] !== false
+          const status = !isEnabled ? 'disabled' : (data?.status ?? 'idle')
           const ago = timeSince(data?.last_scraped_at)
           const count = data?.record_count ?? 0
           const err = data?.last_error
@@ -78,13 +107,22 @@ export default function BookStatusBar({ wsMessage }) {
               <div className="book-card-body">
                 <div className="book-card-name">{name}</div>
                 <div className="book-card-meta">
-                  {status === 'ok'
+                  {!isEnabled
+                    ? 'Disabled'
+                    : status === 'ok'
                     ? `${count} odds${ago ? ` · ${ago}` : ''}`
                     : status === 'error'
                     ? `Error${err ? ': ' + err.slice(0, 28) : ''}`
                     : 'Awaiting data'}
                 </div>
               </div>
+              <button
+                className={`book-toggle-btn ${isEnabled ? 'book-toggle-btn--on' : 'book-toggle-btn--off'}`}
+                onClick={e => toggleBook(key, isEnabled, e)}
+                title={isEnabled ? 'Disable scraper' : 'Enable scraper'}
+              >
+                {isEnabled ? 'ON' : 'OFF'}
+              </button>
             </a>
           )
         })}

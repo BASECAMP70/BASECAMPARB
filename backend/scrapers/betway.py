@@ -52,10 +52,11 @@ _JURISDICTION_ID     = 2
 _CLIENT_INTEGRATOR_ID = 1
 
 # (group_cname, category_cname, subcat_cname, sport_key, market_cnames)
+# Soccer uses draw-no-bet (2-way); no spread/totals requested for soccer.
 _SPORT_CONFIGS: List[Tuple[str, str, str, str, List[str]]] = [
-    ("nhl",            "ice-hockey",  "north-america", "nhl",    ["money-line"]),
-    ("nba",            "basketball",  "usa",           "nba",    ["money-line"]),
-    ("mlb",            "baseball",    "usa",           "mlb",    ["money-line"]),
+    ("nhl",            "ice-hockey",  "north-america", "nhl",    ["money-line", "handicap", "total-goals"]),
+    ("nba",            "basketball",  "usa",           "nba",    ["money-line", "handicap", "total-points"]),
+    ("mlb",            "baseball",    "usa",           "mlb",    ["money-line", "handicap", "total-runs"]),
     ("premier-league", "soccer",      "england",       "soccer", ["draw-no-bet"]),
     ("la-liga",        "soccer",      "spain",         "soccer", ["draw-no-bet"]),
     ("bundesliga",     "soccer",      "germany",       "soccer", ["draw-no-bet"]),
@@ -82,6 +83,10 @@ def _canonical_market(cname: str) -> str:
     """Map a Betway market cname to our canonical market key."""
     if "money-line" in cname or "draw-no-bet" in cname:
         return "moneyline"
+    if "handicap" in cname:
+        return "spread"
+    if "total" in cname:
+        return "totals"
     return ""
 
 
@@ -277,31 +282,44 @@ class BetwayScraper(OddsScraper):
             if not odds_decimal or odds_decimal <= 1.0:
                 continue
 
-            bet_name        = out.get("BetName", "")
+            bet_name         = out.get("BetName", "")
             handicap_display = out.get("HandicapDisplay", "")
 
-            # Determine home / away
-            if oid in home_outcome_ids:
-                outcome = "home"
-            elif oid in away_outcome_ids:
-                outcome = "away"
+            # Totals: outcome is over/under derived from BetName
+            if canonical_market == "totals":
+                bet_lower = bet_name.lower()
+                if "over" in bet_lower:
+                    outcome = "over"
+                    participant = "Over"
+                elif "under" in bet_lower:
+                    outcome = "under"
+                    participant = "Under"
+                else:
+                    logger.debug("[betway] Unknown totals BetName %r for %s", bet_name, event_name)
+                    continue
             else:
-                if bet_name == home_name:
+                # Determine home / away for moneyline and spread
+                if oid in home_outcome_ids:
                     outcome = "home"
-                elif bet_name == away_name:
+                elif oid in away_outcome_ids:
                     outcome = "away"
                 else:
-                    logger.debug(
-                        "[betway] Cannot classify outcome %d (%r) for %s",
-                        oid, bet_name, event_name,
-                    )
-                    continue
+                    if bet_name == home_name:
+                        outcome = "home"
+                    elif bet_name == away_name:
+                        outcome = "away"
+                    else:
+                        logger.debug(
+                            "[betway] Cannot classify outcome %d (%r) for %s",
+                            oid, bet_name, event_name,
+                        )
+                        continue
 
-            # Participant label: team name + handicap if applicable
-            if canonical_market == "spread" and handicap_display:
-                participant = f"{bet_name} {handicap_display}"
-            else:
-                participant = bet_name
+                # Participant label: team name + handicap if applicable
+                if canonical_market == "spread" and handicap_display:
+                    participant = f"{bet_name} {handicap_display}"
+                else:
+                    participant = bet_name
 
             records.append(OddsRecord(
                 book=self.BOOK_NAME,

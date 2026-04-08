@@ -106,24 +106,21 @@ class Bet365Scraper(OddsScraper):
             geolocation={"latitude": 53.5461, "longitude": -113.4938, "accuracy": 50},
             permissions=["geolocation"],
         )
-        await stealth_async(context)
         page = await context.new_page()
+        await stealth_async(page)
         records: List[OddsRecord] = []
         now = datetime.now(timezone.utc)
 
         try:
             # Step 1: navigate to get the regional domain (e.g. on.bet365.ca)
-            await page.goto(self.ODDS_URL, wait_until="domcontentloaded", timeout=30_000)
+            await page.goto(self.ODDS_URL, wait_until="domcontentloaded", timeout=20_000)
             await asyncio.sleep(random.uniform(1.5, 2.5))
 
-            # Step 2: navigate to the full NHL competition page on the resolved domain.
-            # The homepage (#/HO/) only shows a 2-game spotlight; #/HH/18000083/ shows
-            # the complete upcoming NHL schedule with Spread / Total / Money columns.
             base_url = page.url.split("#")[0]
-            await page.goto(base_url + self.NHL_HASH, wait_until="domcontentloaded", timeout=20_000)
+            await page.goto(base_url + self.NHL_HASH, wait_until="domcontentloaded", timeout=15_000)
             await asyncio.sleep(random.uniform(1.5, 2.5))
 
-            await page.wait_for_selector(self.ODDS_CONTAINER_SELECTOR, timeout=20_000)
+            await page.wait_for_selector(self.ODDS_CONTAINER_SELECTOR, timeout=15_000)
             await asyncio.sleep(random.uniform(1.5, 2.5))
 
             raw = await page.evaluate("""() => {
@@ -266,6 +263,9 @@ class Bet365Scraper(OddsScraper):
         except Exception as e:
             logger.warning("%s scrape failed: %s", self.BOOK_NAME, e)
         finally:
-            await context.close()
+            try:
+                await asyncio.wait_for(context.close(), timeout=5)
+            except Exception:
+                pass
 
         return records

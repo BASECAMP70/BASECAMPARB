@@ -19,6 +19,8 @@ from scheduler import (
     start_scheduler, stop_scheduler,
     pause_scraping, resume_scraping, scraping_is_running,
     pause_email, resume_email, email_is_paused,
+    enable_scraper, disable_scraper, get_scraper_states,
+    recalculate_opportunities,
 )
 from serializers import serialize_opportunity
 from store import Store
@@ -137,6 +139,30 @@ async def email_resume():
     resume_email()
     await ws_manager.broadcast({"type": "email_state", "paused": False})
     return {"paused": False}
+
+
+# ── Per-scraper enable/disable ───────────────────────────────────────────────
+
+@app.get("/api/scraper/books")
+def get_scraper_books():
+    return {"books": [{"name": k, "enabled": v} for k, v in get_scraper_states().items()]}
+
+
+@app.post("/api/scraper/{book}/enable")
+async def scraper_enable(book: str):
+    enable_scraper(book)
+    await ws_manager.broadcast({"type": "scraper_book_state", "book": book, "enabled": True})
+    return {"book": book, "enabled": True}
+
+
+@app.post("/api/scraper/{book}/disable")
+async def scraper_disable(book: str):
+    disable_scraper(book)
+    # Clear odds and immediately recompute arbs so stale opportunities expire now
+    store.clear_book(book)
+    await recalculate_opportunities(store, ws_manager)
+    await ws_manager.broadcast({"type": "scraper_book_state", "book": book, "enabled": False})
+    return {"book": book, "enabled": False}
 
 
 @app.websocket("/ws")

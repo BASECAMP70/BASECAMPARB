@@ -50,6 +50,11 @@ class Store:
                 last_error=None,
             )
 
+    def clear_book(self, book: str):
+        """Remove all odds for a book (e.g. when scraper is disabled)."""
+        self._odds.pop(book, None)
+        self._book_status.pop(book, None)
+
     def get_records(self, book: str) -> List[OddsRecord]:
         return self._odds.get(book, [])
 

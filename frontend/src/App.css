@@ -135,6 +135,18 @@ a { text-decoration: none; }
 .book-card--ok    .book-card-meta { color: #86efac; }
 .book-card--error .book-card-meta { color: #fca5a5; }
 .book-card--stale .book-card-meta { color: #fcd34d; }
+.book-card--disabled { border-color: #2d3148; background: #10121f; opacity: 0.5; }
+
+.book-toggle-btn {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em;
+  padding: 2px 6px; border-radius: 4px; border: none; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.book-toggle-btn--on  { background: #166534; color: #4ade80; }
+.book-toggle-btn--on:hover  { background: #14532d; }
+.book-toggle-btn--off { background: #1e293b; color: #475569; }
+.book-toggle-btn--off:hover { background: #0f172a; }
 
 /* ─── Opportunities table ───────────────────────────────────────────── */
 table { width: 100%; border-collapse: collapse; }

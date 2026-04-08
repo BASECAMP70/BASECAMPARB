@@ -64,15 +64,14 @@ class PlayAlbertaScraper(OddsScraper):
 
     async def fetch_odds(self) -> List[OddsRecord]:
         context = await self.browser.new_context(user_agent=random.choice(UA_LIST))
-        await stealth_async(context)
         page = await context.new_page()
+        await stealth_async(page)
         records: List[OddsRecord] = []
         now = datetime.now(timezone.utc)
 
         try:
-            await page.goto(self.ODDS_URL, wait_until="networkidle", timeout=45_000)
-            # Wait for sport blocks to appear — increase timeout for slow SPA render
-            await page.wait_for_selector(self.ODDS_CONTAINER_SELECTOR, timeout=35_000)
+            await page.goto(self.ODDS_URL, wait_until="domcontentloaded", timeout=25_000)
+            await page.wait_for_selector(self.ODDS_CONTAINER_SELECTOR, timeout=20_000)
             await asyncio.sleep(random.uniform(2.0, 4.0))
 
             raw_events = await page.evaluate("""() => {
@@ -100,21 +99,26 @@ class PlayAlbertaScraper(OddsScraper):
                         const timeEl = row.querySelector('.bto-sb-event-time');
                         const timeText = timeEl ? timeEl.textContent.trim() : '';
 
-                        // Extract odds from each .bto-sb-odd cell using DOM structure:
-                        //   1-span cell (+ optional comment): pure moneyline odd  → keep
-                        //   2-span cell: handicap + odds concatenated              → skip
-                        //   (e.g. <span>5</span><span>1.94</span> for NBA +5 spread)
-                        // This is more reliable than numeric capping and handles all
-                        // spread sizes (integer or decimal) across all sports.
+                        // Parse each .bto-sb-odd cell:
+                        //   1-span cell: pure decimal odds (moneyline or totals)
+                        //               → { price: 2.05, handicap: null }
+                        //   2-span cell: handicap line + odds (spread)
+                        //               → { price: 1.94, handicap: "-1.5" }
+                        //   anything else: null (position kept for index alignment)
                         const parseOdd = el => {
                             const spans = el.querySelectorAll('span');
-                            if (spans.length !== 1) return NaN;   // 0 or 2+ spans = not a clean ML odd
-                            const m = spans[0].textContent.trim().match(/^(\d+\.\d+)$/);
-                            return m ? parseFloat(m[1]) : NaN;
+                            if (spans.length === 1) {
+                                const m = spans[0].textContent.trim().match(/^(\d+\.\d+)$/);
+                                return m ? { price: parseFloat(m[1]), handicap: null } : null;
+                            }
+                            if (spans.length === 2) {
+                                const hcap = spans[0].textContent.trim();
+                                const m = spans[1].textContent.trim().match(/^(\d+\.\d+)$/);
+                                return m ? { price: parseFloat(m[1]), handicap: hcap } : null;
+                            }
+                            return null;
                         };
-                        const odds = [...row.querySelectorAll('.bto-sb-odd')]
-                            .map(el => parseOdd(el))
-                            .filter(n => !isNaN(n) && n > 1.0);
+                        const odds = [...row.querySelectorAll('.bto-sb-odd')].map(el => parseOdd(el));
 
                         // Extract per-game deep link (e.g. /sports/hockey/nhl/dal-stars-@-ny-islanders/sm-2343314)
                         const eventLink = row.querySelector('a[href*="/sports/"]');
@@ -162,8 +166,8 @@ class PlayAlbertaScraper(OddsScraper):
                 event_url = ev.get("eventUrl", "")
 
                 # Walk market columns; each label owns 1 or 2 odds slots.
-                # We only emit moneyline records but still advance the index
-                # for spread/total columns so subsequent columns stay aligned.
+                # Spread and moneyline follow team display order (ml_outcomes).
+                # Totals always use ["over", "under"] order.
                 ev_records: List[OddsRecord] = []
                 odds_idx = 0
                 for label in labels:
@@ -173,22 +177,28 @@ class PlayAlbertaScraper(OddsScraper):
                         continue
                     market, outcomes = mapping
 
-                    # For money-line labels use the separator-aware outcome order
-                    if market == "moneyline" and label in ("money line", "ml"):
+                    # Moneyline and spread both follow the separator-aware display order
+                    if market in ("moneyline", "spread") and label in ("money line", "ml", "spread", "puck line", "run line"):
                         outcomes = ml_outcomes
 
                     for outcome in outcomes:
                         if odds_idx >= len(odds):
                             break
-                        decimal_odds = odds[odds_idx]
+                        cell = odds[odds_idx]
                         odds_idx += 1
 
-                        # Only emit moneyline records
-                        if market != "moneyline":
+                        if cell is None:
+                            continue
+                        decimal_odds = cell.get("price", 0)
+                        handicap = cell.get("handicap")
+                        if not decimal_odds or decimal_odds <= 1.0:
                             continue
 
                         # Build human-readable participant name
-                        if outcome == "home":
+                        if market == "spread":
+                            base = home if outcome == "home" else away
+                            participant = f"{base} {handicap}" if handicap else base
+                        elif outcome == "home":
                             participant = home
                         elif outcome == "away":
                             participant = away
@@ -220,6 +230,9 @@ class PlayAlbertaScraper(OddsScraper):
         except Exception as e:
             logger.warning("%s scrape failed: %s", self.BOOK_NAME, e)
         finally:
-            await context.close()
+            try:
+                await asyncio.wait_for(context.close(), timeout=5)
+            except Exception:
+                pass
 
         return records

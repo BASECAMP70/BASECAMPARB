@@ -10,7 +10,7 @@ import config
 from calculator import detect_arbs, diff_opportunities
 from serializers import serialize_opportunity
 from scrapers.bet365 import Bet365Scraper
-# from scrapers.bet99 import Bet99Scraper  # suppressed
+from scrapers.bet99 import Bet99Scraper
 from scrapers.betway import BetwayScraper
 from scrapers.playalberta import PlayAlbertaScraper
 from scrapers.polymarket import PolymarketScraper
@@ -33,8 +33,10 @@ _scrapers = []
 async def start_scheduler(store, ws_manager):
     global _scheduler, _playwright, _browser, _scrapers
 
-    # Browser-free scrapers — always active regardless of Playwright availability
+    # Browser-free scrapers — always active
     _browser_free_scrapers = [
+        BetwayScraper(None),
+        # Bet99Scraper(None),  # disabled
         PolymarketScraper(None),
         KalshiScraper(None),
         LimitlessScraper(None),
@@ -42,32 +44,8 @@ async def start_scheduler(store, ws_manager):
         MyriadScraper(None),
         OpinionScraper(None),
     ]
-
-    try:
-        from playwright.async_api import async_playwright
-        _playwright = await async_playwright().start()
-        for channel, kwargs in [('msedge', {'channel': 'msedge'}), ('chromium', {})]:
-            try:
-                _browser = await _playwright.chromium.launch(headless=True, **kwargs)
-                logger.info("Browser launched via %s", channel)
-                break
-            except Exception as browser_exc:
-                logger.debug("Browser channel %s failed: %s", channel, browser_exc)
-        else:
-            raise RuntimeError("No usable browser found (tried msedge and chromium)")
-        browser_scrapers = [
-            PlayAlbertaScraper(_browser),
-            Bet365Scraper(_browser),
-            SportsInteractionScraper(_browser),
-            BetwayScraper(_browser),
-            # Bet99Scraper(_browser),  # suppressed
-        ]
-        _scrapers = browser_scrapers + _browser_free_scrapers
-        logger.info("Playwright browser launched — %d scrapers ready", len(_scrapers))
-    except Exception as exc:
-        logger.warning("Playwright/Chromium unavailable (%s: %s) — browser scrapers disabled",
-                       type(exc).__name__, exc)
-        _scrapers = _browser_free_scrapers
+    _scrapers = _browser_free_scrapers
+    logger.info("Running browser-free scrapers only (%d scrapers)", len(_scrapers))
 
     _scheduler = AsyncIOScheduler()
     _scheduler.add_job(
@@ -91,7 +69,21 @@ async def stop_scheduler():
         await _playwright.stop()
 
 
-_email_paused: bool = False
+_email_paused: bool = True
+_disabled_scrapers: set = set()
+
+
+def disable_scraper(name: str) -> None:
+    _disabled_scrapers.add(name)
+
+
+def enable_scraper(name: str) -> None:
+    _disabled_scrapers.discard(name)
+
+
+def get_scraper_states() -> dict:
+    """Return {book_name: enabled} for all registered scrapers."""
+    return {s.BOOK_NAME: s.BOOK_NAME not in _disabled_scrapers for s in _scrapers}
 
 
 def pause_email() -> None:
@@ -148,6 +140,37 @@ def scraping_is_running() -> bool:
     return jobs[0].next_run_time is not None
 
 
+async def _relaunch_browser():
+    """Relaunch the shared Playwright browser and update browser scrapers."""
+    global _browser, _playwright, _scrapers
+    logger.info("Browser disconnected — relaunching")
+    try:
+        if _browser:
+            try:
+                await _browser.close()
+            except Exception:
+                pass
+        for channel, kwargs in [('msedge', {'channel': 'msedge'}), ('chromium', {})]:
+            try:
+                _browser = await _playwright.chromium.launch(headless=True, **kwargs)
+                logger.info("Browser relaunched via %s", channel)
+                break
+            except Exception as e:
+                logger.debug("Browser relaunch channel %s failed: %s", channel, e)
+        else:
+            logger.error("Browser relaunch failed — browser scrapers will stay offline")
+            _browser = None
+            for scraper in _scrapers:
+                if scraper.browser is not None:
+                    scraper.browser = None
+            return
+        for scraper in _scrapers:
+            if scraper.browser is not None:
+                scraper.browser = _browser
+    except Exception as exc:
+        logger.error("Browser relaunch error: %s", exc)
+
+
 async def _run_cycle(store, ws_manager):
     try:
         await _run_cycle_inner(store, ws_manager)
@@ -159,16 +182,26 @@ async def _run_cycle_inner(store, ws_manager):
     start = datetime.now(timezone.utc)
     logger.info("Scrape cycle starting")
 
-    # Run all scrapers concurrently
+    # Run all enabled scrapers concurrently
+    active = [s for s in _scrapers if s.BOOK_NAME not in _disabled_scrapers]
     results = await asyncio.gather(
-        *[s.fetch_odds() for s in _scrapers],
+        *[s.fetch_odds() for s in active],
         return_exceptions=True,
     )
+
+    # Detect browser crash via is_connected() — reliable once the process is truly dead
+    if _browser is not None:
+        try:
+            connected = _browser.is_connected()
+        except Exception:
+            connected = False
+        if not connected:
+            await _relaunch_browser()
 
     books_ok = 0
     books_error = 0
 
-    for scraper, result in zip(_scrapers, results):
+    for scraper, result in zip(active, results):
         if isinstance(result, Exception):
             books_error += 1
             error_msg = f"{type(result).__name__}: {result}"
@@ -227,3 +260,27 @@ async def _run_cycle_inner(store, ws_manager):
     })
     logger.info("Cycle complete in %.1fs — %d opps, %d ok, %d error",
                 duration, len(new_opps_map), books_ok, books_error)
+
+
+async def recalculate_opportunities(store, ws_manager):
+    """Immediately recompute arbs from current store state and push WS diffs.
+    Called when a scraper is disabled so stale arbs are expired right away."""
+    fresh_records = store.get_fresh_records()
+    new_opps_list = detect_arbs(fresh_records, min_margin=config.MIN_ARB_MARGIN)
+    new_opps_map = {o.id: o for o in new_opps_list}
+
+    prev_opps = store.get_opportunities()
+    new, updated, expired_ids = diff_opportunities(prev_opps, new_opps_map)
+
+    for opp in updated:
+        if opp.id in prev_opps:
+            opp.detected_at = prev_opps[opp.id].detected_at
+
+    store.update_opportunities(new_opps_map)
+
+    for opp in new:
+        await ws_manager.broadcast({"type": "new_opportunity", "data": serialize_opportunity(opp)})
+    for opp in updated:
+        await ws_manager.broadcast({"type": "opportunity_updated", "data": serialize_opportunity(opp)})
+    for id_ in expired_ids:
+        await ws_manager.broadcast({"type": "opportunity_expired", "id": id_})

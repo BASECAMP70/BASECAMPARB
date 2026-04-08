@@ -25,7 +25,7 @@ export default function App() {
   const [elapsed, setElapsed] = useState(null)
   const [scraperRunning, setScraperRunning] = useState(true)
   const [scraperBusy, setScraperBusy] = useState(false)
-  const [emailPaused, setEmailPaused] = useState(false)
+  const [emailPaused, setEmailPaused] = useState(true)
   const [emailBusy, setEmailBusy] = useState(false)
   const soundRef = useRef(null)
 

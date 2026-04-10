@@ -1,11 +1,11 @@
 ' Launches Arbiter backend and frontend silently at login (no CMD window)
 Dim wsh : Set wsh = CreateObject("WScript.Shell")
 
-' Backend
-wsh.Run "cmd /c ""cd /d C:\Users\scott\ARB\backend && .venv\Scripts\python.exe run.py >> C:\Users\scott\ARB\backend.log 2>&1""", 0, False
+' Backend — uses restart_backend.bat which already has correct paths
+wsh.Run "cmd /c C:\Users\scott\ARB\backend\restart_backend.bat", 0, False
 
-' Wait 12 seconds for backend to start
-WScript.Sleep 12000
+' Wait 15 seconds for backend to fully start
+WScript.Sleep 15000
 
-' Frontend
-wsh.Run "cmd /c ""cd /d C:\Users\scott\ARB\frontend && C:\Users\scott\AppData\Local\node\node-v20.14.0-win-x64\node.exe node_modules\vite\bin\vite.js >> C:\Users\scott\ARB\frontend.log 2>&1""", 0, False
+' Frontend — full absolute paths, no cd needed
+wsh.Run """C:\Users\scott\AppData\Local\node\node-v20.14.0-win-x64\node.exe"" ""C:\Users\scott\ARB\frontend\node_modules\vite\bin\vite.js"" --config ""C:\Users\scott\ARB\frontend\vite.config.js""", 0, False

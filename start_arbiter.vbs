@@ -7,5 +7,6 @@ wsh.Run "cmd /c C:\Users\scott\ARB\backend\restart_backend.bat", 0, False
 ' Wait 15 seconds for backend to fully start
 WScript.Sleep 15000
 
-' Frontend — full absolute paths, no cd needed
-wsh.Run """C:\Users\scott\AppData\Local\node\node-v20.14.0-win-x64\node.exe"" ""C:\Users\scott\ARB\frontend\node_modules\vite\bin\vite.js"" --config ""C:\Users\scott\ARB\frontend\vite.config.js""", 0, False
+' Frontend — set working directory to frontend folder then launch Vite
+wsh.CurrentDirectory = "C:\Users\scott\ARB\frontend"
+wsh.Run """C:\Users\scott\AppData\Local\node\node-v20.14.0-win-x64\node.exe"" ""C:\Users\scott\ARB\frontend\node_modules\vite\bin\vite.js""", 0, False

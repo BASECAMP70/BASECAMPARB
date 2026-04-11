@@ -3,15 +3,18 @@
   "configurations": [
     {
       "name": "backend",
-      "runtimeExecutable": "uvicorn",
-      "runtimeArgs": ["main:app", "--reload", "--port", "8000"],
-      "port": 8000
+      "runtimeExecutable": "C:\\Users\\scott\\ARB\\backend\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": ["run.py"],
+      "port": 8001,
+      "cwd": "backend"
     },
     {
       "name": "frontend",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5173
-    }
+      "runtimeExecutable": "C:\\Users\\scott\\AppData\\Local\\node\\node-v20.14.0-win-x64\\node.exe",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "--host"],
+      "port": 5173,
+      "autoPort": false,
+      "cwd": "frontend"
+    },
   ]
 }

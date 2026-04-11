@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Hexagon background -->
+  <polygon points="24,3 43,13.5 43,34.5 24,45 5,34.5 5,13.5" fill="#1e3a5f" stroke="#3b82f6" stroke-width="2"/>
+  <!-- Bold A letterform -->
+  <path d="M14 36 L24 12 L34 36" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <line x1="18" y1="28" x2="30" y2="28" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <!-- Green profit dot above the A -->
+  <circle cx="24" cy="10" r="3.5" fill="#22c55e"/>
+</svg>

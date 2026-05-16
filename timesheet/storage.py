@@ -22,6 +22,8 @@ DEFAULTS = {
         "invoice_brand_color": "#1D1E1C",
         "invoice_bg_color": "#FFFFFF",
         "invoice_logo_filename": None,
+        "app_nav_color": "#1a1a2e",
+        "app_accent_color": "#4f8ef7",
     },
 }
 

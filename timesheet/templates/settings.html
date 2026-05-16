@@ -36,6 +36,74 @@
       <input name="smtp_password" type="password" value="{{ s.smtp_password }}" placeholder="Gmail App Password">
     </div>
 
+    <h2 style="margin-top:1.5rem">App Theme</h2>
+    <p class="text-muted" style="margin-bottom:1.25rem">Controls the navigation bar and button colours across the whole app.</p>
+
+    <!-- Presets -->
+    <div class="form-group">
+      <label>Presets</label>
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+        {% set presets = [
+          ('Classic',  '#1a1a2e', '#4f8ef7'),
+          ('Forest',   '#1a2e1e', '#27ae60'),
+          ('Slate',    '#1e2a3a', '#17a2b8'),
+          ('Warm',     '#2e1e14', '#e67e22'),
+          ('Plum',     '#2a1a2e', '#9b59b6'),
+          ('Minimal',  '#2b2b2b', '#555555'),
+        ] %}
+        {% for name, nav, acc in presets %}
+        <button type="button"
+                onclick="applyPreset('{{ nav }}','{{ acc }}')"
+                title="{{ name }}"
+                style="width:48px;height:32px;border-radius:4px;border:2px solid #ddd;cursor:pointer;overflow:hidden;padding:0;display:flex">
+          <span style="flex:1;background:{{ nav }}"></span>
+          <span style="flex:1;background:{{ acc }}"></span>
+        </button>
+        {% endfor %}
+      </div>
+      <p class="text-muted" style="margin-top:0.4rem;font-size:0.8rem">Click a swatch to load a preset, then Save.</p>
+    </div>
+
+    <!-- Nav colour -->
+    <div class="form-group">
+      <label>Navigation Colour</label>
+      <div style="display:flex;gap:0.75rem;align-items:center">
+        <input type="color" id="app_nav_picker" name="app_nav_color"
+               value="{{ s.app_nav_color or '#1a1a2e' }}"
+               style="width:48px;height:36px;padding:2px;border:1px solid #ddd;border-radius:4px;cursor:pointer"
+               oninput="document.getElementById('app_nav_hex').value=this.value">
+        <input type="text" id="app_nav_hex"
+               value="{{ s.app_nav_color or '#1a1a2e' }}"
+               style="width:100px;font-family:monospace"
+               oninput="document.getElementById('app_nav_picker').value=this.value">
+      </div>
+    </div>
+
+    <!-- Accent colour -->
+    <div class="form-group">
+      <label>Accent Colour</label>
+      <div style="display:flex;gap:0.75rem;align-items:center">
+        <input type="color" id="app_accent_picker" name="app_accent_color"
+               value="{{ s.app_accent_color or '#4f8ef7' }}"
+               style="width:48px;height:36px;padding:2px;border:1px solid #ddd;border-radius:4px;cursor:pointer"
+               oninput="document.getElementById('app_accent_hex').value=this.value">
+        <input type="text" id="app_accent_hex"
+               value="{{ s.app_accent_color or '#4f8ef7' }}"
+               style="width:100px;font-family:monospace"
+               oninput="document.getElementById('app_accent_picker').value=this.value">
+      </div>
+      <p class="text-muted" style="margin-top:0.35rem;font-size:0.85rem">Used for buttons, active nav links, and focus rings.</p>
+    </div>
+
+    <script>
+    function applyPreset(nav, acc) {
+      document.getElementById('app_nav_picker').value = nav;
+      document.getElementById('app_nav_hex').value = nav;
+      document.getElementById('app_accent_picker').value = acc;
+      document.getElementById('app_accent_hex').value = acc;
+    }
+    </script>
+
     <h2 style="margin-top:1.5rem">Invoice Appearance</h2>
     <p class="text-muted" style="margin-bottom:1.25rem">Customize how your invoice PDFs look when sent to clients.</p>
 

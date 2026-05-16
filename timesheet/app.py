@@ -3,6 +3,14 @@ from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify
 from dotenv import load_dotenv
 import timesheet.storage as storage
+from io import BytesIO
+from datetime import date as dt_date
+
+try:
+    import timesheet.pdf as pdf
+except Exception:  # WeasyPrint native libs missing (e.g. Windows without GTK)
+    import types as _types
+    pdf = _types.SimpleNamespace(generate_invoice_pdf=None)  # type: ignore[assignment]
 
 load_dotenv()
 
@@ -42,7 +50,6 @@ def create_app(config=None):
             flash("Time entry added.", "success")
             return redirect(url_for("dashboard"))
 
-        from datetime import date as dt_date
         today = dt_date.today().isoformat()
         projects = [p for p in storage.load_projects() if p["active"]]
         all_entries = storage.load_time_entries()
@@ -353,7 +360,166 @@ def create_app(config=None):
 
     @app.route("/invoices")
     def invoices():
-        return render_template("dashboard.html", projects=[], today="", today_entries=[], project_map={})
+        project_id = request.args.get("project_id", "")
+        projects = storage.load_projects()
+        project_map = {p["id"]: p for p in projects}
+        all_entries = storage.load_time_entries()
+        all_expenses = storage.load_expenses()
+        all_invoices = storage.load_invoices()
+
+        preview = None
+        if project_id:
+            p = project_map.get(project_id)
+            uninvoiced_time = [e for e in all_entries if e["project_id"] == project_id and not e["invoiced"]]
+            uninvoiced_exp = [x for x in all_expenses if x["project_id"] == project_id and not x["invoiced"]]
+            time_subtotal = sum(e["hours"] * (p["rate"] if p else 0) for e in uninvoiced_time)
+            exp_subtotal = sum(x["amount"] for x in uninvoiced_exp)
+            subtotal = round(time_subtotal + exp_subtotal, 2)
+            settings_data = storage.load_settings()
+            gst_rate = settings_data.get("gst_rate", 0.05)
+            gst = round(subtotal * gst_rate, 2)
+            preview = {
+                "project": p,
+                "time_entries": uninvoiced_time,
+                "expenses": uninvoiced_exp,
+                "subtotal": subtotal,
+                "gst": gst,
+                "total": round(subtotal + gst, 2),
+            }
+
+        return render_template("invoices.html", projects=projects, project_map=project_map,
+                               invoices=all_invoices, preview=preview, selected_project=project_id)
+
+    @app.route("/invoices/generate", methods=["POST"])
+    def invoices_generate():
+        expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
+        project_id = request.form["project_id"]
+        client_name = request.form.get("client_name", "").strip()
+        settings_data = storage.load_settings()
+        projects = storage.load_projects()
+        project_map = {p["id"]: p for p in projects}
+        p = project_map.get(project_id)
+        if not p or not client_name:
+            flash("Project and client name are required.", "error")
+            return redirect(url_for("invoices"))
+
+        all_entries = storage.load_time_entries()
+        all_expenses = storage.load_expenses()
+        uninvoiced_time = [e for e in all_entries if e["project_id"] == project_id and not e["invoiced"]]
+        uninvoiced_exp = [x for x in all_expenses if x["project_id"] == project_id and not x["invoiced"]]
+
+        if not uninvoiced_time and not uninvoiced_exp:
+            flash("No uninvoiced entries for this project.", "error")
+            return redirect(url_for("invoices"))
+
+        line_items = []
+        for e in uninvoiced_time:
+            amount = round(e["hours"] * p["rate"], 2)
+            line_items.append({"type": "time", "date": e["date"], "description": e["description"],
+                                "hours": e["hours"], "rate": p["rate"], "amount": amount,
+                                "entry_id": e["id"]})
+        for x in uninvoiced_exp:
+            line_items.append({"type": "expense", "date": x["date"],
+                                "description": x["description"], "amount": x["amount"],
+                                "pdf_filename": x.get("pdf_filename"),
+                                "expense_id": x["id"]})
+
+        subtotal = round(sum(li["amount"] for li in line_items), 2)
+        gst_rate = settings_data.get("gst_rate", 0.05)
+        gst = round(subtotal * gst_rate, 2)
+        total = round(subtotal + gst, 2)
+
+        existing = storage.load_invoices()
+        nums = [int(i["invoice_number"].split("-")[1]) for i in existing] if existing else []
+        next_num = max(nums) + 1 if nums else 1
+        invoice_number = f"INV-{next_num:03d}"
+
+        invoice = {
+            "id": storage.new_id(),
+            "invoice_number": invoice_number,
+            "project_id": project_id,
+            "client_name": client_name,
+            "issued_date": dt_date.today().isoformat(),
+            "subtotal": subtotal,
+            "gst": gst,
+            "total": total,
+            "sent": False,
+            "line_items": line_items,
+        }
+
+        try:
+            pdf.generate_invoice_pdf(app, invoice, settings_data, expense_pdf_dir=expense_pdf_dir)
+        except Exception as e:
+            flash(f"PDF generation failed: {e}", "error")
+            return redirect(url_for("invoices"))
+
+        existing.append(invoice)
+        storage.save_invoices(existing)
+
+        # Mark entries as invoiced by ID (stored in line_items for Task 14 compatibility)
+        invoiced_time_ids = {li["entry_id"] for li in line_items if li["type"] == "time"}
+        invoiced_expense_ids = {li["expense_id"] for li in line_items if li["type"] == "expense"}
+        for e in all_entries:
+            if e["id"] in invoiced_time_ids:
+                e["invoiced"] = True
+        storage.save_time_entries(all_entries)
+        for x in all_expenses:
+            if x["id"] in invoiced_expense_ids:
+                x["invoiced"] = True
+        storage.save_expenses(all_expenses)
+
+        flash(f"Invoice {invoice_number} generated.", "success")
+        return redirect(url_for("invoices"))
+
+    @app.route("/invoices/<inv_id>/pdf")
+    def invoices_pdf(inv_id):
+        expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
+        inv_list = storage.load_invoices()
+        invoice = next((i for i in inv_list if i["id"] == inv_id), None)
+        if not invoice:
+            flash("Invoice not found.", "error")
+            return redirect(url_for("invoices"))
+        settings_data = storage.load_settings()
+        try:
+            pdf_bytes = pdf.generate_invoice_pdf(app, invoice, settings_data, expense_pdf_dir=expense_pdf_dir)
+        except Exception as e:
+            flash(f"PDF error: {e}", "error")
+            return redirect(url_for("invoices"))
+        return send_file(BytesIO(pdf_bytes), download_name=f"{invoice['invoice_number']}.pdf",
+                         as_attachment=True, mimetype="application/pdf")
+
+    @app.route("/invoices/<inv_id>/send", methods=["POST"])
+    def invoices_send(inv_id):
+        expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
+        inv_list = storage.load_invoices()
+        invoice = next((i for i in inv_list if i["id"] == inv_id), None)
+        if not invoice:
+            flash("Invoice not found.", "error")
+            return redirect(url_for("invoices"))
+        recipient = request.form.get("recipient", "").strip()
+        if not recipient:
+            flash("Recipient email required.", "error")
+            return redirect(url_for("invoices"))
+        settings_data = storage.load_settings()
+        try:
+            pdf_bytes = pdf.generate_invoice_pdf(app, invoice, settings_data, expense_pdf_dir=expense_pdf_dir)
+        except Exception as e:
+            flash(f"PDF error: {e}", "error")
+            return redirect(url_for("invoices"))
+        from timesheet.mailer import send_invoice_email
+        subject = request.form.get("subject", f"{invoice['invoice_number']} from {settings_data.get('business_name','')}")
+        body = request.form.get("body", "Please find your invoice attached.")
+        try:
+            send_invoice_email(settings_data, recipient, subject, body,
+                               pdf_bytes, invoice["invoice_number"])
+            for i in inv_list:
+                if i["id"] == inv_id:
+                    i["sent"] = True
+            storage.save_invoices(inv_list)
+            flash(f"Invoice sent to {recipient}.", "success")
+        except Exception as e:
+            flash(f"Failed to send email: {e}", "error")
+        return redirect(url_for("invoices"))
 
     @app.route("/reports/monthly")
     def report_monthly():

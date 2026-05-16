@@ -90,7 +90,11 @@ def create_app(config=None):
     @app.route("/projects/add", methods=["POST"])
     def projects_add():
         name = request.form["name"].strip()
-        rate = float(request.form.get("rate", 0))
+        try:
+            rate = float(request.form.get("rate", 0))
+        except ValueError:
+            flash("Rate must be a number.", "error")
+            return redirect(url_for("projects"))
         if not name:
             flash("Project name is required.", "error")
             return redirect(url_for("projects"))
@@ -263,7 +267,8 @@ def create_app(config=None):
 
         pdf_filename = None
         receipt = request.files.get("receipt")
-        if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf"):
+        if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf") \
+                and receipt.mimetype == "application/pdf":
             expense_pdf_dir.mkdir(parents=True, exist_ok=True)
             pdf_filename = storage.new_id() + ".pdf"
             receipt.save(str(expense_pdf_dir / pdf_filename))
@@ -307,7 +312,8 @@ def create_app(config=None):
             item["amount"] = amount
             item["description"] = request.form.get("description", "").strip()
             receipt = request.files.get("receipt")
-            if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf"):
+            if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf") \
+                    and receipt.mimetype == "application/pdf":
                 if item.get("pdf_filename"):
                     old_path = expense_pdf_dir / item["pdf_filename"]
                     if old_path.exists():
@@ -430,7 +436,11 @@ def create_app(config=None):
         total = round(subtotal + gst, 2)
 
         existing = storage.load_invoices()
-        nums = [int(i["invoice_number"].split("-")[1]) for i in existing] if existing else []
+        nums = []
+        for inv in existing:
+            parts = inv.get("invoice_number", "").split("-")
+            if len(parts) == 2 and parts[1].isdigit():
+                nums.append(int(parts[1]))
         next_num = max(nums) + 1 if nums else 1
         invoice_number = f"INV-{next_num:03d}"
 
@@ -453,7 +463,10 @@ def create_app(config=None):
             flash(f"PDF generation failed: {e}", "error")
             return redirect(url_for("invoices"))
 
-        # Mark entries as invoiced by ID before saving the invoice record
+        # Save invoice first so a crash during entry marking doesn't lose the invoice record
+        existing.append(invoice)
+        storage.save_invoices(existing)
+
         invoiced_time_ids = {li["entry_id"] for li in line_items if li["type"] == "time"}
         invoiced_expense_ids = {li["expense_id"] for li in line_items if li["type"] == "expense"}
         for e in all_entries:
@@ -464,9 +477,6 @@ def create_app(config=None):
             if x["id"] in invoiced_expense_ids:
                 x["invoiced"] = True
         storage.save_expenses(all_expenses)
-
-        existing.append(invoice)
-        storage.save_invoices(existing)
 
         flash(f"Invoice {invoice_number} generated.", "success")
         return redirect(url_for("invoices"))

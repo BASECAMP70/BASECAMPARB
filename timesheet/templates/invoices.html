@@ -105,7 +105,7 @@
 <script>
 function openEmail(id, num, client) {
   document.getElementById('email-form').action = '/invoices/' + id + '/send';
-  document.getElementById('email-subject').value = num + ' from {{ settings.business_name }}';
+  document.getElementById('email-subject').value = num + ' from ' + {{ settings.business_name | tojson }};
   document.getElementById('email-modal').classList.add('open');
 }
 function closeEmail() { document.getElementById('email-modal').classList.remove('open'); }

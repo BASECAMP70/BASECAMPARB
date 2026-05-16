@@ -73,7 +73,7 @@
     <td>{{ inv.client_name }}</td>
     <td>{{ inv.issued_date }}</td>
     <td>${{ "%.2f"|format(inv.total) }}</td>
-    <td>{{ "&#10003;" if inv.sent else "&#8212;" }}</td>
+    <td>{{ "✓" if inv.sent else "—" }}</td>
     <td style="text-align:right">
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">Download PDF</a>
       <button class="btn btn-sm btn-primary"

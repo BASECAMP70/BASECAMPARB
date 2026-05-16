@@ -453,10 +453,7 @@ def create_app(config=None):
             flash(f"PDF generation failed: {e}", "error")
             return redirect(url_for("invoices"))
 
-        existing.append(invoice)
-        storage.save_invoices(existing)
-
-        # Mark entries as invoiced by ID (stored in line_items for Task 14 compatibility)
+        # Mark entries as invoiced by ID before saving the invoice record
         invoiced_time_ids = {li["entry_id"] for li in line_items if li["type"] == "time"}
         invoiced_expense_ids = {li["expense_id"] for li in line_items if li["type"] == "expense"}
         for e in all_entries:
@@ -467,6 +464,9 @@ def create_app(config=None):
             if x["id"] in invoiced_expense_ids:
                 x["invoiced"] = True
         storage.save_expenses(all_expenses)
+
+        existing.append(invoice)
+        storage.save_invoices(existing)
 
         flash(f"Invoice {invoice_number} generated.", "success")
         return redirect(url_for("invoices"))

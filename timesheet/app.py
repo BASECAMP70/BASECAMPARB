@@ -578,6 +578,19 @@ def create_app(config=None):
         flash(f"Invoice {invoice_number} generated.", "success")
         return redirect(url_for("invoices"))
 
+    @app.route("/invoices/<inv_id>/preview")
+    def invoices_preview(inv_id):
+        inv_list = storage.load_invoices()
+        invoice = next((i for i in inv_list if i["id"] == inv_id), None)
+        if not invoice:
+            flash("Invoice not found.", "error")
+            return redirect(url_for("invoices"))
+        settings_data = storage.load_settings()
+        from timesheet.pdf import _logo_data_uri
+        logo_uri = _logo_data_uri(settings_data)
+        return render_template("invoice_pdf.html", invoice=invoice,
+                               settings=settings_data, logo_uri=logo_uri)
+
     @app.route("/invoices/<inv_id>/pdf")
     def invoices_pdf(inv_id):
         expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"

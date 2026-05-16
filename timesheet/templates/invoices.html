@@ -75,6 +75,7 @@
     <td>${{ "%.2f"|format(inv.total) }}</td>
     <td>{{ "✓" if inv.sent else "—" }}</td>
     <td style="text-align:right">
+      <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/preview" target="_blank">Preview</a>
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">Download PDF</a>
       <button class="btn btn-sm btn-primary"
         onclick='openEmail("{{ inv.id }}", {{ inv.invoice_number|tojson }}, {{ (inv.client_email or "")|tojson }})'>Email</button>

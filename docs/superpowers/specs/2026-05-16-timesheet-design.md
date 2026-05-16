@@ -32,7 +32,8 @@ timesheet/
 │   ├── time_entries.json
 │   ├── expenses.json
 │   ├── invoices.json
-│   └── settings.json
+│   ├── settings.json
+│   └── expense_pdfs/        # Uploaded expense receipt PDFs
 ├── templates/
 │   ├── base.html           # Layout, nav (Dashboard, Projects, Time, Expenses, Invoices, Reports, Settings)
 │   ├── dashboard.html      # Quick time entry form + today's entries
@@ -89,10 +90,13 @@ All data stored as JSON arrays. IDs are UUIDs generated via Python's `uuid` modu
     "date": "2026-05-16",
     "amount": 49.99,
     "description": "Stock photos",
+    "pdf_filename": "uuid.pdf",
     "invoiced": false
   }
 ]
 ```
+
+`pdf_filename` is optional (`null` when no receipt uploaded). Uploaded PDFs are stored in `data/expense_pdfs/<uuid>.pdf`.
 
 ### invoices.json
 ```json
@@ -154,17 +158,19 @@ Line items are snapshot at the time of invoice generation and stored in `invoice
 - Manual add via form on the `/time` page (for corrections outside of the dashboard quick-entry form), plus edit and delete.
 - Invoiced entries shown with a lock indicator; editing blocked.
 
-### Expenses — `GET /expenses`, `POST /expenses/add`, `GET /expenses/<id>/edit`, `POST /expenses/<id>/edit`, `POST /expenses/<id>/delete`
+### Expenses — `GET /expenses`, `POST /expenses/add`, `GET /expenses/<id>/edit`, `POST /expenses/<id>/edit`, `POST /expenses/<id>/delete`, `GET /expenses/<id>/receipt`
 - Table of all expenses, filterable by project and date range.
-- Add/edit/delete: project, date, amount (CAD), description.
+- Add/edit/delete: project, date, amount (CAD), description, optional PDF receipt upload.
+- Uploaded PDF saved to `data/expense_pdfs/<uuid>.pdf`. A receipt indicator (📎) shown in the table with a download link.
 - Invoiced expenses locked from editing.
+- `GET /expenses/<id>/receipt` — serves the uploaded PDF receipt for download.
 
 ### Invoices — `GET /invoices`, `POST /invoices/generate`, `GET /invoices/<id>/pdf`, `POST /invoices/<id>/send`
 - Select a project → see all uninvoiced time entries and expenses.
 - Preview: subtotal (hours × rate + expenses), GST (5%), total (CAD).
-- "Generate Invoice": creates PDF in memory via WeasyPrint, saves invoice record to `invoices.json`, marks included entries as `invoiced: true`. Auto-increments invoice number (INV-001, INV-002, …).
+- "Generate Invoice": creates invoice PDF via WeasyPrint, then appends any uploaded expense receipt PDFs as additional pages using `pypdf`. The combined PDF is regenerated on demand from the stored invoice snapshot + `data/expense_pdfs/`. Saves invoice record to `invoices.json`, marks included entries as `invoiced: true`. Auto-increments invoice number (INV-001, INV-002, …).
 - Invoice list: past invoices with "Download PDF" and "Email Invoice" buttons.
-- Email flow: modal with recipient email, pre-filled subject (`Invoice INV-001 from [Business Name]`), short body, sends via Gmail SMTP with PDF attached.
+- Email flow: modal with recipient email, pre-filled subject (`Invoice INV-001 from [Business Name]`), short body, sends via Gmail SMTP with combined PDF attached.
 
 ### Reports — `GET /reports/monthly`, `GET /reports/uninvoiced`
 

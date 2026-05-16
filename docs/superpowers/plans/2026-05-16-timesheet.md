@@ -6,7 +6,7 @@
 
 **Architecture:** Flask + Jinja2 server-rendered HTML. All data stored in JSON files under `timesheet/data/`. Business logic split across `storage.py` (JSON I/O), `pdf.py` (WeasyPrint), and `mailer.py` (Gmail SMTP). All routes live in `app.py`.
 
-**Tech Stack:** Python 3.11+, Flask, WeasyPrint, python-dotenv, pytest, smtplib (stdlib)
+**Tech Stack:** Python 3.11+, Flask, WeasyPrint, pypdf, python-dotenv, pytest, smtplib (stdlib)
 
 ---
 
@@ -16,14 +16,15 @@
 |------|---------------|
 | `timesheet/app.py` | Flask app factory, all routes |
 | `timesheet/storage.py` | JSON load/save helpers for all 5 data files |
-| `timesheet/pdf.py` | WeasyPrint HTML→PDF rendering |
+| `timesheet/data/expense_pdfs/` | Uploaded expense receipt PDFs (auto-created) |
+| `timesheet/pdf.py` | WeasyPrint invoice PDF + pypdf merge with expense receipts |
 | `timesheet/mailer.py` | Gmail SMTP send with PDF attachment |
 | `timesheet/data/*.json` | Persistent data (auto-created on first run) |
 | `timesheet/templates/base.html` | Layout shell with nav bar |
 | `timesheet/templates/dashboard.html` | Quick time-entry form + today's entries |
 | `timesheet/templates/projects.html` | Project list, add, edit, deactivate |
 | `timesheet/templates/time.html` | Time entry table, add, edit, delete |
-| `timesheet/templates/expenses.html` | Expense table, add, edit, delete |
+| `timesheet/templates/expenses.html` | Expense table, add (with PDF receipt upload), edit, delete |
 | `timesheet/templates/invoices.html` | Invoice list, preview, generate, email modal |
 | `timesheet/templates/invoice_pdf.html` | PDF-only invoice template (WeasyPrint) |
 | `timesheet/templates/report_monthly.html` | Monthly totals by project |
@@ -59,6 +60,7 @@ touch timesheet/data/.gitkeep
 ```
 flask>=3.0.0
 weasyprint>=62.0
+pypdf>=4.0.0
 python-dotenv>=1.0.0
 pytest>=8.0.0
 pytest-flask>=1.3.0
@@ -1153,40 +1155,68 @@ git commit -m "feat: time entries page with add, edit, delete, filter"
 
 ---
 
-## Task 8: Expenses Page
+## Task 8: Expenses Page (with PDF Receipt Upload)
 
 **Files:**
 - Modify: `timesheet/app.py`
 - Create: `timesheet/templates/expenses.html`
 - Modify: `tests/test_routes.py`
 
-- [ ] **Step 1: Write failing test**
+- [ ] **Step 1: Write failing tests**
 
 Append to `tests/test_routes.py`:
 
 ```python
-def test_expenses_add(client):
+def test_expenses_add_no_receipt(client):
     import timesheet.storage as storage
     storage.save_projects([{"id": "p1", "name": "Alpha", "rate": 100.0, "currency": "CAD", "active": True}])
     r = client.post("/expenses/add", data={
         "project_id": "p1", "date": "2026-05-16", "amount": "49.99", "description": "Supplies"
     }, follow_redirects=True)
     assert r.status_code == 200
-    assert len(storage.load_expenses()) == 1
-    assert storage.load_expenses()[0]["amount"] == 49.99
+    exp = storage.load_expenses()
+    assert len(exp) == 1
+    assert exp[0]["amount"] == 49.99
+    assert exp[0]["pdf_filename"] is None
+
+
+def test_expenses_add_with_receipt(client, isolated_data_dir):
+    import timesheet.storage as storage
+    from io import BytesIO
+    storage.save_projects([{"id": "p1", "name": "Alpha", "rate": 100.0, "currency": "CAD", "active": True}])
+    pdf_data = b"%PDF-1.4 fake receipt"
+    r = client.post("/expenses/add", data={
+        "project_id": "p1", "date": "2026-05-16", "amount": "25.00", "description": "Receipt",
+        "receipt": (BytesIO(pdf_data), "receipt.pdf"),
+    }, content_type="multipart/form-data", follow_redirects=True)
+    assert r.status_code == 200
+    exp = storage.load_expenses()
+    assert exp[0]["pdf_filename"] is not None
+    receipt_path = isolated_data_dir / "expense_pdfs" / exp[0]["pdf_filename"]
+    assert receipt_path.exists()
 ```
 
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-python -m pytest ../tests/test_routes.py::test_expenses_add -v
+python -m pytest ../tests/test_routes.py::test_expenses_add_no_receipt -v
 ```
 
 Expected: FAIL.
 
 - [ ] **Step 3: Add expense routes to app.py**
 
+Add import at top of `app.py`:
+
 ```python
+from werkzeug.utils import secure_filename
+```
+
+Add routes inside `create_app()`:
+
+```python
+    EXPENSE_PDF_DIR = storage.DATA_DIR / "expense_pdfs"
+
     @app.route("/expenses")
     def expenses():
         items = storage.load_expenses()
@@ -1212,6 +1242,14 @@ Expected: FAIL.
         if not project_id or amount <= 0:
             flash("Project and amount required.", "error")
             return redirect(url_for("expenses"))
+
+        pdf_filename = None
+        receipt = request.files.get("receipt")
+        if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf"):
+            EXPENSE_PDF_DIR.mkdir(parents=True, exist_ok=True)
+            pdf_filename = storage.new_id() + ".pdf"
+            receipt.save(str(EXPENSE_PDF_DIR / pdf_filename))
+
         items = storage.load_expenses()
         items.append({
             "id": storage.new_id(),
@@ -1219,6 +1257,7 @@ Expected: FAIL.
             "date": request.form["date"],
             "amount": amount,
             "description": request.form.get("description", "").strip(),
+            "pdf_filename": pdf_filename,
             "invoiced": False,
         })
         storage.save_expenses(items)
@@ -1237,6 +1276,13 @@ Expected: FAIL.
             item["date"] = request.form["date"]
             item["amount"] = float(request.form.get("amount", item["amount"]))
             item["description"] = request.form.get("description", "").strip()
+            # Allow replacing the receipt PDF
+            receipt = request.files.get("receipt")
+            if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf"):
+                EXPENSE_PDF_DIR.mkdir(parents=True, exist_ok=True)
+                pdf_filename = storage.new_id() + ".pdf"
+                receipt.save(str(EXPENSE_PDF_DIR / pdf_filename))
+                item["pdf_filename"] = pdf_filename
             storage.save_expenses(items)
             flash("Expense updated.", "success")
             return redirect(url_for("expenses"))
@@ -1253,10 +1299,28 @@ Expected: FAIL.
         if item and item["invoiced"]:
             flash("Cannot delete an invoiced expense.", "error")
             return redirect(url_for("expenses"))
+        if item and item.get("pdf_filename"):
+            pdf_path = EXPENSE_PDF_DIR / item["pdf_filename"]
+            if pdf_path.exists():
+                pdf_path.unlink()
         items = [x for x in items if x["id"] != xid]
         storage.save_expenses(items)
         flash("Expense deleted.", "success")
         return redirect(url_for("expenses"))
+
+    @app.route("/expenses/<xid>/receipt")
+    def expenses_receipt(xid):
+        items = storage.load_expenses()
+        item = next((x for x in items if x["id"] == xid), None)
+        if not item or not item.get("pdf_filename"):
+            flash("No receipt found.", "error")
+            return redirect(url_for("expenses"))
+        pdf_path = EXPENSE_PDF_DIR / item["pdf_filename"]
+        if not pdf_path.exists():
+            flash("Receipt file missing.", "error")
+            return redirect(url_for("expenses"))
+        return send_file(str(pdf_path), download_name=f"receipt-{item['date']}.pdf",
+                         as_attachment=True, mimetype="application/pdf")
 ```
 
 - [ ] **Step 4: Write expenses.html**
@@ -1271,7 +1335,8 @@ Create `timesheet/templates/expenses.html`:
 
 <div class="card">
   <h2>Add Expense</h2>
-  <form method="post" action="/expenses/add" style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:1rem;align-items:flex-end">
+  <form method="post" action="/expenses/add" enctype="multipart/form-data"
+        style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:1rem;align-items:flex-end">
     <div class="form-group" style="margin:0"><label>Project</label>
       <select name="project_id" required>
         <option value="">— select —</option>
@@ -1281,8 +1346,12 @@ Create `timesheet/templates/expenses.html`:
     <div class="form-group" style="margin:0"><label>Date</label><input name="date" type="date" required></div>
     <div class="form-group" style="margin:0"><label>Amount (CAD)</label><input name="amount" type="number" step="0.01" min="0.01" required></div>
     <button class="btn btn-primary" type="submit" style="align-self:flex-end">Add</button>
-    <div class="form-group" style="margin:0;grid-column:1/-1">
+    <div class="form-group" style="margin:0;grid-column:1/3">
       <label>Description</label><input name="description" placeholder="What was this for?">
+    </div>
+    <div class="form-group" style="margin:0;grid-column:3/-1">
+      <label>Receipt PDF (optional)</label>
+      <input name="receipt" type="file" accept=".pdf" style="padding:4px">
     </div>
   </form>
 </div>
@@ -1309,7 +1378,11 @@ Create `timesheet/templates/expenses.html`:
     <td>{{ x.date }}</td>
     <td>{{ project_map[x.project_id].name if x.project_id in project_map else '—' }}</td>
     <td>${{ "%.2f"|format(x.amount) }}</td>
-    <td>{{ x.description }}{% if x.invoiced %} <span class="locked">🔒 invoiced</span>{% endif %}</td>
+    <td>
+      {{ x.description }}
+      {% if x.pdf_filename %}<a class="btn btn-sm btn-secondary" href="/expenses/{{ x.id }}/receipt" style="margin-left:6px">📎 Receipt</a>{% endif %}
+      {% if x.invoiced %} <span class="locked">🔒 invoiced</span>{% endif %}
+    </td>
     <td style="text-align:right">
       {% if not x.invoiced %}
       <a class="btn btn-sm btn-secondary" href="/expenses/{{ x.id }}/edit">Edit</a>
@@ -1330,7 +1403,7 @@ Create `timesheet/templates/expenses.html`:
 <div class="modal-overlay open">
   <div class="modal">
     <h2>Edit Expense</h2>
-    <form method="post" action="/expenses/{{ edit_expense.id }}/edit">
+    <form method="post" action="/expenses/{{ edit_expense.id }}/edit" enctype="multipart/form-data">
       <div class="form-group"><label>Project</label>
         <select name="project_id">
           {% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if p.id == edit_expense.project_id }}>{{ p.name }}</option>{% endfor %}
@@ -1339,6 +1412,10 @@ Create `timesheet/templates/expenses.html`:
       <div class="form-group"><label>Date</label><input name="date" type="date" value="{{ edit_expense.date }}"></div>
       <div class="form-group"><label>Amount</label><input name="amount" type="number" step="0.01" value="{{ edit_expense.amount }}"></div>
       <div class="form-group"><label>Description</label><input name="description" value="{{ edit_expense.description }}"></div>
+      <div class="form-group">
+        <label>Replace Receipt PDF{% if edit_expense.pdf_filename %} (currently attached){% endif %}</label>
+        <input name="receipt" type="file" accept=".pdf" style="padding:4px">
+      </div>
       <button class="btn btn-primary" type="submit">Save</button>
       <a class="btn btn-secondary" href="/expenses">Cancel</a>
     </form>
@@ -1360,7 +1437,7 @@ Expected: All tests PASS.
 
 ```bash
 git add timesheet/app.py timesheet/templates/expenses.html
-git commit -m "feat: expenses page with add, edit, delete, filter"
+git commit -m "feat: expenses page with optional PDF receipt upload and download"
 ```
 
 ---
@@ -1422,15 +1499,41 @@ Expected: All 5 PASS.
 Create `timesheet/pdf.py`:
 
 ```python
+from io import BytesIO
 from weasyprint import HTML
 from flask import render_template
+from pypdf import PdfWriter, PdfReader
 
 
-def generate_invoice_pdf(app, invoice, settings):
-    """Render invoice_pdf.html with WeasyPrint and return PDF bytes."""
+def generate_invoice_pdf(app, invoice, settings, expense_pdf_dir=None):
+    """Render invoice_pdf.html with WeasyPrint, then append any expense receipt
+    PDFs as additional pages. Returns combined PDF bytes."""
     with app.app_context():
         html_content = render_template("invoice_pdf.html", invoice=invoice, settings=settings)
-    return HTML(string=html_content).write_pdf()
+
+    invoice_bytes = HTML(string=html_content).write_pdf()
+
+    # Collect receipt PDFs for expenses that have one
+    receipt_paths = []
+    if expense_pdf_dir is not None:
+        for item in invoice.get("line_items", []):
+            if item.get("type") == "expense" and item.get("pdf_filename"):
+                path = expense_pdf_dir / item["pdf_filename"]
+                if path.exists():
+                    receipt_paths.append(path)
+
+    if not receipt_paths:
+        return invoice_bytes
+
+    # Merge invoice + receipts into one PDF
+    writer = PdfWriter()
+    for reader in [PdfReader(BytesIO(invoice_bytes))] + [PdfReader(str(p)) for p in receipt_paths]:
+        for page in reader.pages:
+            writer.add_page(page)
+
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
 ```
 
 - [ ] **Step 4: Write invoice_pdf.html**
@@ -1638,7 +1741,8 @@ Add routes inside `create_app()`:
                                 "hours": e["hours"], "rate": p["rate"], "amount": amount})
         for x in uninvoiced_exp:
             line_items.append({"type": "expense", "date": x["date"],
-                                "description": x["description"], "amount": x["amount"]})
+                                "description": x["description"], "amount": x["amount"],
+                                "pdf_filename": x.get("pdf_filename")})
 
         subtotal = round(sum(li["amount"] for li in line_items), 2)
         gst_rate = settings.get("gst_rate", 0.05)
@@ -1664,7 +1768,7 @@ Add routes inside `create_app()`:
         }
 
         try:
-            pdf.generate_invoice_pdf(app, invoice, settings)
+            pdf.generate_invoice_pdf(app, invoice, settings, expense_pdf_dir=EXPENSE_PDF_DIR)
         except Exception as e:
             flash(f"PDF generation failed: {e}", "error")
             return redirect(url_for("invoices"))
@@ -1697,7 +1801,7 @@ Add routes inside `create_app()`:
             return redirect(url_for("invoices"))
         settings = storage.load_settings()
         try:
-            pdf_bytes = pdf.generate_invoice_pdf(app, invoice, settings)
+            pdf_bytes = pdf.generate_invoice_pdf(app, invoice, settings, expense_pdf_dir=EXPENSE_PDF_DIR)
         except Exception as e:
             flash(f"PDF error: {e}", "error")
             return redirect(url_for("invoices"))
@@ -1717,7 +1821,7 @@ Add routes inside `create_app()`:
             return redirect(url_for("invoices"))
         settings = storage.load_settings()
         try:
-            pdf_bytes = pdf.generate_invoice_pdf(app, invoice, settings)
+            pdf_bytes = pdf.generate_invoice_pdf(app, invoice, settings, expense_pdf_dir=EXPENSE_PDF_DIR)
         except Exception as e:
             flash(f"PDF error: {e}", "error")
             return redirect(url_for("invoices"))

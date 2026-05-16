@@ -450,6 +450,10 @@ def create_app(config=None):
         all_entries = storage.load_time_entries()
         all_expenses = storage.load_expenses()
         all_invoices = storage.load_invoices()
+        # Migrate invoices that predate the status field
+        for inv in all_invoices:
+            if "status" not in inv:
+                inv["status"] = "sent" if inv.get("sent") else "draft"
 
         preview = None
         if client_id:
@@ -556,6 +560,7 @@ def create_app(config=None):
             "subtotal": subtotal,
             "gst": gst,
             "total": total,
+            "status": "draft",
             "sent": False,
             "line_items": line_items,
         }
@@ -576,6 +581,24 @@ def create_app(config=None):
         storage.save_expenses(all_expenses)
 
         flash(f"Invoice {invoice_number} generated.", "success")
+        return redirect(url_for("invoices"))
+
+    @app.route("/invoices/<inv_id>/status", methods=["POST"])
+    def invoices_status(inv_id):
+        new_status = request.form.get("status", "").strip()
+        if new_status not in ("draft", "sent", "late", "paid"):
+            flash("Invalid status.", "error")
+            return redirect(url_for("invoices"))
+        inv_list = storage.load_invoices()
+        for inv in inv_list:
+            if inv["id"] == inv_id:
+                inv["status"] = new_status
+                if new_status == "sent":
+                    inv["sent"] = True
+                storage.save_invoices(inv_list)
+                flash(f"Invoice marked as {new_status}.", "success")
+                return redirect(url_for("invoices"))
+        flash("Invoice not found.", "error")
         return redirect(url_for("invoices"))
 
     @app.route("/invoices/<inv_id>/preview")
@@ -635,6 +658,7 @@ def create_app(config=None):
             for i in inv_list:
                 if i["id"] == inv_id:
                     i["sent"] = True
+                    i["status"] = "sent"
             storage.save_invoices(inv_list)
             flash(f"Invoice sent to {recipient}.", "success")
         except Exception as e:

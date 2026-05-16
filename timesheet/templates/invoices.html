@@ -62,21 +62,49 @@
   {% endif %}
 </div>
 
+<style>
+  .badge { display:inline-block; padding:2px 9px; border-radius:12px; font-size:0.75rem; font-weight:600; }
+  .badge-draft  { background:#e9ecef; color:#6c757d; }
+  .badge-sent   { background:#cfe2ff; color:#0a58ca; }
+  .badge-late   { background:#ffe4cc; color:#c85000; }
+  .badge-paid   { background:#d1fae5; color:#065f46; }
+</style>
+
 <h2>Past Invoices</h2>
 {% if invoices %}
 <table>
-  <thead><tr><th>#</th><th>Client</th><th>Date</th><th>Total</th><th>Sent</th><th></th></tr></thead>
+  <thead><tr><th>#</th><th>Client</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead>
   <tbody>
   {% for inv in invoices|sort(attribute='invoice_number', reverse=True) %}
+  {% set status = inv.status if inv.status is defined else ('sent' if inv.sent else 'draft') %}
   <tr>
     <td>{{ inv.invoice_number }}</td>
     <td>{{ inv.client_name }}</td>
     <td>{{ inv.issued_date }}</td>
     <td>${{ "%.2f"|format(inv.total) }}</td>
-    <td>{{ "✓" if inv.sent else "—" }}</td>
-    <td style="text-align:right">
+    <td>
+      <span class="badge badge-{{ status }}">{{ status|capitalize }}</span>
+    </td>
+    <td style="text-align:right;white-space:nowrap">
+      {% if status == 'sent' %}
+        <form class="inline" method="post" action="/invoices/{{ inv.id }}/status">
+          <input type="hidden" name="status" value="late">
+          <button class="btn btn-sm btn-secondary" type="submit">Mark Late</button>
+        </form>
+        <form class="inline" method="post" action="/invoices/{{ inv.id }}/status">
+          <input type="hidden" name="status" value="paid">
+          <button class="btn btn-sm btn-secondary" type="submit">Mark Paid</button>
+        </form>
+      {% elif status == 'late' %}
+        <form class="inline" method="post" action="/invoices/{{ inv.id }}/status">
+          <input type="hidden" name="status" value="paid">
+          <button class="btn btn-sm btn-secondary" type="submit">Mark Paid</button>
+        </form>
+      {% elif status == 'paid' %}
+        <span class="text-muted" style="font-size:0.8rem;margin-right:6px">Paid ✓</span>
+      {% endif %}
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/preview" target="_blank">Preview</a>
-      <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">Download PDF</a>
+      <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">PDF</a>
       <button class="btn btn-sm btn-primary"
         onclick='openEmail("{{ inv.id }}", {{ inv.invoice_number|tojson }}, {{ (inv.client_email or "")|tojson }})'>Email</button>
     </td>

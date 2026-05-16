@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Timesheet{% endblock %} — {{ settings.business_name or 'Timesheet' }}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #222; }
+    nav { background: #1a1a2e; color: #fff; padding: 0 1.5rem; display: flex; align-items: center; gap: 1.5rem; height: 52px; }
+    nav a { color: #ccc; text-decoration: none; font-size: 0.9rem; padding: 4px 0; }
+    nav a:hover, nav a.active { color: #fff; border-bottom: 2px solid #4f8ef7; }
+    nav .brand { font-weight: 700; color: #fff; font-size: 1rem; margin-right: 1rem; }
+    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 1.25rem; }
+    h2 { font-size: 1.2rem; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    th { background: #f0f0f0; text-align: left; padding: 10px 12px; font-size: 0.85rem; color: #555; }
+    td { padding: 10px 12px; border-top: 1px solid #eee; font-size: 0.9rem; }
+    tr:hover td { background: #fafafa; }
+    .btn { display: inline-block; padding: 7px 16px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.875rem; text-decoration: none; }
+    .btn-primary { background: #4f8ef7; color: #fff; }
+    .btn-primary:hover { background: #3a7be0; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+    .btn-danger:hover { background: #c0392b; }
+    .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #ddd; }
+    form.inline { display: inline; }
+    .card { background: #fff; border-radius: 6px; padding: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 1.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.85rem; color: #555; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+    input:focus, select:focus { outline: none; border-color: #4f8ef7; }
+    .flash { padding: 10px 16px; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .flash-error { background: #fde8e8; color: #c0392b; }
+    .flash-success { background: #e8f8e8; color: #27ae60; }
+    .locked { color: #aaa; font-size: 0.8rem; }
+    .text-right { text-align: right; }
+    .text-muted { color: #888; font-size: 0.85rem; }
+    .totals-table td { font-weight: 600; }
+    .grand-total td { background: #f0f0f0; font-weight: 700; }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:100; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:#fff; border-radius:8px; padding:2rem; width:480px; max-width:95vw; }
+    .modal h2 { margin-bottom:1rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <span class="brand">&#9201; Timesheet</span>
+  <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">Dashboard</a>
+  <a href="{{ url_for('projects') }}" class="{{ 'active' if request.endpoint == 'projects' }}">Projects</a>
+  <a href="{{ url_for('time_entries') }}" class="{{ 'active' if request.endpoint == 'time_entries' }}">Time</a>
+  <a href="{{ url_for('expenses') }}" class="{{ 'active' if request.endpoint == 'expenses' }}">Expenses</a>
+  <a href="{{ url_for('invoices') }}" class="{{ 'active' if request.endpoint == 'invoices' }}">Invoices</a>
+  <a href="{{ url_for('report_monthly') }}" class="{{ 'active' if 'report' in (request.endpoint or '') }}">Reports</a>
+  <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Settings</a>
+</nav>
+<div class="container">
+  {% for category, message in get_flashed_messages(with_categories=True) %}
+    <div class="flash flash-{{ category }}">{{ message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<div class="card">
+  <form method="post">
+    <h2>Business Info</h2>
+    <div class="form-group">
+      <label>Business Name</label>
+      <input name="business_name" value="{{ s.business_name }}">
+    </div>
+    <div class="form-group">
+      <label>GST Number</label>
+      <input name="gst_number" value="{{ s.gst_number }}">
+    </div>
+    <div class="form-group">
+      <label>GST Rate (e.g. 0.05 for 5%)</label>
+      <input name="gst_rate" type="number" step="0.001" value="{{ s.gst_rate }}">
+    </div>
+    <h2 style="margin-top:1.5rem">Email (SMTP)</h2>
+    <div class="form-group">
+      <label>SMTP Host</label>
+      <input name="smtp_host" value="{{ s.smtp_host }}">
+    </div>
+    <div class="form-group">
+      <label>SMTP Port</label>
+      <input name="smtp_port" type="number" value="{{ s.smtp_port }}">
+    </div>
+    <div class="form-group">
+      <label>Gmail Address</label>
+      <input name="smtp_user" type="email" value="{{ s.smtp_user }}">
+    </div>
+    <div class="form-group">
+      <label>App Password</label>
+      <input name="smtp_password" type="password" value="{{ s.smtp_password }}" placeholder="Gmail App Password">
+    </div>
+    <button class="btn btn-primary" type="submit">Save Settings</button>
+  </form>
+</div>
+{% endblock %}

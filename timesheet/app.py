@@ -301,6 +301,10 @@ def create_app(config=None):
             item["description"] = request.form.get("description", "").strip()
             receipt = request.files.get("receipt")
             if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf"):
+                if item.get("pdf_filename"):
+                    old_path = expense_pdf_dir / item["pdf_filename"]
+                    if old_path.exists():
+                        old_path.unlink()
                 expense_pdf_dir.mkdir(parents=True, exist_ok=True)
                 pdf_filename = storage.new_id() + ".pdf"
                 receipt.save(str(expense_pdf_dir / pdf_filename))
@@ -310,7 +314,7 @@ def create_app(config=None):
             return redirect(url_for("expenses"))
         projects = storage.load_projects()
         return render_template("expenses.html", edit_expense=item,
-                               expenses=sorted(storage.load_expenses(), key=lambda x: x["date"], reverse=True),
+                               expenses=sorted(items, key=lambda x: x["date"], reverse=True),
                                projects=projects,
                                project_map={p["id"]: p for p in projects},
                                pf="", df="", dt="")

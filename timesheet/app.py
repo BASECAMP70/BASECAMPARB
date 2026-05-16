@@ -79,13 +79,51 @@ def create_app(config=None):
             return redirect(url_for("settings"))
         return render_template("settings.html", s=storage.load_settings())
 
+    # ── Clients ──────────────────────────────────────────────────────────────
+
+    @app.route("/clients")
+    def clients():
+        return render_template("clients.html", clients=storage.load_clients())
+
+    @app.route("/clients/add", methods=["POST"])
+    def clients_add():
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip()
+        address = request.form.get("address", "").strip()
+        if not name:
+            flash("Client name is required.", "error")
+            return redirect(url_for("clients"))
+        all_clients = storage.load_clients()
+        all_clients.append({"id": storage.new_id(), "name": name, "email": email, "address": address})
+        storage.save_clients(all_clients)
+        flash(f"Client '{name}' added.", "success")
+        return redirect(url_for("clients"))
+
+    @app.route("/clients/<cid>/edit", methods=["POST"])
+    def clients_edit(cid):
+        all_clients = storage.load_clients()
+        for c in all_clients:
+            if c["id"] == cid:
+                c["name"] = request.form.get("name", "").strip() or c["name"]
+                c["email"] = request.form.get("email", "").strip()
+                c["address"] = request.form.get("address", "").strip()
+                storage.save_clients(all_clients)
+                flash("Client updated.", "success")
+                return redirect(url_for("clients"))
+        flash("Client not found.", "error")
+        return redirect(url_for("clients"))
+
+    # ── Projects ─────────────────────────────────────────────────────────────
+
     @app.route("/projects")
     def projects():
-        return render_template("projects.html", projects=storage.load_projects())
+        client_map = {c["id"]: c for c in storage.load_clients()}
+        return render_template("projects.html", projects=storage.load_projects(), client_map=client_map,
+                               clients=storage.load_clients())
 
     @app.route("/projects/add", methods=["POST"])
     def projects_add():
-        name = request.form["name"].strip()
+        name = request.form.get("name", "").strip()
         try:
             rate = float(request.form.get("rate", 0))
         except ValueError:
@@ -94,8 +132,10 @@ def create_app(config=None):
         if not name:
             flash("Project name is required.", "error")
             return redirect(url_for("projects"))
+        client_id = request.form.get("client_id", "").strip() or None
         projects = storage.load_projects()
-        projects.append({"id": storage.new_id(), "name": name, "rate": rate, "currency": "CAD", "active": True})
+        projects.append({"id": storage.new_id(), "name": name, "rate": rate,
+                         "currency": "CAD", "active": True, "client_id": client_id})
         storage.save_projects(projects)
         flash(f"Project '{name}' added.", "success")
         return redirect(url_for("projects"))
@@ -103,18 +143,18 @@ def create_app(config=None):
     @app.route("/projects/<pid>/edit", methods=["POST"])
     def projects_edit(pid):
         projects = storage.load_projects()
-        found = False
         for p in projects:
             if p["id"] == pid:
-                p["name"] = request.form["name"].strip()
-                p["rate"] = float(request.form.get("rate", p["rate"]))
-                found = True
-                break
-        if not found:
-            flash("Project not found.", "error")
-            return redirect(url_for("projects"))
-        storage.save_projects(projects)
-        flash("Project updated.", "success")
+                p["name"] = request.form.get("name", "").strip() or p["name"]
+                try:
+                    p["rate"] = float(request.form.get("rate", p["rate"]))
+                except ValueError:
+                    pass
+                p["client_id"] = request.form.get("client_id", "").strip() or None
+                storage.save_projects(projects)
+                flash("Project updated.", "success")
+                return redirect(url_for("projects"))
+        flash("Project not found.", "error")
         return redirect(url_for("projects"))
 
     @app.route("/projects/<pid>/deactivate", methods=["POST"])
@@ -365,6 +405,8 @@ def create_app(config=None):
         project_id = request.args.get("project_id", "")
         projects = storage.load_projects()
         project_map = {p["id"]: p for p in projects}
+        all_clients = storage.load_clients()
+        client_map = {c["id"]: c for c in all_clients}
         all_entries = storage.load_time_entries()
         all_expenses = storage.load_expenses()
         all_invoices = storage.load_invoices()
@@ -380,8 +422,10 @@ def create_app(config=None):
             settings_data = storage.load_settings()
             gst_rate = settings_data.get("gst_rate", 0.05)
             gst = round(subtotal * gst_rate, 2)
+            client = client_map.get(p.get("client_id", "")) if p else None
             preview = {
                 "project": p,
+                "client": client,
                 "time_entries": uninvoiced_time,
                 "expenses": uninvoiced_exp,
                 "subtotal": subtotal,
@@ -390,19 +434,27 @@ def create_app(config=None):
             }
 
         return render_template("invoices.html", projects=projects, project_map=project_map,
-                               invoices=all_invoices, preview=preview, selected_project=project_id)
+                               client_map=client_map, invoices=all_invoices,
+                               preview=preview, selected_project=project_id)
 
     @app.route("/invoices/generate", methods=["POST"])
     def invoices_generate():
         expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
         project_id = request.form["project_id"]
-        client_name = request.form.get("client_name", "").strip()
         settings_data = storage.load_settings()
         projects = storage.load_projects()
         project_map = {p["id"]: p for p in projects}
         p = project_map.get(project_id)
-        if not p or not client_name:
-            flash("Project and client name are required.", "error")
+        if not p:
+            flash("Project not found.", "error")
+            return redirect(url_for("invoices"))
+
+        all_clients = storage.load_clients()
+        client_map = {c["id"]: c for c in all_clients}
+        client = client_map.get(p.get("client_id", ""))
+        client_name = (client["name"] if client else request.form.get("client_name", "")).strip()
+        if not client_name:
+            flash("Project has no client assigned. Edit the project to assign a client.", "error")
             return redirect(url_for("invoices"))
 
         all_entries = storage.load_time_entries()
@@ -444,7 +496,10 @@ def create_app(config=None):
             "id": storage.new_id(),
             "invoice_number": invoice_number,
             "project_id": project_id,
+            "client_id": client["id"] if client else None,
             "client_name": client_name,
+            "client_email": client["email"] if client else "",
+            "client_address": client.get("address", "") if client else "",
             "issued_date": dt_date.today().isoformat(),
             "subtotal": subtotal,
             "gst": gst,

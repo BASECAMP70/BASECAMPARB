@@ -50,6 +50,7 @@
 <nav>
   <span class="brand">&#9201; Timesheet</span>
   <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">Dashboard</a>
+  <a href="{{ url_for('clients') }}" class="{{ 'active' if request.endpoint in ('clients',) }}">Clients</a>
   <a href="{{ url_for('projects') }}" class="{{ 'active' if request.endpoint == 'projects' }}">Projects</a>
   <a href="{{ url_for('time_entries') }}" class="{{ 'active' if request.endpoint == 'time_entries' }}">Time</a>
   <a href="{{ url_for('expenses') }}" class="{{ 'active' if request.endpoint == 'expenses' }}">Expenses</a>

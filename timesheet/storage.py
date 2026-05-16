@@ -6,6 +6,7 @@ from pathlib import Path
 DATA_DIR = Path(__file__).parent / "data"
 
 DEFAULTS = {
+    "clients.json": [],
     "projects.json": [],
     "time_entries.json": [],
     "expenses.json": [],
@@ -42,6 +43,12 @@ def _save(filename, data):
 def new_id():
     return str(uuid.uuid4())
 
+
+def load_clients():
+    return _load("clients.json")
+
+def save_clients(data):
+    _save("clients.json", data)
 
 def load_projects():
     return _load("projects.json")

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+<h1>Clients</h1>
+
+<div class="card">
+  <h2>Add Client</h2>
+  <form method="post" action="/clients/add">
+    <div style="display:flex;gap:1rem">
+      <div class="form-group" style="flex:2">
+        <label>Name</label>
+        <input name="name" required placeholder="Acme Corp">
+      </div>
+      <div class="form-group" style="flex:2">
+        <label>Email</label>
+        <input name="email" type="email" placeholder="billing@acme.com">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Address <span class="text-muted">(appears on invoice)</span></label>
+      <textarea name="address" rows="2" placeholder="123 Main St&#10;Calgary, AB T2P 1J9"></textarea>
+    </div>
+    <button class="btn btn-primary" type="submit">Add Client</button>
+  </form>
+</div>
+
+{% if clients %}
+<table>
+  <thead><tr><th>Name</th><th>Email</th><th>Address</th><th></th></tr></thead>
+  <tbody>
+  {% for c in clients %}
+  <tr>
+    <td>{{ c.name }}</td>
+    <td>{{ c.email or '—' }}</td>
+    <td style="white-space:pre-line">{{ c.address or '—' }}</td>
+    <td style="text-align:right">
+      <button class="btn btn-sm btn-secondary"
+        onclick="openEdit('{{ c.id }}', {{ c.name|tojson }}, {{ c.email|tojson }}, {{ (c.address or '')|tojson }})">Edit</button>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted">No clients yet. Add one above.</p>
+{% endif %}
+
+<!-- Edit modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h2>Edit Client</h2>
+    <form method="post" id="edit-form">
+      <div class="form-group"><label>Name</label><input name="name" id="edit-name" required></div>
+      <div class="form-group"><label>Email</label><input name="email" type="email" id="edit-email"></div>
+      <div class="form-group"><label>Address</label><textarea name="address" id="edit-address" rows="2"></textarea></div>
+      <button class="btn btn-primary" type="submit">Save</button>
+      <button class="btn btn-secondary" type="button" onclick="closeEdit()">Cancel</button>
+    </form>
+  </div>
+</div>
+<script>
+function openEdit(id, name, email, address) {
+  document.getElementById('edit-form').action = '/clients/' + id + '/edit';
+  document.getElementById('edit-name').value = name;
+  document.getElementById('edit-email').value = email;
+  document.getElementById('edit-address').value = address;
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEdit() { document.getElementById('edit-modal').classList.remove('open'); }
+</script>
+{% endblock %}

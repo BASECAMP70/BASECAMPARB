@@ -10,14 +10,21 @@
       <label>Select Project</label>
       <select name="project_id" onchange="this.form.submit()">
         <option value="">— select project —</option>
-        {% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if p.id == selected_project }}>{{ p.name }}</option>{% endfor %}
+        {% for p in projects %}
+        {% set c = client_map.get(p.get('client_id', '')) %}
+        <option value="{{ p.id }}" {{ 'selected' if p.id == selected_project }}>
+          {{ p.name }}{% if c %} — {{ c.name }}{% endif %}
+        </option>
+        {% endfor %}
       </select>
     </div>
   </form>
 
   {% if preview %}
   <div style="margin-top:1.5rem">
-    <h3>Uninvoiced Items — {{ preview.project.name }}</h3>
+    <h3>Uninvoiced Items — {{ preview.project.name }}
+      {% if preview.client %}<span class="text-muted" style="font-weight:normal;font-size:0.9rem"> / {{ preview.client.name }}</span>{% endif %}
+    </h3>
     {% if preview.time_entries %}
     <table style="margin-bottom:1rem">
       <thead><tr><th>Date</th><th>Description</th><th>Hours</th><th>Rate</th><th class="text-right">Amount</th></tr></thead>
@@ -50,14 +57,14 @@
       <tr><td>GST</td><td class="text-right">${{ "%.2f"|format(preview.gst) }}</td></tr>
       <tr style="font-weight:700"><td>Total (CAD)</td><td class="text-right">${{ "%.2f"|format(preview.total) }}</td></tr>
     </table>
-    <form method="post" action="/invoices/generate" style="margin-top:1rem;display:flex;gap:1rem;align-items:flex-end">
+    {% if not preview.client %}
+    <p class="text-muted" style="margin-top:1rem">&#9888; This project has no client assigned. <a href="/projects">Edit the project</a> to assign a client before invoicing.</p>
+    {% else %}
+    <form method="post" action="/invoices/generate" style="margin-top:1rem">
       <input type="hidden" name="project_id" value="{{ selected_project }}">
-      <div class="form-group" style="margin:0;flex:2">
-        <label>Client Name (for invoice)</label>
-        <input name="client_name" required placeholder="Client ABC Corp">
-      </div>
-      <button class="btn btn-primary" type="submit">Generate Invoice</button>
+      <button class="btn btn-primary" type="submit">Generate Invoice for {{ preview.client.name }}</button>
     </form>
+    {% endif %}
     {% endif %}
   </div>
   {% endif %}
@@ -77,7 +84,8 @@
     <td>{{ "&#10003;" if inv.sent else "&#8212;" }}</td>
     <td style="text-align:right">
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">Download PDF</a>
-      <button class="btn btn-sm btn-primary" onclick="openEmail('{{ inv.id }}','{{ inv.invoice_number }}','{{ inv.client_name }}')">Email</button>
+      <button class="btn btn-sm btn-primary"
+        onclick="openEmail('{{ inv.id }}', {{ inv.invoice_number|tojson }}, {{ inv.client_email|default('')|tojson }})">Email</button>
     </td>
   </tr>
   {% endfor %}
@@ -92,7 +100,7 @@
   <div class="modal">
     <h2>Email Invoice</h2>
     <form method="post" id="email-form">
-      <div class="form-group"><label>To</label><input name="recipient" type="email" required></div>
+      <div class="form-group"><label>To</label><input name="recipient" id="email-recipient" type="email" required></div>
       <div class="form-group"><label>Subject</label><input name="subject" id="email-subject"></div>
       <div class="form-group"><label>Message</label>
         <textarea name="body" rows="4">Please find your invoice attached. Thank you for your business.</textarea>
@@ -103,8 +111,9 @@
   </div>
 </div>
 <script>
-function openEmail(id, num, client) {
+function openEmail(id, num, clientEmail) {
   document.getElementById('email-form').action = '/invoices/' + id + '/send';
+  document.getElementById('email-recipient').value = clientEmail;
   document.getElementById('email-subject').value = num + ' from ' + {{ settings.business_name | tojson }};
   document.getElementById('email-modal').classList.add('open');
 }

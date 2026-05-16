@@ -28,7 +28,8 @@
     <div class="invoice-meta">
       <p><strong>Invoice #{{ invoice.invoice_number }}</strong></p>
       <p>Date: {{ invoice.issued_date }}</p>
-      <p>Bill To: {{ invoice.client_name }}</p>
+      <p><strong>Bill To:</strong> {{ invoice.client_name }}</p>
+      {% if invoice.client_address %}<p style="white-space:pre-line;color:#555">{{ invoice.client_address }}</p>{% endif %}
     </div>
   </div>
 

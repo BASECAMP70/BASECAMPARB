@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ invoice.invoice_number }}{% endblock %}
+{% block content %}
+<h1>Edit Invoice {{ invoice.invoice_number }}</h1>
+
+<form method="post">
+  <!-- Invoice metadata -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <h2 style="margin-bottom:1.25rem">Invoice Details</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+      <div class="form-group" style="margin:0">
+        <label>Invoice Number</label>
+        <input name="invoice_number" value="{{ invoice.invoice_number }}">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Issue Date</label>
+        <input name="issued_date" type="date" value="{{ invoice.issued_date }}">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Subject</label>
+        <input name="subject" value="{{ invoice.subject or '' }}" placeholder="e.g. April 2026 Invoice">
+      </div>
+    </div>
+  </div>
+
+  <!-- Line items -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <h2 style="margin-bottom:1.25rem">Line Items</h2>
+    <table id="line-items-table">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th class="text-right" style="width:80px">Qty / Hrs</th>
+          <th class="text-right" style="width:85px">Rate</th>
+          <th class="text-right" style="width:90px">Amount</th>
+          <th style="width:40px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in invoice.line_items %}{% set i = loop.index0 %}
+        <tr id="item-row-{{ i }}">
+          <td>
+            <input type="hidden" name="item_{{ i }}_type"        value="{{ item.type }}">
+            <input type="hidden" name="item_{{ i }}_entry_id"    value="{{ item.entry_id or '' }}">
+            <input type="hidden" name="item_{{ i }}_expense_id"  value="{{ item.expense_id or '' }}">
+            <input type="hidden" name="item_{{ i }}_project_name" value="{{ item.project_name or '' }}">
+            <input type="hidden" name="item_{{ i }}_date"        value="{{ item.date or '' }}">
+            <input type="hidden" name="item_{{ i }}_pdf_filename" value="{{ item.pdf_filename or '' }}">
+            {% if item.type == "time" %}
+            <input type="hidden" name="item_{{ i }}_hours" value="{{ item.hours }}">
+            <input type="hidden" name="item_{{ i }}_rate"  value="{{ item.rate }}">
+            {% endif %}
+            <input type="hidden" name="item_{{ i }}_remove" id="item-{{ i }}-remove" value="">
+            <input name="item_{{ i }}_description" value="{{ item.description }}" style="width:100%">
+          </td>
+          <td class="text-right" style="padding:10px 12px">
+            {% if item.type == "time" %}{{ item.hours }} hr{% else %}—{% endif %}
+          </td>
+          <td class="text-right" style="padding:10px 12px">
+            {% if item.type == "time" %}${{ "%.2f"|format(item.rate) }}{% else %}—{% endif %}
+          </td>
+          <td>
+            <input name="item_{{ i }}_amount" type="number" step="0.01" value="{{ item.amount }}"
+                   style="text-align:right" onchange="recalc()">
+          </td>
+          <td style="text-align:center;padding:10px 4px">
+            <button type="button" onclick="removeItem({{ i }})"
+                    style="background:none;border:none;color:#c00;font-size:1.1rem;cursor:pointer"
+                    title="Remove">&#10005;</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+      <!-- New manual line items added via JS -->
+      <tbody id="new-items-body"></tbody>
+
+      <tfoot>
+        <tr>
+          <td colspan="5" style="padding-top:0.75rem">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addItem()">+ Add Line Item</button>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- Running totals -->
+    <table style="width:280px;margin-left:auto;margin-top:1.5rem">
+      <tr><td>Subtotal</td><td class="text-right" id="disp-subtotal">${{ "%.2f"|format(invoice.subtotal) }}</td></tr>
+      <tr><td>GST ({{ (settings.gst_rate * 100)|int }}%)</td><td class="text-right" id="disp-gst">${{ "%.2f"|format(invoice.gst) }}</td></tr>
+      <tr style="font-weight:700;border-top:2px solid #ccc">
+        <td>Total</td><td class="text-right" id="disp-total">${{ "%.2f"|format(invoice.total) }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="display:flex;gap:1rem">
+    <button class="btn btn-primary" type="submit">Save Invoice</button>
+    <a class="btn btn-secondary" href="{{ url_for('invoices') }}">Cancel</a>
+  </div>
+</form>
+
+<script>
+const GST_RATE = {{ settings.gst_rate }};
+let newCount = 0;
+
+function removeItem(i) {
+  document.getElementById('item-' + i + '-remove').value = '1';
+  document.getElementById('item-row-' + i).style.opacity = '0.35';
+  document.getElementById('item-row-' + i).querySelectorAll('input[type=number]').forEach(el => { el.value = 0; });
+  recalc();
+}
+
+function addItem() {
+  const n = newCount++;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input name="new_${n}_description" placeholder="Description" style="width:100%"></td>
+    <td class="text-right" style="padding:10px 12px">—</td>
+    <td class="text-right" style="padding:10px 12px">—</td>
+    <td><input name="new_${n}_amount" type="number" step="0.01" value="0.00"
+               style="text-align:right" onchange="recalc()"></td>
+    <td style="text-align:center;padding:10px 4px">
+      <button type="button" onclick="this.closest('tr').remove();recalc()"
+              style="background:none;border:none;color:#c00;font-size:1.1rem;cursor:pointer">&#10005;</button>
+    </td>`;
+  document.getElementById('new-items-body').appendChild(tr);
+}
+
+function recalc() {
+  let subtotal = 0;
+  document.querySelectorAll('input[name$="_amount"]').forEach(el => {
+    if (!el.closest('tr') || el.closest('tr').style.opacity !== '0.35') {
+      subtotal += parseFloat(el.value) || 0;
+    }
+  });
+  const gst = Math.round(subtotal * GST_RATE * 100) / 100;
+  const total = Math.round((subtotal + gst) * 100) / 100;
+  document.getElementById('disp-subtotal').textContent = '$' + subtotal.toFixed(2);
+  document.getElementById('disp-gst').textContent = '$' + gst.toFixed(2);
+  document.getElementById('disp-total').textContent = '$' + total.toFixed(2);
+}
+</script>
+{% endblock %}

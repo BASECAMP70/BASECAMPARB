@@ -583,6 +583,85 @@ def create_app(config=None):
         flash(f"Invoice {invoice_number} generated.", "success")
         return redirect(url_for("invoices"))
 
+    @app.route("/invoices/<inv_id>/edit", methods=["GET", "POST"])
+    def invoices_edit(inv_id):
+        inv_list = storage.load_invoices()
+        invoice = next((i for i in inv_list if i["id"] == inv_id), None)
+        if not invoice:
+            flash("Invoice not found.", "error")
+            return redirect(url_for("invoices"))
+
+        if request.method == "POST":
+            all_entries = storage.load_time_entries()
+            all_expenses = storage.load_expenses()
+            settings_data = storage.load_settings()
+
+            invoice["invoice_number"] = request.form.get("invoice_number", invoice["invoice_number"]).strip() or invoice["invoice_number"]
+            invoice["issued_date"] = request.form.get("issued_date", invoice["issued_date"]).strip() or invoice["issued_date"]
+            invoice["subject"] = request.form.get("subject", "").strip()
+
+            # Process existing line items
+            new_line_items = []
+            i = 0
+            while f"item_{i}_amount" in request.form:
+                if request.form.get(f"item_{i}_remove"):
+                    # Un-invoice the entry/expense so it can be rebilled
+                    entry_id = request.form.get(f"item_{i}_entry_id", "")
+                    expense_id = request.form.get(f"item_{i}_expense_id", "")
+                    for e in all_entries:
+                        if e["id"] == entry_id:
+                            e["invoiced"] = False
+                    for x in all_expenses:
+                        if x["id"] == expense_id:
+                            x["invoiced"] = False
+                else:
+                    item = {k: request.form.get(f"item_{i}_{k}", "") for k in
+                            ("type", "entry_id", "expense_id", "project_name", "date", "pdf_filename")}
+                    item["description"] = request.form.get(f"item_{i}_description", "").strip()
+                    try:
+                        item["amount"] = round(float(request.form.get(f"item_{i}_amount", 0)), 2)
+                    except ValueError:
+                        item["amount"] = 0.0
+                    if item["type"] == "time":
+                        try:
+                            item["hours"] = float(request.form.get(f"item_{i}_hours", 0))
+                            item["rate"] = float(request.form.get(f"item_{i}_rate", 0))
+                        except ValueError:
+                            pass
+                    # Strip empty optional fields
+                    item = {k: v for k, v in item.items() if v != ""}
+                    new_line_items.append(item)
+                i += 1
+
+            # Add new manual line items
+            j = 0
+            while f"new_{j}_description" in request.form:
+                desc = request.form.get(f"new_{j}_description", "").strip()
+                try:
+                    amt = round(float(request.form.get(f"new_{j}_amount", 0)), 2)
+                except ValueError:
+                    amt = 0.0
+                if desc and amt > 0:
+                    new_line_items.append({"type": "manual", "description": desc, "amount": amt})
+                j += 1
+
+            subtotal = round(sum(li["amount"] for li in new_line_items), 2)
+            gst_rate = settings_data.get("gst_rate", 0.05)
+            gst = round(subtotal * gst_rate, 2)
+
+            invoice["line_items"] = new_line_items
+            invoice["subtotal"] = subtotal
+            invoice["gst"] = gst
+            invoice["total"] = round(subtotal + gst, 2)
+
+            storage.save_invoices(inv_list)
+            storage.save_time_entries(all_entries)
+            storage.save_expenses(all_expenses)
+            flash("Invoice updated.", "success")
+            return redirect(url_for("invoices"))
+
+        return render_template("invoice_edit.html", invoice=invoice)
+
     @app.route("/invoices/<inv_id>/status", methods=["POST"])
     def invoices_status(inv_id):
         new_status = request.form.get("status", "").strip()

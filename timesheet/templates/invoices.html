@@ -103,6 +103,7 @@
       {% elif status == 'paid' %}
         <span class="text-muted" style="font-size:0.8rem;margin-right:6px">Paid ✓</span>
       {% endif %}
+      <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/edit">Edit</a>
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/preview" target="_blank">Preview</a>
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">PDF</a>
       <button class="btn btn-sm btn-primary"

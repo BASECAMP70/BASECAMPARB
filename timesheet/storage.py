@@ -19,6 +19,9 @@ DEFAULTS = {
         "smtp_port": 587,
         "smtp_user": "",
         "smtp_password": "",
+        "invoice_brand_color": "#1D1E1C",
+        "invoice_bg_color": "#FFFFFF",
+        "invoice_logo_filename": None,
     },
 }
 

@@ -73,11 +73,48 @@ def create_app(config=None):
                 "smtp_port": smtp_port,
                 "smtp_user": request.form["smtp_user"].strip(),
                 "smtp_password": request.form["smtp_password"].strip(),
+                "invoice_brand_color": request.form.get("invoice_brand_color", s.get("invoice_brand_color", "#1D1E1C")).strip() or "#1D1E1C",
+                "invoice_bg_color": request.form.get("invoice_bg_color", s.get("invoice_bg_color", "#FFFFFF")).strip() or "#FFFFFF",
             })
+
+            # Logo upload
+            logo = request.files.get("invoice_logo")
+            if logo and logo.filename:
+                ext = logo.filename.rsplit(".", 1)[-1].lower()
+                if ext in ("jpg", "jpeg", "png", "gif"):
+                    logo_data = logo.read()
+                    if len(logo_data) <= 5 * 1024 * 1024:
+                        logo_dir = storage.DATA_DIR / "invoice_logos"
+                        logo_dir.mkdir(parents=True, exist_ok=True)
+                        fname = f"logo.{ext}"
+                        (logo_dir / fname).write_bytes(logo_data)
+                        s["invoice_logo_filename"] = fname
+                    else:
+                        flash("Logo must be under 5 MB.", "error")
+                else:
+                    flash("Logo must be JPG, PNG, or GIF.", "error")
+
+            # Logo removal
+            if request.form.get("remove_logo"):
+                s["invoice_logo_filename"] = None
+
             storage.save_settings(s)
             flash("Settings saved.", "success")
             return redirect(url_for("settings"))
         return render_template("settings.html", s=storage.load_settings())
+
+    @app.route("/settings/logo")
+    def settings_logo():
+        s = storage.load_settings()
+        fname = s.get("invoice_logo_filename")
+        if not fname:
+            return "", 404
+        logo_path = storage.DATA_DIR / "invoice_logos" / fname
+        if not logo_path.exists():
+            return "", 404
+        ext = fname.rsplit(".", 1)[-1].lower()
+        mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "gif": "image/gif"}.get(ext, "image/png")
+        return send_file(str(logo_path), mimetype=mime)
 
     # ── Clients ──────────────────────────────────────────────────────────────
 

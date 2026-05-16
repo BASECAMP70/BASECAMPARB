@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Settings</h1>
 <div class="card">
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     <h2>Business Info</h2>
     <div class="form-group">
       <label>Business Name</label>
@@ -17,6 +17,7 @@
       <label>GST Rate (e.g. 0.05 for 5%)</label>
       <input name="gst_rate" type="number" step="0.001" value="{{ s.gst_rate }}">
     </div>
+
     <h2 style="margin-top:1.5rem">Email (SMTP)</h2>
     <div class="form-group">
       <label>SMTP Host</label>
@@ -34,6 +35,69 @@
       <label>App Password</label>
       <input name="smtp_password" type="password" value="{{ s.smtp_password }}" placeholder="Gmail App Password">
     </div>
+
+    <h2 style="margin-top:1.5rem">Invoice Appearance</h2>
+    <p class="text-muted" style="margin-bottom:1.25rem">Customize how your invoice PDFs look when sent to clients.</p>
+
+    <!-- Logo -->
+    <div class="form-group">
+      <label>Logo</label>
+      {% if s.invoice_logo_filename %}
+      <div style="margin-bottom:0.75rem">
+        <img src="/settings/logo" alt="Current logo"
+             style="max-height:80px;max-width:240px;border:1px solid #eee;border-radius:4px;padding:6px;background:#fff;">
+      </div>
+      <div style="display:flex;gap:0.75rem;align-items:center">
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0">
+          Change Logo
+          <input type="file" name="invoice_logo" accept=".jpg,.jpeg,.png,.gif" style="display:none">
+        </label>
+        <button type="submit" name="remove_logo" value="1" class="btn btn-sm"
+                style="background:#fff;border:1px solid #ddd;color:#c00">Remove</button>
+      </div>
+      {% else %}
+      <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-block">
+        Upload Logo
+        <input type="file" name="invoice_logo" accept=".jpg,.jpeg,.png,.gif" style="display:none">
+      </label>
+      <p class="text-muted" style="margin-top:0.4rem;font-size:0.85rem">
+        Appears top-left on invoices. JPG, PNG, or GIF, max 5 MB.
+      </p>
+      {% endif %}
+    </div>
+
+    <!-- Brand colour -->
+    <div class="form-group">
+      <label>Brand Colour</label>
+      <div style="display:flex;gap:0.75rem;align-items:center">
+        <input type="color" id="brand_color_picker" name="invoice_brand_color"
+               value="{{ s.invoice_brand_color or '#1D1E1C' }}"
+               style="width:48px;height:36px;padding:2px;border:1px solid #ddd;border-radius:4px;cursor:pointer"
+               oninput="document.getElementById('brand_color_hex').value=this.value">
+        <input type="text" id="brand_color_hex"
+               value="{{ s.invoice_brand_color or '#1D1E1C' }}"
+               style="width:100px;font-family:monospace"
+               oninput="document.getElementById('brand_color_picker').value=this.value">
+      </div>
+      <p class="text-muted" style="margin-top:0.35rem;font-size:0.85rem">Used for your business name and accent elements.</p>
+    </div>
+
+    <!-- Background colour -->
+    <div class="form-group">
+      <label>Background Colour</label>
+      <div style="display:flex;gap:0.75rem;align-items:center">
+        <input type="color" id="bg_color_picker" name="invoice_bg_color"
+               value="{{ s.invoice_bg_color or '#FFFFFF' }}"
+               style="width:48px;height:36px;padding:2px;border:1px solid #ddd;border-radius:4px;cursor:pointer"
+               oninput="document.getElementById('bg_color_hex').value=this.value">
+        <input type="text" id="bg_color_hex"
+               value="{{ s.invoice_bg_color or '#FFFFFF' }}"
+               style="width:100px;font-family:monospace"
+               oninput="document.getElementById('bg_color_picker').value=this.value">
+      </div>
+      <p class="text-muted" style="margin-top:0.35rem;font-size:0.85rem">Invoice page background.</p>
+    </div>
+
     <button class="btn btn-primary" type="submit">Save Settings</button>
   </form>
 </div>

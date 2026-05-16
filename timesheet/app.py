@@ -6,11 +6,7 @@ import timesheet.storage as storage
 from io import BytesIO
 from datetime import date as dt_date
 
-try:
-    import timesheet.pdf as pdf
-except Exception:  # WeasyPrint native libs missing (e.g. Windows without GTK)
-    import types as _types
-    pdf = _types.SimpleNamespace(generate_invoice_pdf=None)  # type: ignore[assignment]
+import timesheet.pdf as pdf
 
 load_dotenv()
 
@@ -456,12 +452,6 @@ def create_app(config=None):
             "sent": False,
             "line_items": line_items,
         }
-
-        try:
-            pdf.generate_invoice_pdf(app, invoice, settings_data, expense_pdf_dir=expense_pdf_dir)
-        except Exception as e:
-            flash(f"PDF generation failed: {e}", "error")
-            return redirect(url_for("invoices"))
 
         # Save invoice first so a crash during entry marking doesn't lose the invoice record
         existing.append(invoice)

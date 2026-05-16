@@ -35,7 +35,7 @@
     <td style="white-space:pre-line">{{ c.address or '—' }}</td>
     <td style="text-align:right">
       <button class="btn btn-sm btn-secondary"
-        onclick="openEdit('{{ c.id }}', {{ c.name|tojson }}, {{ c.email|tojson }}, {{ (c.address or '')|tojson }})">Edit</button>
+        onclick='openEdit("{{ c.id }}", {{ c.name|tojson }}, {{ (c.email or "")|tojson }}, {{ (c.address or "")|tojson }})'>Edit</button>
     </td>
   </tr>
   {% endfor %}

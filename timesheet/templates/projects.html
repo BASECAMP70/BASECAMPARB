@@ -40,7 +40,7 @@
     <td>{{ "Active" if p.active else "Inactive" }}</td>
     <td style="text-align:right">
       <button class="btn btn-sm btn-secondary"
-        onclick="openEdit('{{ p.id }}', {{ p.name|tojson }}, {{ p.rate }}, {{ (p.get('client_id') or '')|tojson }})">Edit</button>
+        onclick='openEdit("{{ p.id }}", {{ p.name|tojson }}, {{ p.rate }}, {{ (p.get("client_id") or "")|tojson }})'>Edit</button>
       {% if p.active %}
       <form class="inline" method="post" action="/projects/{{ p.id }}/deactivate">
         <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Deactivate?')">Deactivate</button>

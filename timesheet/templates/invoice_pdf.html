@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #222; margin: 40px; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    .meta { color: #555; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th { background: #f0f0f0; text-align: left; padding: 8px; border-bottom: 2px solid #ddd; }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+    .amount { text-align: right; }
+    .totals td { font-weight: bold; }
+    .grand-total td { background: #f0f0f0; font-size: 14px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>{{ settings.business_name }}</h1>
+  {% if settings.gst_number %}
+  <div class="meta">GST: {{ settings.gst_number }}</div>
+  {% endif %}
+
+  <div class="meta">
+    <strong>Invoice #:</strong> {{ invoice.invoice_number }}<br>
+    <strong>Date:</strong> {{ invoice.issued_date }}<br>
+    <strong>Bill To:</strong> {{ invoice.client_name }}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Hours</th>
+        <th>Rate</th>
+        <th class="amount">Amount (CAD)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in invoice.line_items %}
+      <tr>
+        <td>{{ item.date }}</td>
+        <td>{{ item.description }}</td>
+        {% if item.type == "time" %}
+        <td>{{ item.hours }}</td>
+        <td>${{ "%.2f"|format(item.rate) }}</td>
+        {% else %}
+        <td></td>
+        <td></td>
+        {% endif %}
+        <td class="amount">${{ "%.2f"|format(item.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="totals"><td colspan="4">Subtotal</td><td class="amount">${{ "%.2f"|format(invoice.subtotal) }}</td></tr>
+      <tr class="totals"><td colspan="4">GST ({{ (invoice.gst / invoice.subtotal * 100) | round(1) if invoice.subtotal else 0 }}%)</td><td class="amount">${{ "%.2f"|format(invoice.gst) }}</td></tr>
+      <tr class="grand-total"><td colspan="4">Total (CAD)</td><td class="amount">${{ "%.2f"|format(invoice.total) }}</td></tr>
+    </tfoot>
+  </table>
+</body>
+</html>

@@ -147,6 +147,7 @@ def create_app(config=None):
     @app.route("/time/add", methods=["POST"])
     def time_add():
         project_id = request.form["project_id"]
+        date = request.form.get("date", "").strip()
         try:
             hours = float(request.form.get("hours", 0))
         except ValueError:
@@ -155,11 +156,14 @@ def create_app(config=None):
         if not project_id or hours <= 0:
             flash("Project and hours required.", "error")
             return redirect(url_for("time_entries"))
+        if not date:
+            flash("Date is required.", "error")
+            return redirect(url_for("time_entries"))
         entries = storage.load_time_entries()
         entries.append({
             "id": storage.new_id(),
             "project_id": project_id,
-            "date": request.form["date"],
+            "date": date,
             "hours": hours,
             "description": request.form.get("description", "").strip(),
             "invoiced": False,
@@ -180,20 +184,25 @@ def create_app(config=None):
             return redirect(url_for("time_entries"))
         if request.method == "POST":
             entry["project_id"] = request.form["project_id"]
-            entry["date"] = request.form["date"]
+            entry["date"] = request.form.get("date", entry["date"]).strip() or entry["date"]
             try:
-                entry["hours"] = float(request.form.get("hours", entry["hours"]))
+                hours = float(request.form.get("hours", entry["hours"]))
             except ValueError:
                 flash("Hours must be a number.", "error")
                 return redirect(url_for("time_entries"))
+            if hours <= 0:
+                flash("Hours must be greater than zero.", "error")
+                return redirect(url_for("time_entries"))
+            entry["hours"] = hours
             entry["description"] = request.form.get("description", "").strip()
             storage.save_time_entries(entries)
             flash("Entry updated.", "success")
             return redirect(url_for("time_entries"))
+        projects = storage.load_projects()
         return render_template("time.html", edit_entry=entry,
-                               entries=storage.load_time_entries(),
-                               projects=storage.load_projects(),
-                               project_map={p["id"]: p for p in storage.load_projects()},
+                               entries=sorted(storage.load_time_entries(), key=lambda e: e["date"], reverse=True),
+                               projects=projects,
+                               project_map={p["id"]: p for p in projects},
                                pf="", df="", dt="")
 
     @app.route("/time/<eid>/delete", methods=["POST"])

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Expenses{% endblock %}
+{% block content %}
+<h1>Expenses</h1>
+
+<div class="card">
+  <h2>Add Expense</h2>
+  <form method="post" action="/expenses/add" enctype="multipart/form-data"
+        style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:1rem;align-items:flex-end">
+    <div class="form-group" style="margin:0"><label>Project</label>
+      <select name="project_id" required>
+        <option value="">— select —</option>
+        {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0"><label>Date</label><input name="date" type="date" required></div>
+    <div class="form-group" style="margin:0"><label>Amount (CAD)</label><input name="amount" type="number" step="0.01" min="0.01" required></div>
+    <button class="btn btn-primary" type="submit" style="align-self:flex-end">Add</button>
+    <div class="form-group" style="margin:0;grid-column:1/3">
+      <label>Description</label><input name="description" placeholder="What was this for?">
+    </div>
+    <div class="form-group" style="margin:0;grid-column:3/-1">
+      <label>Receipt PDF (optional)</label>
+      <input name="receipt" type="file" accept=".pdf" style="padding:4px">
+    </div>
+  </form>
+</div>
+
+<div style="display:flex;gap:1rem;margin-bottom:1rem;align-items:flex-end">
+  <form method="get" style="display:flex;gap:1rem;align-items:flex-end">
+    <div class="form-group" style="margin:0"><label>Project</label>
+      <select name="project_id"><option value="">All</option>
+        {% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if p.id == pf }}>{{ p.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0"><label>From</label><input name="date_from" type="date" value="{{ df }}"></div>
+    <div class="form-group" style="margin:0"><label>To</label><input name="date_to" type="date" value="{{ dt }}"></div>
+    <button class="btn btn-secondary" type="submit">Filter</button>
+  </form>
+</div>
+
+{% if expenses %}
+<table>
+  <thead><tr><th>Date</th><th>Project</th><th>Amount</th><th>Description</th><th></th></tr></thead>
+  <tbody>
+  {% for x in expenses %}
+  <tr>
+    <td>{{ x.date }}</td>
+    <td>{{ project_map[x.project_id].name if x.project_id in project_map else '—' }}</td>
+    <td>${{ "%.2f"|format(x.amount) }}</td>
+    <td>
+      {{ x.description }}
+      {% if x.pdf_filename %}<a class="btn btn-sm btn-secondary" href="/expenses/{{ x.id }}/receipt" style="margin-left:6px">&#128206; Receipt</a>{% endif %}
+      {% if x.invoiced %} <span class="locked">&#128274; invoiced</span>{% endif %}
+    </td>
+    <td style="text-align:right">
+      {% if not x.invoiced %}
+      <a class="btn btn-sm btn-secondary" href="/expenses/{{ x.id }}/edit">Edit</a>
+      <form class="inline" method="post" action="/expenses/{{ x.id }}/delete">
+        <button class="btn btn-sm btn-danger" onclick="return confirm('Delete?')">Delete</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted">No expenses found.</p>
+{% endif %}
+
+{% if edit_expense is defined and edit_expense %}
+<div class="modal-overlay open">
+  <div class="modal">
+    <h2>Edit Expense</h2>
+    <form method="post" action="/expenses/{{ edit_expense.id }}/edit" enctype="multipart/form-data">
+      <div class="form-group"><label>Project</label>
+        <select name="project_id">
+          {% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if p.id == edit_expense.project_id }}>{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label>Date</label><input name="date" type="date" value="{{ edit_expense.date }}"></div>
+      <div class="form-group"><label>Amount</label><input name="amount" type="number" step="0.01" value="{{ edit_expense.amount }}"></div>
+      <div class="form-group"><label>Description</label><input name="description" value="{{ edit_expense.description }}"></div>
+      <div class="form-group">
+        <label>Replace Receipt PDF{% if edit_expense.pdf_filename %} (currently attached){% endif %}</label>
+        <input name="receipt" type="file" accept=".pdf" style="padding:4px">
+      </div>
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn btn-secondary" href="/expenses">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

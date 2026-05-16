@@ -221,7 +221,131 @@ def create_app(config=None):
 
     @app.route("/expenses")
     def expenses():
-        return render_template("dashboard.html", projects=[], today="", today_entries=[], project_map={})
+        items = storage.load_expenses()
+        projects = storage.load_projects()
+        project_map = {p["id"]: p for p in projects}
+        pf = request.args.get("project_id", "")
+        df = request.args.get("date_from", "")
+        dt = request.args.get("date_to", "")
+        if pf:
+            items = [x for x in items if x["project_id"] == pf]
+        if df:
+            items = [x for x in items if x["date"] >= df]
+        if dt:
+            items = [x for x in items if x["date"] <= dt]
+        items = sorted(items, key=lambda x: x["date"], reverse=True)
+        return render_template("expenses.html", expenses=items, projects=projects,
+                               project_map=project_map, pf=pf, df=df, dt=dt)
+
+    @app.route("/expenses/add", methods=["POST"])
+    def expenses_add():
+        expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
+        project_id = request.form["project_id"]
+        date = request.form.get("date", "").strip()
+        try:
+            amount = float(request.form.get("amount", 0))
+        except ValueError:
+            flash("Amount must be a number.", "error")
+            return redirect(url_for("expenses"))
+        if not project_id or amount <= 0:
+            flash("Project and amount required.", "error")
+            return redirect(url_for("expenses"))
+        if not date:
+            flash("Date is required.", "error")
+            return redirect(url_for("expenses"))
+
+        pdf_filename = None
+        receipt = request.files.get("receipt")
+        if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf"):
+            expense_pdf_dir.mkdir(parents=True, exist_ok=True)
+            pdf_filename = storage.new_id() + ".pdf"
+            receipt.save(str(expense_pdf_dir / pdf_filename))
+
+        items = storage.load_expenses()
+        items.append({
+            "id": storage.new_id(),
+            "project_id": project_id,
+            "date": date,
+            "amount": amount,
+            "description": request.form.get("description", "").strip(),
+            "pdf_filename": pdf_filename,
+            "invoiced": False,
+        })
+        storage.save_expenses(items)
+        flash("Expense added.", "success")
+        return redirect(url_for("expenses"))
+
+    @app.route("/expenses/<xid>/edit", methods=["GET", "POST"])
+    def expenses_edit(xid):
+        expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
+        items = storage.load_expenses()
+        item = next((x for x in items if x["id"] == xid), None)
+        if not item:
+            flash("Expense not found.", "error")
+            return redirect(url_for("expenses"))
+        if item["invoiced"]:
+            flash("Cannot edit an invoiced expense.", "error")
+            return redirect(url_for("expenses"))
+        if request.method == "POST":
+            item["project_id"] = request.form["project_id"]
+            item["date"] = request.form.get("date", item["date"]).strip() or item["date"]
+            try:
+                amount = float(request.form.get("amount", item["amount"]))
+            except ValueError:
+                flash("Amount must be a number.", "error")
+                return redirect(url_for("expenses"))
+            if amount <= 0:
+                flash("Amount must be greater than zero.", "error")
+                return redirect(url_for("expenses"))
+            item["amount"] = amount
+            item["description"] = request.form.get("description", "").strip()
+            receipt = request.files.get("receipt")
+            if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf"):
+                expense_pdf_dir.mkdir(parents=True, exist_ok=True)
+                pdf_filename = storage.new_id() + ".pdf"
+                receipt.save(str(expense_pdf_dir / pdf_filename))
+                item["pdf_filename"] = pdf_filename
+            storage.save_expenses(items)
+            flash("Expense updated.", "success")
+            return redirect(url_for("expenses"))
+        projects = storage.load_projects()
+        return render_template("expenses.html", edit_expense=item,
+                               expenses=sorted(storage.load_expenses(), key=lambda x: x["date"], reverse=True),
+                               projects=projects,
+                               project_map={p["id"]: p for p in projects},
+                               pf="", df="", dt="")
+
+    @app.route("/expenses/<xid>/delete", methods=["POST"])
+    def expenses_delete(xid):
+        expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
+        items = storage.load_expenses()
+        item = next((x for x in items if x["id"] == xid), None)
+        if item and item["invoiced"]:
+            flash("Cannot delete an invoiced expense.", "error")
+            return redirect(url_for("expenses"))
+        if item and item.get("pdf_filename"):
+            pdf_path = expense_pdf_dir / item["pdf_filename"]
+            if pdf_path.exists():
+                pdf_path.unlink()
+        items = [x for x in items if x["id"] != xid]
+        storage.save_expenses(items)
+        flash("Expense deleted.", "success")
+        return redirect(url_for("expenses"))
+
+    @app.route("/expenses/<xid>/receipt")
+    def expenses_receipt(xid):
+        expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
+        items = storage.load_expenses()
+        item = next((x for x in items if x["id"] == xid), None)
+        if not item or not item.get("pdf_filename"):
+            flash("No receipt found.", "error")
+            return redirect(url_for("expenses"))
+        pdf_path = expense_pdf_dir / item["pdf_filename"]
+        if not pdf_path.exists():
+            flash("Receipt file missing.", "error")
+            return redirect(url_for("expenses"))
+        return send_file(str(pdf_path), download_name=f"receipt-{item['date']}.pdf",
+                         as_attachment=True, mimetype="application/pdf")
 
     @app.route("/invoices")
     def invoices():

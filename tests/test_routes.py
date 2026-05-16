@@ -94,3 +94,32 @@ def test_time_edit_blocks_invoiced(client):
         "project_id": "p1", "date": "2026-05-16", "hours": "9.0", "description": "Hacked"
     }, follow_redirects=True)
     assert storage.load_time_entries()[0]["hours"] == 1.0  # unchanged
+
+
+def test_expenses_add_no_receipt(client):
+    import timesheet.storage as storage
+    storage.save_projects([{"id": "p1", "name": "Alpha", "rate": 100.0, "currency": "CAD", "active": True}])
+    r = client.post("/expenses/add", data={
+        "project_id": "p1", "date": "2026-05-16", "amount": "49.99", "description": "Supplies"
+    }, follow_redirects=True)
+    assert r.status_code == 200
+    exp = storage.load_expenses()
+    assert len(exp) == 1
+    assert exp[0]["amount"] == 49.99
+    assert exp[0]["pdf_filename"] is None
+
+
+def test_expenses_add_with_receipt(client, isolated_data_dir):
+    import timesheet.storage as storage
+    from io import BytesIO
+    storage.save_projects([{"id": "p1", "name": "Alpha", "rate": 100.0, "currency": "CAD", "active": True}])
+    pdf_data = b"%PDF-1.4 fake receipt"
+    r = client.post("/expenses/add", data={
+        "project_id": "p1", "date": "2026-05-16", "amount": "25.00", "description": "Receipt",
+        "receipt": (BytesIO(pdf_data), "receipt.pdf"),
+    }, content_type="multipart/form-data", follow_redirects=True)
+    assert r.status_code == 200
+    exp = storage.load_expenses()
+    assert exp[0]["pdf_filename"] is not None
+    receipt_path = isolated_data_dir / "expense_pdfs" / exp[0]["pdf_filename"]
+    assert receipt_path.exists()

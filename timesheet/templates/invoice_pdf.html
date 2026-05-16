@@ -4,73 +4,87 @@
   <meta charset="UTF-8">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #333; padding: 48px; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #222; padding: 48px 56px; }
 
-    /* Header */
-    .header-table { width: 100%; margin-bottom: 40px; }
-    .business-name { font-size: 22px; font-weight: 700; color: #111; }
-    .gst-reg { font-size: 11px; color: #888; margin-top: 4px; }
-    .invoice-label { font-size: 28px; font-weight: 700; color: #111; text-align: right; }
-    .invoice-number { font-size: 14px; color: #666; text-align: right; margin-top: 2px; }
+    /* ── Header row: business name left, From block right ── */
+    .header { width: 100%; margin-bottom: 32px; }
+    .header td { vertical-align: top; }
+    .biz-name  { font-size: 26px; font-weight: 700; color: #111; }
+    .from-lbl  { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #aaa; margin-bottom: 4px; }
+    .from-addr { font-size: 12px; color: #444; line-height: 1.6; }
 
-    /* Bill To / Meta */
-    .meta-table { width: 100%; margin-bottom: 36px; }
-    .section-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #999; margin-bottom: 6px; }
-    .bill-to-name { font-size: 15px; font-weight: 700; color: #111; }
-    .bill-to-address { font-size: 12px; color: #555; margin-top: 4px; line-height: 1.5; white-space: pre-line; }
-    .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #999; padding-bottom: 2px; }
-    .meta-value { font-size: 13px; color: #333; font-weight: 600; }
+    /* ── Meta row: invoice details left, Invoice For right ── */
+    .meta { width: 100%; margin-bottom: 36px; }
+    .meta td { vertical-align: top; }
+    .meta-row-lbl { font-size: 11px; color: #999; padding-right: 12px; padding-bottom: 5px; white-space: nowrap; }
+    .meta-row-val { font-size: 11px; color: #222; font-weight: 600; padding-bottom: 5px; }
+    .inv-for-lbl  { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #aaa; margin-bottom: 6px; }
+    .inv-for-name { font-size: 14px; font-weight: 700; color: #111; }
+    .inv-for-addr { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.6; white-space: pre-line; }
 
-    /* Line items */
+    /* ── Line items ── */
     table.items { width: 100%; border-collapse: collapse; margin-bottom: 0; }
-    table.items thead tr { border-bottom: 2px solid #111; }
-    table.items th { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #999;
-                     padding: 0 0 8px 0; text-align: left; font-weight: 600; }
-    table.items th.r { text-align: right; }
-    table.items tbody tr { border-bottom: 1px solid #e8e8e8; }
-    table.items td { padding: 10px 0; vertical-align: top; font-size: 13px; }
-    table.items td.r { text-align: right; color: #555; }
-    table.items td.amt { text-align: right; font-weight: 600; color: #111; }
-    .project-tag { font-size: 10px; color: #aaa; margin-top: 2px; }
+    table.items thead tr { border-bottom: 1px solid #ddd; }
+    table.items th { font-size: 9px; text-transform: uppercase; letter-spacing: .08em;
+                     color: #aaa; padding: 0 8px 8px 0; text-align: left; font-weight: 600; }
+    table.items th.r { text-align: right; padding-right: 0; }
+    table.items tbody tr { border-bottom: 1px solid #efefef; }
+    table.items td { padding: 9px 8px 9px 0; vertical-align: top; font-size: 12px; color: #333; }
+    table.items td.r { text-align: right; color: #444; padding-right: 0; }
+    table.items td.amt { text-align: right; color: #111; font-weight: 600; padding-right: 0; }
+    .proj-tag { font-size: 10px; color: #bbb; margin-top: 2px; }
 
-    /* Totals */
-    table.totals { width: 260px; border-collapse: collapse; margin-left: auto; margin-top: 24px; }
-    table.totals td { padding: 5px 0; font-size: 13px; }
-    table.totals td.lbl { color: #666; }
-    table.totals td.amt { text-align: right; font-weight: 600; }
-    table.totals tr.total-due td { border-top: 2px solid #111; padding-top: 10px; font-size: 15px; font-weight: 700; color: #111; }
+    /* ── Totals ── */
+    table.totals { width: 240px; border-collapse: collapse; margin-top: 20px; margin-left: auto; }
+    table.totals td { padding: 5px 0; font-size: 12px; }
+    table.totals .t-lbl { color: #666; padding-right: 16px; }
+    table.totals .t-amt { text-align: right; font-weight: 600; color: #222; }
+    table.totals tr.due td { border-top: 1px solid #ddd; padding-top: 10px; margin-top: 6px;
+                              font-size: 14px; font-weight: 700; color: #111; }
 
-    /* Footer */
-    .footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e8e8e8; font-size: 11px; color: #bbb; }
+    /* ── Footer ── */
+    .footer { margin-top: 48px; font-size: 10px; color: #ccc; border-top: 1px solid #efefef; padding-top: 12px; }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <table class="header-table" cellpadding="0" cellspacing="0">
+  <!-- Header: business name left, From right -->
+  <table class="header" cellpadding="0" cellspacing="0">
     <tr>
-      <td style="vertical-align:top">
-        <div class="business-name">{{ settings.business_name }}</div>
-        {% if settings.gst_number %}<div class="gst-reg">GST #{{ settings.gst_number }}</div>{% endif %}
+      <td style="width:55%">
+        <div class="biz-name">{{ settings.business_name }}</div>
       </td>
-      <td style="vertical-align:top;text-align:right">
-        <div class="invoice-label">Invoice</div>
-        <div class="invoice-number">#{{ invoice.invoice_number }}</div>
+      <td style="width:45%; text-align:right">
+        <div class="from-lbl">From</div>
+        <div class="from-addr">
+          {{ settings.business_name }}
+          {% if settings.gst_number %}<br>GST #{{ settings.gst_number }}{% endif %}
+        </div>
       </td>
     </tr>
   </table>
 
-  <!-- Bill To / Date -->
-  <table class="meta-table" cellpadding="0" cellspacing="0">
+  <!-- Meta: invoice details left, Invoice For right -->
+  <table class="meta" cellpadding="0" cellspacing="0">
     <tr>
-      <td style="vertical-align:top;width:60%">
-        <div class="section-label">Bill To</div>
-        <div class="bill-to-name">{{ invoice.client_name }}</div>
-        {% if invoice.client_address %}<div class="bill-to-address">{{ invoice.client_address }}</div>{% endif %}
+      <td style="width:55%; vertical-align:top">
+        <table cellpadding="0" cellspacing="0">
+          <tr>
+            <td class="meta-row-lbl">Invoice ID</td>
+            <td class="meta-row-val">{{ invoice.invoice_number }}</td>
+          </tr>
+          <tr>
+            <td class="meta-row-lbl">Issue Date</td>
+            <td class="meta-row-val">{{ invoice.issued_date }}</td>
+          </tr>
+        </table>
       </td>
-      <td style="vertical-align:top;text-align:right">
-        <div class="meta-label">Issue Date</div>
-        <div class="meta-value">{{ invoice.issued_date }}</div>
+      <td style="width:45%; vertical-align:top; text-align:right">
+        <div class="inv-for-lbl">Invoice For</div>
+        <div class="inv-for-name">{{ invoice.client_name }}</div>
+        {% if invoice.client_address %}
+        <div class="inv-for-addr">{{ invoice.client_address }}</div>
+        {% endif %}
       </td>
     </tr>
   </table>
@@ -79,27 +93,27 @@
   <table class="items" cellpadding="0" cellspacing="0">
     <thead>
       <tr>
-        <th style="width:90px">Date</th>
         <th>Description</th>
-        <th class="r" style="width:65px">Qty</th>
-        <th class="r" style="width:80px">Rate</th>
-        <th class="r" style="width:90px">Amount</th>
+        <th class="r" style="width:55px">Date</th>
+        <th class="r" style="width:65px">Quantity</th>
+        <th class="r" style="width:75px">Unit Price</th>
+        <th class="r" style="width:85px">Amount</th>
       </tr>
     </thead>
     <tbody>
       {% for item in invoice.line_items %}
       <tr>
-        <td>{{ item.date }}</td>
         <td>
           {{ item.description }}
-          {% if item.project_name %}<div class="project-tag">{{ item.project_name }}</div>{% endif %}
+          {% if item.project_name %}<div class="proj-tag">{{ item.project_name }}</div>{% endif %}
         </td>
+        <td class="r">{{ item.date }}</td>
         {% if item.type == "time" %}
         <td class="r">{{ item.hours }} hr</td>
         <td class="r">${{ "%.2f"|format(item.rate) }}</td>
         {% else %}
         <td class="r">—</td>
-        <td class="r">Expense</td>
+        <td class="r">—</td>
         {% endif %}
         <td class="amt">${{ "%.2f"|format(item.amount) }}</td>
       </tr>
@@ -108,29 +122,27 @@
   </table>
 
   <!-- Totals -->
+  {% if invoice.subtotal %}
+    {% set gst_pct = (invoice.gst / invoice.subtotal * 100)|round(0)|int %}
+  {% else %}
+    {% set gst_pct = (settings.gst_rate * 100)|int %}
+  {% endif %}
   <table class="totals" cellpadding="0" cellspacing="0">
     <tr>
-      <td class="lbl">Subtotal</td>
-      <td class="amt">${{ "%.2f"|format(invoice.subtotal) }}</td>
+      <td class="t-lbl">Subtotal</td>
+      <td class="t-amt">${{ "%.2f"|format(invoice.subtotal) }}</td>
     </tr>
     <tr>
-      {% if invoice.subtotal %}
-        {% set gst_pct = (invoice.gst / invoice.subtotal * 100)|round(0)|int %}
-      {% else %}
-        {% set gst_pct = (settings.gst_rate * 100)|int %}
-      {% endif %}
-      <td class="lbl">GST ({{ gst_pct }}%)</td>
-      <td class="amt">${{ "%.2f"|format(invoice.gst) }}</td>
+      <td class="t-lbl">
+        GST{% if settings.gst_number %} · {{ settings.gst_number }}{% endif %} ({{ gst_pct }}%)
+      </td>
+      <td class="t-amt">${{ "%.2f"|format(invoice.gst) }}</td>
     </tr>
-    <tr class="total-due">
-      <td class="lbl">Total Due (CAD)</td>
-      <td class="amt">${{ "%.2f"|format(invoice.total) }}</td>
+    <tr class="due">
+      <td class="t-lbl">Amount Due (CAD)</td>
+      <td class="t-amt">${{ "%.2f"|format(invoice.total) }}</td>
     </tr>
   </table>
-
-  {% if settings.gst_number %}
-  <div class="footer">GST Registration Number: {{ settings.gst_number }}</div>
-  {% endif %}
 
 </body>
 </html>

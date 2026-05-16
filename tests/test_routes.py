@@ -53,3 +53,28 @@ def test_dashboard_post_creates_entry(client):
     assert len(entries) == 1
     assert entries[0]["hours"] == 3.0
     assert entries[0]["invoiced"] is False
+
+
+def test_time_entries_page(client):
+    r = client.get("/time")
+    assert r.status_code == 200
+
+
+def test_time_add(client):
+    import timesheet.storage as storage
+    storage.save_projects([{"id": "p1", "name": "Alpha", "rate": 100.0, "currency": "CAD", "active": True}])
+    r = client.post("/time/add", data={
+        "project_id": "p1", "date": "2026-05-16", "hours": "1.5", "description": "Review"
+    }, follow_redirects=True)
+    assert r.status_code == 200
+    assert len(storage.load_time_entries()) == 1
+
+
+def test_time_delete_blocks_invoiced(client):
+    import timesheet.storage as storage
+    storage.save_time_entries([{
+        "id": "e1", "project_id": "p1", "date": "2026-05-16",
+        "hours": 1.0, "description": "Done", "invoiced": True
+    }])
+    r = client.post("/time/e1/delete", follow_redirects=True)
+    assert len(storage.load_time_entries()) == 1  # not deleted

@@ -126,10 +126,89 @@ def create_app(config=None):
         flash("Project deactivated.", "success")
         return redirect(url_for("projects"))
 
-    # Stub routes — implemented in later tasks
     @app.route("/time")
     def time_entries():
-        return render_template("dashboard.html", projects=[], today="", today_entries=[], project_map={})
+        entries = storage.load_time_entries()
+        projects = storage.load_projects()
+        project_map = {p["id"]: p for p in projects}
+        pf = request.args.get("project_id", "")
+        df = request.args.get("date_from", "")
+        dt = request.args.get("date_to", "")
+        if pf:
+            entries = [e for e in entries if e["project_id"] == pf]
+        if df:
+            entries = [e for e in entries if e["date"] >= df]
+        if dt:
+            entries = [e for e in entries if e["date"] <= dt]
+        entries = sorted(entries, key=lambda e: e["date"], reverse=True)
+        return render_template("time.html", entries=entries, projects=projects,
+                               project_map=project_map, pf=pf, df=df, dt=dt)
+
+    @app.route("/time/add", methods=["POST"])
+    def time_add():
+        project_id = request.form["project_id"]
+        try:
+            hours = float(request.form.get("hours", 0))
+        except ValueError:
+            flash("Hours must be a number.", "error")
+            return redirect(url_for("time_entries"))
+        if not project_id or hours <= 0:
+            flash("Project and hours required.", "error")
+            return redirect(url_for("time_entries"))
+        entries = storage.load_time_entries()
+        entries.append({
+            "id": storage.new_id(),
+            "project_id": project_id,
+            "date": request.form["date"],
+            "hours": hours,
+            "description": request.form.get("description", "").strip(),
+            "invoiced": False,
+        })
+        storage.save_time_entries(entries)
+        flash("Time entry added.", "success")
+        return redirect(url_for("time_entries"))
+
+    @app.route("/time/<eid>/edit", methods=["GET", "POST"])
+    def time_edit(eid):
+        entries = storage.load_time_entries()
+        entry = next((e for e in entries if e["id"] == eid), None)
+        if not entry:
+            flash("Entry not found.", "error")
+            return redirect(url_for("time_entries"))
+        if entry["invoiced"]:
+            flash("Cannot edit an invoiced entry.", "error")
+            return redirect(url_for("time_entries"))
+        if request.method == "POST":
+            entry["project_id"] = request.form["project_id"]
+            entry["date"] = request.form["date"]
+            try:
+                entry["hours"] = float(request.form.get("hours", entry["hours"]))
+            except ValueError:
+                flash("Hours must be a number.", "error")
+                return redirect(url_for("time_entries"))
+            entry["description"] = request.form.get("description", "").strip()
+            storage.save_time_entries(entries)
+            flash("Entry updated.", "success")
+            return redirect(url_for("time_entries"))
+        return render_template("time.html", edit_entry=entry,
+                               entries=storage.load_time_entries(),
+                               projects=storage.load_projects(),
+                               project_map={p["id"]: p for p in storage.load_projects()},
+                               pf="", df="", dt="")
+
+    @app.route("/time/<eid>/delete", methods=["POST"])
+    def time_delete(eid):
+        entries = storage.load_time_entries()
+        entry = next((e for e in entries if e["id"] == eid), None)
+        if entry and entry["invoiced"]:
+            flash("Cannot delete an invoiced entry.", "error")
+            return redirect(url_for("time_entries"))
+        entries = [e for e in entries if e["id"] != eid]
+        storage.save_time_entries(entries)
+        flash("Entry deleted.", "success")
+        return redirect(url_for("time_entries"))
+
+    # Stub routes — implemented in later tasks
 
     @app.route("/expenses")
     def expenses():

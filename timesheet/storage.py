@@ -24,11 +24,13 @@ DEFAULTS = {
 def _load(filename):
     path = DATA_DIR / filename
     if not path.exists():
-        return DEFAULTS[filename]
+        import copy
+        return copy.deepcopy(DEFAULTS[filename])
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
-        return DEFAULTS[filename]
+        import copy
+        return copy.deepcopy(DEFAULTS[filename])
 
 
 def _save(filename, data):

@@ -15,7 +15,7 @@ def isolated_data_dir(tmp_path, monkeypatch):
 @pytest.fixture
 def app(isolated_data_dir):
     from timesheet.app import create_app
-    app = create_app({"TESTING": True, "DATA_DIR": str(isolated_data_dir)})
+    app = create_app({"TESTING": True})
     return app
 
 

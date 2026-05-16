@@ -55,13 +55,19 @@ def create_app(config=None):
     @app.route("/settings", methods=["GET", "POST"])
     def settings():
         if request.method == "POST":
+            try:
+                gst_rate = float(request.form.get("gst_rate", 0.05))
+                smtp_port = int(request.form.get("smtp_port", 587))
+            except ValueError:
+                flash("GST rate and SMTP port must be numbers.", "error")
+                return redirect(url_for("settings"))
             s = storage.load_settings()
             s.update({
                 "business_name": request.form["business_name"].strip(),
                 "gst_number": request.form["gst_number"].strip(),
-                "gst_rate": float(request.form.get("gst_rate", 0.05)),
+                "gst_rate": gst_rate,
                 "smtp_host": request.form["smtp_host"].strip(),
-                "smtp_port": int(request.form.get("smtp_port", 587)),
+                "smtp_port": smtp_port,
                 "smtp_user": request.form["smtp_user"].strip(),
                 "smtp_password": request.form["smtp_password"].strip(),
             })
@@ -90,11 +96,16 @@ def create_app(config=None):
     @app.route("/projects/<pid>/edit", methods=["POST"])
     def projects_edit(pid):
         projects = storage.load_projects()
+        found = False
         for p in projects:
             if p["id"] == pid:
                 p["name"] = request.form["name"].strip()
                 p["rate"] = float(request.form.get("rate", p["rate"]))
+                found = True
                 break
+        if not found:
+            flash("Project not found.", "error")
+            return redirect(url_for("projects"))
         storage.save_projects(projects)
         flash("Project updated.", "success")
         return redirect(url_for("projects"))
@@ -102,12 +113,16 @@ def create_app(config=None):
     @app.route("/projects/<pid>/deactivate", methods=["POST"])
     def projects_deactivate(pid):
         projects = storage.load_projects()
+        found = False
         for p in projects:
             if p["id"] == pid:
                 p["active"] = False
+                found = True
                 break
+        if not found:
+            flash("Project not found.", "error")
+            return redirect(url_for("projects"))
         storage.save_projects(projects)
-        flash("Project deactivated.", "success")
         return redirect(url_for("projects"))
 
     # Stub routes — implemented in later tasks

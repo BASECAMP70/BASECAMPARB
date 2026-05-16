@@ -78,3 +78,19 @@ def test_time_delete_blocks_invoiced(client):
     }])
     r = client.post("/time/e1/delete", follow_redirects=True)
     assert len(storage.load_time_entries()) == 1  # not deleted
+
+
+def test_time_edit_blocks_invoiced(client):
+    import timesheet.storage as storage
+    storage.save_time_entries([{
+        "id": "e1", "project_id": "p1", "date": "2026-05-16",
+        "hours": 1.0, "description": "Done", "invoiced": True
+    }])
+    r = client.get("/time/e1/edit", follow_redirects=True)
+    assert r.status_code == 200
+    # Entry must not be editable — still invoiced and unchanged
+    assert storage.load_time_entries()[0]["invoiced"] is True
+    r2 = client.post("/time/e1/edit", data={
+        "project_id": "p1", "date": "2026-05-16", "hours": "9.0", "description": "Hacked"
+    }, follow_redirects=True)
+    assert storage.load_time_entries()[0]["hours"] == 1.0  # unchanged

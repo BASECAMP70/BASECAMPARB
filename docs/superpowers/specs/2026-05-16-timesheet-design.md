@@ -34,13 +34,15 @@ timesheet/
 │   ├── invoices.json
 │   └── settings.json
 ├── templates/
-│   ├── base.html           # Layout, nav
+│   ├── base.html           # Layout, nav (Dashboard, Projects, Time, Expenses, Invoices, Reports, Settings)
 │   ├── dashboard.html      # Quick time entry form + today's entries
 │   ├── projects.html       # Manage projects
 │   ├── time.html           # Time entry list/edit
 │   ├── expenses.html       # Expense list/edit
 │   ├── invoices.html       # Generate & send invoices
 │   ├── invoice_pdf.html    # PDF template (WeasyPrint)
+│   ├── report_monthly.html # Monthly totals report
+│   ├── report_uninvoiced.html # Uninvoiced hours report
 │   └── settings.html       # Business info + SMTP config
 └── requirements.txt
 ```
@@ -163,6 +165,20 @@ Line items are snapshot at the time of invoice generation and stored in `invoice
 - "Generate Invoice": creates PDF in memory via WeasyPrint, saves invoice record to `invoices.json`, marks included entries as `invoiced: true`. Auto-increments invoice number (INV-001, INV-002, …).
 - Invoice list: past invoices with "Download PDF" and "Email Invoice" buttons.
 - Email flow: modal with recipient email, pre-filled subject (`Invoice INV-001 from [Business Name]`), short body, sends via Gmail SMTP with PDF attached.
+
+### Reports — `GET /reports/monthly`, `GET /reports/uninvoiced`
+
+**Monthly Totals** (`/reports/monthly`)
+- Filter by month/year (defaults to current month).
+- Table grouped by project showing: total hours, billable amount (hours × rate), total expenses, and combined total.
+- Grand total row across all projects for the selected month.
+- Includes both invoiced and uninvoiced entries (full picture of work done).
+
+**Uninvoiced Hours** (`/reports/uninvoiced`)
+- Lists all time entries and expenses where `invoiced: false`, grouped by project.
+- Per-project subtotal: hours, billable amount, expenses, combined.
+- Grand total at the bottom.
+- Quick-link to the invoices page to generate an invoice for that project.
 
 ### Settings — `GET/POST /settings`
 - Business name, GST number, GST rate (default 5%).

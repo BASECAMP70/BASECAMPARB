@@ -4,73 +4,67 @@
   <meta charset="UTF-8">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #333;
-           padding: 52px 60px; background: #fff; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #333; background: #fff; }
 
-    /* ── Header: logo left, From right ── */
-    .header { width: 100%; margin-bottom: 40px; }
-    .header td { vertical-align: top; }
-    .logo-img { max-height: 64px; max-width: 200px; }
-    .biz-text { font-size: 22px; font-weight: 700; color: #111; }
-    .from-block { text-align: right; }
-    .from-lbl { font-size: 10px; color: #aaa; vertical-align: top; padding-right: 10px; padding-top: 2px; }
-    .from-sep  { border-left: 2px solid #ddd; padding-left: 10px; }
-    .from-name { font-weight: 700; color: #111; font-size: 11px; line-height: 1.7; }
-    .from-addr { color: #555; font-size: 11px; line-height: 1.7; }
+    .from-lbl  { font-size: 10px; color: #aaa; padding-right: 8px; }
+    .from-bar  { width: 2px; background: #ddd; padding: 0; }
+    .from-cell { padding-left: 10px; }
+    .from-name { font-weight: 700; color: #111; font-size: 11px; line-height: 1.8; }
+    .from-addr { color: #555; font-size: 11px; line-height: 1.8; }
 
-    /* ── Meta: left labels, right Invoice For ── */
-    .meta { width: 100%; margin-bottom: 36px; border-top: 1px solid #eee; padding-top: 36px; }
-    .meta td { vertical-align: top; }
-    .meta-lbl { font-size: 10px; color: #aaa; padding-right: 10px; padding-bottom: 11px; white-space: nowrap; }
-    .meta-sep  { border-left: 2px solid #ddd; padding-left: 10px; font-size: 11px; color: #111; padding-bottom: 11px; }
+    .meta-lbl  { font-size: 10px; color: #aaa; padding-right: 8px; padding-bottom: 9px; white-space: nowrap; }
+    .meta-bar  { width: 2px; background: #ddd; padding: 0; }
+    .meta-val  { padding-left: 10px; padding-bottom: 9px; font-size: 11px; color: #111; }
     .meta-bold { font-weight: 700; }
-    .inv-for-lbl  { font-size: 10px; color: #aaa; padding-right: 10px; white-space: nowrap; vertical-align: top; padding-top: 2px; }
-    .inv-for-sep  { border-left: 2px solid #ddd; padding-left: 10px; }
-    .inv-for-name { font-size: 15px; font-weight: 700; color: #111; line-height: 1.4; }
-    .inv-for-addr { font-size: 10px; color: #666; margin-top: 3px; line-height: 1.6; }
 
-    /* ── Line items ── */
-    table.items { width: 100%; border-collapse: collapse; margin-bottom: 0; }
-    table.items thead tr { border-bottom: 1px solid #ccc; }
-    table.items th { font-size: 10px; font-weight: 700; color: #333;
-                     padding: 0 10px 9px 0; text-align: left; }
+    .inv-for-lbl  { font-size: 10px; color: #aaa; padding-right: 8px; white-space: nowrap; }
+    .inv-for-bar  { width: 2px; background: #ddd; padding: 0; }
+    .inv-for-cell { padding-left: 10px; }
+    .inv-for-name { font-size: 15px; font-weight: 700; color: #111; line-height: 1.4; }
+    .inv-for-addr { font-size: 10px; color: #666; line-height: 1.6; }
+
+    table.items { width: 100%; border-collapse: collapse; }
+    table.items th { font-size: 10px; font-weight: 700; color: #333; text-align: left;
+                     padding: 0 10px 9px 0; border-bottom: 1px solid #ccc; }
     table.items th.r { text-align: right; padding-right: 0; }
-    table.items tbody tr { border-bottom: 1px solid #eee; }
-    table.items td { padding: 10px 10px 10px 0; vertical-align: top; font-size: 11px; color: #333; }
+    table.items td { padding: 10px 10px 10px 0; vertical-align: top; font-size: 11px; color: #333;
+                     border-bottom: 1px solid #eee; }
     table.items td.r { text-align: right; padding-right: 0; }
     table.items td.amt { text-align: right; padding-right: 0; font-weight: 700; color: #111; }
+
+    .t-lbl { text-align: right; color: #666; padding-right: 28px; padding-bottom: 5px; white-space: nowrap; font-size: 11px; }
+    .t-amt { text-align: right; font-weight: 700; color: #111; padding-bottom: 5px; white-space: nowrap; font-size: 11px; }
+    .t-due-lbl { text-align: right; padding-right: 28px; font-size: 14px; font-weight: 700; color: #111; padding-top: 8px; white-space: nowrap; }
+    .t-due-amt { text-align: right; font-size: 18px; font-weight: 700; color: #111; padding-top: 8px; white-space: nowrap; }
+
+    .section-divider { border-top: 1px solid #eee; }
     .proj-tag { font-size: 9px; color: #bbb; margin-top: 2px; }
-
-    /* ── Totals ── */
-    table.totals { border-collapse: collapse; margin-top: 28px; margin-left: auto; }
-    table.totals td { padding: 4px 0; font-size: 11px; }
-    table.totals .t-lbl { color: #666; padding-right: 32px; text-align: right; white-space: nowrap; }
-    table.totals .t-amt { text-align: right; font-weight: 700; color: #111; white-space: nowrap; }
-    table.totals tr.due .t-lbl { font-size: 14px; font-weight: 700; color: #111; padding-top: 10px; }
-    table.totals tr.due .t-amt { font-size: 18px; font-weight: 700; color: #111; padding-top: 10px; }
-
-    /* ── Footer ── */
-    .footer { position: fixed; bottom: 36px; left: 0; right: 0;
-              text-align: center; font-size: 10px; color: #bbb; }
+    .footer-text { text-align: center; font-size: 10px; color: #bbb; padding-top: 40px; }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <table class="header" cellpadding="0" cellspacing="0">
+<!-- ── OUTER PAGE TABLE ─────────────────────────────────────── -->
+<table width="100%" cellpadding="0" cellspacing="0" style="padding: 52px 60px;">
+<tr><td>
+
+  <!-- HEADER: logo left, From right -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 40px;">
     <tr>
-      <td style="width:50%">
+      <td width="50%" valign="top">
         {% if logo_uri %}
-          <img class="logo-img" src="{{ logo_uri }}" alt="{{ settings.business_name }}">
+          <img src="{{ logo_uri }}" alt="{{ settings.business_name }}"
+               style="max-height:64px; max-width:200px;">
         {% else %}
-          <div class="biz-text">{{ settings.business_name }}</div>
+          <span style="font-size:22px; font-weight:700; color:#111;">{{ settings.business_name }}</span>
         {% endif %}
       </td>
-      <td style="width:50%">
-        <table cellpadding="0" cellspacing="0" style="margin-left:auto">
+      <td width="50%" valign="top" align="right">
+        <table cellpadding="0" cellspacing="0" align="right">
           <tr>
-            <td class="from-lbl">From</td>
-            <td class="from-sep">
+            <td class="from-lbl" valign="top">From</td>
+            <td class="from-bar" valign="top">&nbsp;</td>
+            <td class="from-cell">
               <div class="from-name">{{ settings.business_name }}</div>
               {% if settings.business_address %}
               <div class="from-addr">{{ settings.business_address }}</div>
@@ -85,32 +79,41 @@
     </tr>
   </table>
 
-  <!-- Meta -->
-  <table class="meta" cellpadding="0" cellspacing="0">
+  <!-- DIVIDER -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 28px;">
+    <tr><td class="section-divider">&nbsp;</td></tr>
+  </table>
+
+  <!-- META: invoice details left, Invoice For right -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 36px;">
     <tr>
-      <!-- Left: invoice details -->
-      <td style="width:50%; vertical-align:top">
+      <!-- Left: invoice detail rows -->
+      <td width="50%" valign="top">
         <table cellpadding="0" cellspacing="0">
           <tr>
             <td class="meta-lbl">Invoice ID</td>
-            <td class="meta-sep meta-bold">{{ invoice.invoice_number }}</td>
+            <td class="meta-bar">&nbsp;</td>
+            <td class="meta-val meta-bold">{{ invoice.invoice_number }}</td>
           </tr>
           <tr>
             <td class="meta-lbl">Issue Date</td>
-            <td class="meta-sep">{{ invoice.issued_date }}</td>
+            <td class="meta-bar">&nbsp;</td>
+            <td class="meta-val">{{ invoice.issued_date }}</td>
           </tr>
           <tr>
             <td class="meta-lbl">Due Date</td>
-            <td class="meta-sep">{{ invoice.issued_date }} (upon receipt)</td>
+            <td class="meta-bar">&nbsp;</td>
+            <td class="meta-val">{{ invoice.issued_date }} (upon receipt)</td>
           </tr>
         </table>
       </td>
       <!-- Right: Invoice For -->
-      <td style="width:50%; vertical-align:top">
-        <table cellpadding="0" cellspacing="0" style="margin-left:auto">
+      <td width="50%" valign="top" align="right">
+        <table cellpadding="0" cellspacing="0" align="right">
           <tr>
-            <td class="inv-for-lbl">Invoice For</td>
-            <td class="inv-for-sep">
+            <td class="inv-for-lbl" valign="top">Invoice For</td>
+            <td class="inv-for-bar" valign="top">&nbsp;</td>
+            <td class="inv-for-cell">
               <div class="inv-for-name">{{ invoice.client_name }}</div>
               {% if invoice.client_address %}
               <div class="inv-for-addr">{{ invoice.client_address }}</div>
@@ -122,14 +125,14 @@
     </tr>
   </table>
 
-  <!-- Line items -->
-  <table class="items" cellpadding="0" cellspacing="0">
+  <!-- LINE ITEMS -->
+  <table class="items" cellpadding="0" cellspacing="0" style="margin-bottom: 4px;">
     <thead>
       <tr>
         <th>Description</th>
-        <th class="r" style="width:75px">Quantity</th>
-        <th class="r" style="width:80px">Unit Price</th>
-        <th class="r" style="width:90px">Amount</th>
+        <th class="r" width="75">Quantity</th>
+        <th class="r" width="80">Unit Price</th>
+        <th class="r" width="90">Amount</th>
       </tr>
     </thead>
     <tbody>
@@ -142,8 +145,8 @@
         <td class="r">{{ item.hours }}</td>
         <td class="r">${{ "%.2f"|format(item.rate) }}</td>
         {% else %}
-        <td class="r">—</td>
-        <td class="r">—</td>
+        <td class="r">&#8212;</td>
+        <td class="r">&#8212;</td>
         {% endif %}
         <td class="amt">${{ "%.2f"|format(item.amount) }}</td>
       </tr>
@@ -151,28 +154,42 @@
     </tbody>
   </table>
 
-  <!-- Totals -->
+  <!-- TOTALS (right-aligned via outer table) -->
   {% if invoice.subtotal %}
     {% set gst_pct = (invoice.gst / invoice.subtotal * 100)|round(0)|int %}
   {% else %}
     {% set gst_pct = (settings.gst_rate * 100)|int %}
   {% endif %}
-  <table class="totals" cellpadding="0" cellspacing="0">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px;">
     <tr>
-      <td class="t-lbl">Subtotal</td>
-      <td class="t-amt">${{ "%.2f"|format(invoice.subtotal) }}</td>
-    </tr>
-    <tr>
-      <td class="t-lbl">GST{% if settings.gst_number %} - {{ settings.gst_number }}{% endif %} ({{ gst_pct }}%)</td>
-      <td class="t-amt">${{ "%.2f"|format(invoice.gst) }}</td>
-    </tr>
-    <tr class="due">
-      <td class="t-lbl">Amount Due</td>
-      <td class="t-amt">${{ "%.2f"|format(invoice.total) }}</td>
+      <td width="45%"></td>
+      <td width="55%">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td class="t-lbl">Subtotal</td>
+            <td class="t-amt">${{ "%.2f"|format(invoice.subtotal) }}</td>
+          </tr>
+          <tr>
+            <td class="t-lbl">GST{% if settings.gst_number %} - {{ settings.gst_number }}{% endif %} ({{ gst_pct }}%)</td>
+            <td class="t-amt">${{ "%.2f"|format(invoice.gst) }}</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="border-top: 1px solid #ddd; padding: 0; height: 1px;"></td>
+          </tr>
+          <tr>
+            <td class="t-due-lbl">Amount Due</td>
+            <td class="t-due-amt">${{ "%.2f"|format(invoice.total) }}</td>
+          </tr>
+        </table>
+      </td>
     </tr>
   </table>
 
-  <div class="footer">Page 1 of 1</div>
+  <!-- FOOTER -->
+  <div class="footer-text">Page 1 of 1</div>
+
+</td></tr>
+</table>
 
 </body>
 </html>

@@ -10,6 +10,11 @@
       <input name="business_name" value="{{ s.business_name }}">
     </div>
     <div class="form-group">
+      <label>Business Address</label>
+      <textarea name="business_address" rows="3" style="resize:vertical">{{ s.business_address or '' }}</textarea>
+      <p class="text-muted" style="margin-top:0.3rem;font-size:0.8rem">Shown in the From block on invoice PDFs.</p>
+    </div>
+    <div class="form-group">
       <label>GST Number</label>
       <input name="gst_number" value="{{ s.gst_number }}">
     </div>

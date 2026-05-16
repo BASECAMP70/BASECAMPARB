@@ -3,97 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    {% set brand = settings.invoice_brand_color or '#1D1E1C' %}
-    {% set bg = settings.invoice_bg_color or '#FFFFFF' %}
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #222;
-           padding: 48px 56px; background: {{ bg }}; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #333;
+           padding: 52px 60px; background: #fff; }
 
-    /* ── Header row: logo/name left, From block right ── */
-    .header { width: 100%; margin-bottom: 32px; }
+    /* ── Header: logo left, From right ── */
+    .header { width: 100%; margin-bottom: 40px; }
     .header td { vertical-align: top; }
-    .biz-name  { font-size: 26px; font-weight: 700; color: {{ brand }}; }
-    .from-lbl  { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #aaa; margin-bottom: 4px; }
-    .from-addr { font-size: 12px; color: #444; line-height: 1.6; }
+    .logo-img { max-height: 64px; max-width: 200px; }
+    .biz-text { font-size: 22px; font-weight: 700; color: #111; }
+    .from-block { text-align: right; }
+    .from-lbl { font-size: 10px; color: #aaa; vertical-align: top; padding-right: 10px; padding-top: 2px; }
+    .from-sep  { border-left: 2px solid #ddd; padding-left: 10px; }
+    .from-name { font-weight: 700; color: #111; font-size: 11px; line-height: 1.7; }
+    .from-addr { color: #555; font-size: 11px; line-height: 1.7; }
 
-    /* ── Meta row: invoice details left, Invoice For right ── */
-    .meta { width: 100%; margin-bottom: 36px; }
+    /* ── Meta: left labels, right Invoice For ── */
+    .meta { width: 100%; margin-bottom: 36px; border-top: 1px solid #eee; padding-top: 24px; }
     .meta td { vertical-align: top; }
-    .meta-row-lbl { font-size: 11px; color: #999; padding-right: 12px; padding-bottom: 5px; white-space: nowrap; }
-    .meta-row-val { font-size: 11px; color: #222; font-weight: 600; padding-bottom: 5px; }
-    .inv-for-lbl  { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #aaa; margin-bottom: 6px; }
-    .inv-for-name { font-size: 14px; font-weight: 700; color: #111; }
-    .inv-for-addr { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.6; white-space: pre-line; }
+    .meta-lbl { font-size: 10px; color: #aaa; padding-right: 10px; padding-bottom: 7px; white-space: nowrap; }
+    .meta-sep  { border-left: 2px solid #ddd; padding-left: 10px; font-size: 11px; color: #111; padding-bottom: 7px; }
+    .meta-bold { font-weight: 700; }
+    .inv-for-lbl  { font-size: 10px; color: #aaa; padding-right: 10px; white-space: nowrap; vertical-align: top; padding-top: 2px; }
+    .inv-for-sep  { border-left: 2px solid #ddd; padding-left: 10px; }
+    .inv-for-name { font-size: 15px; font-weight: 700; color: #111; line-height: 1.4; }
+    .inv-for-addr { font-size: 10px; color: #666; margin-top: 3px; line-height: 1.6; }
 
     /* ── Line items ── */
     table.items { width: 100%; border-collapse: collapse; margin-bottom: 0; }
-    table.items thead tr { border-bottom: 2px solid {{ brand }}; }
-    table.items th { font-size: 9px; text-transform: uppercase; letter-spacing: .08em;
-                     color: #888; padding: 0 8px 8px 0; text-align: left; font-weight: 600; }
+    table.items thead tr { border-bottom: 1px solid #ccc; }
+    table.items th { font-size: 10px; font-weight: 700; color: #333;
+                     padding: 0 10px 9px 0; text-align: left; }
     table.items th.r { text-align: right; padding-right: 0; }
-    table.items tbody tr { border-bottom: 1px solid #efefef; }
-    table.items td { padding: 9px 8px 9px 0; vertical-align: top; font-size: 12px; color: #333; }
-    table.items td.r { text-align: right; color: #444; padding-right: 0; }
-    table.items td.amt { text-align: right; color: #111; font-weight: 600; padding-right: 0; }
-    .proj-tag { font-size: 10px; color: #bbb; margin-top: 2px; }
+    table.items tbody tr { border-bottom: 1px solid #eee; }
+    table.items td { padding: 10px 10px 10px 0; vertical-align: top; font-size: 11px; color: #333; }
+    table.items td.r { text-align: right; padding-right: 0; }
+    table.items td.amt { text-align: right; padding-right: 0; font-weight: 700; color: #111; }
+    .proj-tag { font-size: 9px; color: #bbb; margin-top: 2px; }
 
     /* ── Totals ── */
-    table.totals { width: 240px; border-collapse: collapse; margin-top: 20px; margin-left: auto; }
-    table.totals td { padding: 5px 0; font-size: 12px; }
-    table.totals .t-lbl { color: #666; padding-right: 16px; }
-    table.totals .t-amt { text-align: right; font-weight: 600; color: #222; }
-    table.totals tr.due td { border-top: 2px solid {{ brand }}; padding-top: 10px; margin-top: 6px;
-                              font-size: 14px; font-weight: 700; color: {{ brand }}; }
+    table.totals { border-collapse: collapse; margin-top: 28px; margin-left: auto; }
+    table.totals td { padding: 4px 0; font-size: 11px; }
+    table.totals .t-lbl { color: #666; padding-right: 32px; text-align: right; white-space: nowrap; }
+    table.totals .t-amt { text-align: right; font-weight: 700; color: #111; white-space: nowrap; }
+    table.totals tr.due .t-lbl { font-size: 14px; font-weight: 700; color: #111; padding-top: 10px; }
+    table.totals tr.due .t-amt { font-size: 18px; font-weight: 700; color: #111; padding-top: 10px; }
 
     /* ── Footer ── */
-    .footer { margin-top: 48px; font-size: 10px; color: #ccc; border-top: 1px solid #efefef; padding-top: 12px; }
+    .footer { position: fixed; bottom: 36px; left: 0; right: 0;
+              text-align: center; font-size: 10px; color: #bbb; }
   </style>
 </head>
 <body>
 
-  <!-- Header: logo/business name left, From right -->
+  <!-- Header -->
   <table class="header" cellpadding="0" cellspacing="0">
     <tr>
-      <td style="width:55%">
+      <td style="width:50%">
         {% if logo_uri %}
-        <img src="{{ logo_uri }}" alt="{{ settings.business_name }}"
-             style="max-height:72px;max-width:220px;margin-bottom:6px;display:block;">
+          <img class="logo-img" src="{{ logo_uri }}" alt="{{ settings.business_name }}">
         {% else %}
-        <div class="biz-name">{{ settings.business_name }}</div>
+          <div class="biz-text">{{ settings.business_name }}</div>
         {% endif %}
       </td>
-      <td style="width:45%; text-align:right">
-        <div class="from-lbl">From</div>
-        <div class="from-addr">
-          {{ settings.business_name }}
-          {% if settings.gst_number %}<br>GST #{{ settings.gst_number }}{% endif %}
-        </div>
+      <td style="width:50%">
+        <table cellpadding="0" cellspacing="0" style="margin-left:auto">
+          <tr>
+            <td class="from-lbl">From</td>
+            <td class="from-sep">
+              <div class="from-name">{{ settings.business_name }}</div>
+              {% if settings.business_address %}
+              <div class="from-addr">{{ settings.business_address }}</div>
+              {% endif %}
+              {% if settings.gst_number %}
+              <div class="from-addr">GST #{{ settings.gst_number }}</div>
+              {% endif %}
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   </table>
 
-  <!-- Meta: invoice details left, Invoice For right -->
+  <!-- Meta -->
   <table class="meta" cellpadding="0" cellspacing="0">
     <tr>
-      <td style="width:55%; vertical-align:top">
+      <!-- Left: invoice details -->
+      <td style="width:50%; vertical-align:top">
         <table cellpadding="0" cellspacing="0">
           <tr>
-            <td class="meta-row-lbl">Invoice ID</td>
-            <td class="meta-row-val">{{ invoice.invoice_number }}</td>
+            <td class="meta-lbl">Invoice ID</td>
+            <td class="meta-sep meta-bold">{{ invoice.invoice_number }}</td>
           </tr>
           <tr>
-            <td class="meta-row-lbl">Issue Date</td>
-            <td class="meta-row-val">{{ invoice.issued_date }}</td>
+            <td class="meta-lbl">Issue Date</td>
+            <td class="meta-sep">{{ invoice.issued_date }}</td>
+          </tr>
+          <tr>
+            <td class="meta-lbl">Due Date</td>
+            <td class="meta-sep">{{ invoice.issued_date }} (upon receipt)</td>
           </tr>
         </table>
       </td>
-      <td style="width:45%; vertical-align:top; text-align:right">
-        <div class="inv-for-lbl">Invoice For</div>
-        <div class="inv-for-name">{{ invoice.client_name }}</div>
-        {% if invoice.client_address %}
-        <div class="inv-for-addr">{{ invoice.client_address }}</div>
-        {% endif %}
+      <!-- Right: Invoice For -->
+      <td style="width:50%; vertical-align:top">
+        <table cellpadding="0" cellspacing="0" style="margin-left:auto">
+          <tr>
+            <td class="inv-for-lbl">Invoice For</td>
+            <td class="inv-for-sep">
+              <div class="inv-for-name">{{ invoice.client_name }}</div>
+              {% if invoice.client_address %}
+              <div class="inv-for-addr">{{ invoice.client_address }}</div>
+              {% endif %}
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   </table>
@@ -103,10 +127,9 @@
     <thead>
       <tr>
         <th>Description</th>
-        <th class="r" style="width:55px">Date</th>
-        <th class="r" style="width:65px">Quantity</th>
-        <th class="r" style="width:75px">Unit Price</th>
-        <th class="r" style="width:85px">Amount</th>
+        <th class="r" style="width:75px">Quantity</th>
+        <th class="r" style="width:80px">Unit Price</th>
+        <th class="r" style="width:90px">Amount</th>
       </tr>
     </thead>
     <tbody>
@@ -116,9 +139,8 @@
           {{ item.description }}
           {% if item.project_name %}<div class="proj-tag">{{ item.project_name }}</div>{% endif %}
         </td>
-        <td class="r">{{ item.date }}</td>
         {% if item.type == "time" %}
-        <td class="r">{{ item.hours }} hr</td>
+        <td class="r">{{ item.hours }}</td>
         <td class="r">${{ "%.2f"|format(item.rate) }}</td>
         {% else %}
         <td class="r">—</td>
@@ -142,16 +164,16 @@
       <td class="t-amt">${{ "%.2f"|format(invoice.subtotal) }}</td>
     </tr>
     <tr>
-      <td class="t-lbl">
-        GST{% if settings.gst_number %} · {{ settings.gst_number }}{% endif %} ({{ gst_pct }}%)
-      </td>
+      <td class="t-lbl">GST{% if settings.gst_number %} - {{ settings.gst_number }}{% endif %} ({{ gst_pct }}%)</td>
       <td class="t-amt">${{ "%.2f"|format(invoice.gst) }}</td>
     </tr>
     <tr class="due">
-      <td class="t-lbl">Amount Due (CAD)</td>
+      <td class="t-lbl">Amount Due</td>
       <td class="t-amt">${{ "%.2f"|format(invoice.total) }}</td>
     </tr>
   </table>
+
+  <div class="footer">Page 1 of 1</div>
 
 </body>
 </html>

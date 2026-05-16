@@ -13,6 +13,7 @@ DEFAULTS = {
     "invoices.json": [],
     "settings.json": {
         "business_name": "",
+        "business_address": "",
         "gst_number": "",
         "gst_rate": 0.05,
         "smtp_host": "smtp.gmail.com",

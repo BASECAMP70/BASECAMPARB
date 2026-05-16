@@ -67,6 +67,7 @@ def create_app(config=None):
             s = storage.load_settings()
             s.update({
                 "business_name": request.form["business_name"].strip(),
+                "business_address": request.form.get("business_address", "").strip(),
                 "gst_number": request.form["gst_number"].strip(),
                 "gst_rate": gst_rate,
                 "smtp_host": request.form["smtp_host"].strip(),

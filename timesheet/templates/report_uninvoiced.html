@@ -20,7 +20,7 @@
     <tr>
       <td>{{ e.date }}</td><td>{{ e.description }}</td>
       <td class="text-right">{{ e.hours }}</td>
-      <td class="text-right">${{ "%.2f"|format(e.hours * (r.billable / r.hours if r.hours else 0)) }}</td>
+      <td class="text-right">${{ "%.2f"|format(e.amount) }}</td>
     </tr>
     {% endfor %}
     </tbody>

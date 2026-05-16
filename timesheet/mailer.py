@@ -30,5 +30,6 @@ def send_invoice_email(settings, recipient, subject, body, pdf_bytes, invoice_nu
     with smtplib.SMTP(smtp_host, smtp_port) as server:
         server.ehlo()
         server.starttls()
+        server.ehlo()  # re-greet after TLS handshake so server advertises AUTH
         server.login(smtp_user, smtp_password)
         server.sendmail(smtp_user, recipient, msg.as_string())

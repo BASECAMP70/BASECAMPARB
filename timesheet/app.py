@@ -524,8 +524,13 @@ def create_app(config=None):
     @app.route("/reports/monthly")
     def report_monthly():
         today = dt_date.today()
-        year = int(request.args.get("year", today.year))
-        month = int(request.args.get("month", today.month))
+        try:
+            year = int(request.args.get("year", today.year))
+            month = int(request.args.get("month", today.month))
+            if not (1 <= month <= 12):
+                raise ValueError
+        except ValueError:
+            year, month = today.year, today.month
         month_prefix = f"{year}-{month:02d}"
 
         projects = storage.load_projects()
@@ -538,17 +543,18 @@ def create_app(config=None):
             pid = e["project_id"]
             p = project_map.get(pid, {})
             if pid not in rows:
-                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0, "billable": 0, "expenses": 0}
+                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0, "billable": 0.0, "expenses": 0}
             rows[pid]["hours"] += e["hours"]
-            rows[pid]["billable"] += round(e["hours"] * p.get("rate", 0), 2)
+            rows[pid]["billable"] += e["hours"] * p.get("rate", 0)
         for x in expenses:
             pid = x["project_id"]
             p = project_map.get(pid, {})
             if pid not in rows:
-                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0, "billable": 0, "expenses": 0}
+                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0, "billable": 0.0, "expenses": 0}
             rows[pid]["expenses"] += x["amount"]
 
         for r in rows.values():
+            r["billable"] = round(r["billable"], 2)
             r["total"] = round(r["billable"] + r["expenses"], 2)
 
         grand = {
@@ -574,20 +580,22 @@ def create_app(config=None):
             p = project_map.get(pid, {})
             if pid not in rows:
                 rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0,
-                             "billable": 0, "expenses": 0, "entries": [], "expense_items": []}
+                             "billable": 0.0, "expenses": 0, "entries": [], "expense_items": []}
+            entry_amount = round(e["hours"] * p.get("rate", 0), 2)
             rows[pid]["hours"] += e["hours"]
-            rows[pid]["billable"] += round(e["hours"] * p.get("rate", 0), 2)
-            rows[pid]["entries"].append(e)
+            rows[pid]["billable"] += entry_amount
+            rows[pid]["entries"].append({**e, "amount": entry_amount})
         for x in expenses:
             pid = x["project_id"]
             p = project_map.get(pid, {})
             if pid not in rows:
                 rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0,
-                             "billable": 0, "expenses": 0, "entries": [], "expense_items": []}
+                             "billable": 0.0, "expenses": 0, "entries": [], "expense_items": []}
             rows[pid]["expenses"] += x["amount"]
             rows[pid]["expense_items"].append(x)
 
         for r in rows.values():
+            r["billable"] = round(r["billable"], 2)
             r["total"] = round(r["billable"] + r["expenses"], 2)
 
         grand = {

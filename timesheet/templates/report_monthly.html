@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Monthly Report{% endblock %}
+{% block content %}
+<h1>Monthly Totals</h1>
+
+<div style="display:flex;gap:1rem;margin-bottom:1.5rem;align-items:flex-end">
+  <form method="get" style="display:flex;gap:1rem;align-items:flex-end">
+    <div class="form-group" style="margin:0">
+      <label>Year</label>
+      <input name="year" type="number" value="{{ year }}" style="width:90px">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Month</label>
+      <select name="month">
+        {% for m in range(1,13) %}
+        <option value="{{ m }}" {{ 'selected' if m == month }}>
+          {{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-secondary" type="submit">View</button>
+  </form>
+  <a class="btn btn-secondary" href="/reports/uninvoiced">Uninvoiced Hours &#8594;</a>
+</div>
+
+{% if rows %}
+<table>
+  <thead>
+    <tr><th>Project</th><th class="text-right">Hours</th><th class="text-right">Billable</th><th class="text-right">Expenses</th><th class="text-right">Total</th></tr>
+  </thead>
+  <tbody>
+  {% for pid, r in rows.items() %}
+  <tr>
+    <td>{{ r.name }}</td>
+    <td class="text-right">{{ "%.2f"|format(r.hours) }}</td>
+    <td class="text-right">${{ "%.2f"|format(r.billable) }}</td>
+    <td class="text-right">${{ "%.2f"|format(r.expenses) }}</td>
+    <td class="text-right">${{ "%.2f"|format(r.total) }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>
+  <tr class="grand-total">
+    <td><strong>Total</strong></td>
+    <td class="text-right"><strong>{{ "%.2f"|format(grand.hours) }}</strong></td>
+    <td class="text-right"><strong>${{ "%.2f"|format(grand.billable) }}</strong></td>
+    <td class="text-right"><strong>${{ "%.2f"|format(grand.expenses) }}</strong></td>
+    <td class="text-right"><strong>${{ "%.2f"|format(grand.total) }}</strong></td>
+  </tr>
+  </tfoot>
+</table>
+{% else %}
+<p class="text-muted">No entries for {{ ['January','February','March','April','May','June','July','August','September','October','November','December'][month-1] }} {{ year }}.</p>
+{% endif %}
+{% endblock %}

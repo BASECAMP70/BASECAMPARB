@@ -151,3 +151,28 @@ def test_generate_invoice(client, monkeypatch):
     assert invoices[0]["total"] == round(200.0 * 1.05, 2)
     # time entry is now invoiced
     assert storage.load_time_entries()[0]["invoiced"] is True
+
+
+def test_monthly_report(client):
+    import timesheet.storage as storage
+    storage.save_projects([{"id": "p1", "name": "Alpha", "rate": 100.0, "currency": "CAD", "active": True}])
+    storage.save_time_entries([{"id": "e1", "project_id": "p1", "date": "2026-05-16",
+                                "hours": 3.0, "description": "Work", "invoiced": False}])
+    r = client.get("/reports/monthly?year=2026&month=5")
+    assert r.status_code == 200
+    assert b"Alpha" in r.data
+    assert b"300.00" in r.data  # 3hrs * $100
+
+
+def test_uninvoiced_report(client):
+    import timesheet.storage as storage
+    storage.save_projects([{"id": "p1", "name": "Beta", "rate": 150.0, "currency": "CAD", "active": True}])
+    storage.save_time_entries([
+        {"id": "e1", "project_id": "p1", "date": "2026-05-10", "hours": 1.0, "description": "A", "invoiced": False},
+        {"id": "e2", "project_id": "p1", "date": "2026-05-11", "hours": 1.0, "description": "B", "invoiced": True},
+    ])
+    r = client.get("/reports/uninvoiced")
+    assert r.status_code == 200
+    assert b"Beta" in r.data
+    assert b"150.00" in r.data   # only 1 uninvoiced hour * $150
+    assert b"300.00" not in r.data  # invoiced entry excluded

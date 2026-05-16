@@ -523,7 +523,81 @@ def create_app(config=None):
 
     @app.route("/reports/monthly")
     def report_monthly():
-        return render_template("dashboard.html", projects=[], today="", today_entries=[], project_map={})
+        today = dt_date.today()
+        year = int(request.args.get("year", today.year))
+        month = int(request.args.get("month", today.month))
+        month_prefix = f"{year}-{month:02d}"
+
+        projects = storage.load_projects()
+        project_map = {p["id"]: p for p in projects}
+        entries = [e for e in storage.load_time_entries() if e["date"].startswith(month_prefix)]
+        expenses = [x for x in storage.load_expenses() if x["date"].startswith(month_prefix)]
+
+        rows = {}
+        for e in entries:
+            pid = e["project_id"]
+            p = project_map.get(pid, {})
+            if pid not in rows:
+                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0, "billable": 0, "expenses": 0}
+            rows[pid]["hours"] += e["hours"]
+            rows[pid]["billable"] += round(e["hours"] * p.get("rate", 0), 2)
+        for x in expenses:
+            pid = x["project_id"]
+            p = project_map.get(pid, {})
+            if pid not in rows:
+                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0, "billable": 0, "expenses": 0}
+            rows[pid]["expenses"] += x["amount"]
+
+        for r in rows.values():
+            r["total"] = round(r["billable"] + r["expenses"], 2)
+
+        grand = {
+            "hours": sum(r["hours"] for r in rows.values()),
+            "billable": round(sum(r["billable"] for r in rows.values()), 2),
+            "expenses": round(sum(r["expenses"] for r in rows.values()), 2),
+            "total": round(sum(r["total"] for r in rows.values()), 2),
+        }
+
+        return render_template("report_monthly.html", rows=rows, grand=grand,
+                               year=year, month=month)
+
+    @app.route("/reports/uninvoiced")
+    def report_uninvoiced():
+        projects = storage.load_projects()
+        project_map = {p["id"]: p for p in projects}
+        entries = [e for e in storage.load_time_entries() if not e["invoiced"]]
+        expenses = [x for x in storage.load_expenses() if not x["invoiced"]]
+
+        rows = {}
+        for e in entries:
+            pid = e["project_id"]
+            p = project_map.get(pid, {})
+            if pid not in rows:
+                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0,
+                             "billable": 0, "expenses": 0, "entries": [], "expense_items": []}
+            rows[pid]["hours"] += e["hours"]
+            rows[pid]["billable"] += round(e["hours"] * p.get("rate", 0), 2)
+            rows[pid]["entries"].append(e)
+        for x in expenses:
+            pid = x["project_id"]
+            p = project_map.get(pid, {})
+            if pid not in rows:
+                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0,
+                             "billable": 0, "expenses": 0, "entries": [], "expense_items": []}
+            rows[pid]["expenses"] += x["amount"]
+            rows[pid]["expense_items"].append(x)
+
+        for r in rows.values():
+            r["total"] = round(r["billable"] + r["expenses"], 2)
+
+        grand = {
+            "hours": sum(r["hours"] for r in rows.values()),
+            "billable": round(sum(r["billable"] for r in rows.values()), 2),
+            "expenses": round(sum(r["expenses"] for r in rows.values()), 2),
+            "total": round(sum(r["total"] for r in rows.values()), 2),
+        }
+
+        return render_template("report_uninvoiced.html", rows=rows, grand=grand)
 
     return app
 

@@ -104,10 +104,16 @@ All data stored as JSON arrays. IDs are UUIDs generated via Python's `uuid` modu
     "subtotal": 362.49,
     "gst": 18.12,
     "total": 380.61,
-    "sent": true
+    "sent": true,
+    "line_items": [
+      { "type": "time", "date": "2026-05-16", "description": "Homepage design", "hours": 2.5, "rate": 125.00, "amount": 312.50 },
+      { "type": "expense", "date": "2026-05-16", "description": "Stock photos", "amount": 49.99 }
+    ]
   }
 ]
 ```
+
+Line items are snapshot at the time of invoice generation and stored in `invoices.json`. PDFs are regenerated on demand from this stored snapshot (not from the live `time_entries.json` / `expenses.json` data), ensuring past invoices always render consistently even if entries are later edited or deleted.
 
 ### settings.json
 ```json
@@ -141,9 +147,9 @@ All data stored as JSON arrays. IDs are UUIDs generated via Python's `uuid` modu
 - Edit existing project (name, rate).
 - Deactivate project — hidden from entry forms but preserved in historical data.
 
-### Time Entries — `GET /time`, `GET /time/<id>/edit`, `POST /time/<id>/edit`, `POST /time/<id>/delete`
+### Time Entries — `GET /time`, `POST /time/add`, `GET /time/<id>/edit`, `POST /time/<id>/edit`, `POST /time/<id>/delete`
 - Table of all time entries, filterable by project and date range.
-- Manual add, edit, delete for corrections.
+- Manual add via form on the `/time` page (for corrections outside of the dashboard quick-entry form), plus edit and delete.
 - Invoiced entries shown with a lock indicator; editing blocked.
 
 ### Expenses — `GET /expenses`, `POST /expenses/add`, `GET /expenses/<id>/edit`, `POST /expenses/<id>/edit`, `POST /expenses/<id>/delete`

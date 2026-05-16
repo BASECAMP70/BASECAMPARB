@@ -9,7 +9,7 @@
 <div class="card" style="margin-bottom:1.5rem">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
     <h2>{{ r.name }}</h2>
-    <a class="btn btn-primary btn-sm" href="/invoices?project_id={{ pid }}">Generate Invoice &#8594;</a>
+    <a class="btn btn-primary btn-sm" href="/invoices?client_id={{ r.client_id }}">Generate Invoice &#8594;</a>
   </div>
 
   {% if r.entries %}

@@ -130,26 +130,22 @@ def test_invoices_page(client):
     assert r.status_code == 200
 
 
-def test_generate_invoice(client, monkeypatch):
+def test_generate_invoice(client):
     import timesheet.storage as storage
-    from unittest.mock import patch
-    storage.save_projects([{"id": "p1", "name": "ACME", "rate": 100.0, "currency": "CAD", "active": True}])
+    storage.save_clients([{"id": "c1", "name": "ACME Corp", "email": "acme@example.com", "address": ""}])
+    storage.save_projects([{"id": "p1", "name": "ACME", "rate": 100.0, "currency": "CAD", "active": True, "client_id": "c1"}])
     storage.save_time_entries([{
         "id": "e1", "project_id": "p1", "date": "2026-05-16",
         "hours": 2.0, "description": "Work", "invoiced": False
     }])
     storage.save_settings({"business_name": "Me", "gst_number": "", "gst_rate": 0.05,
                             "smtp_host": "", "smtp_port": 587, "smtp_user": "", "smtp_password": ""})
-    with patch("timesheet.app.pdf.generate_invoice_pdf", return_value=b"%PDF"):
-        r = client.post("/invoices/generate", data={
-            "project_id": "p1", "client_name": "ACME Corp"
-        }, follow_redirects=True)
+    r = client.post("/invoices/generate", data={"client_id": "c1"}, follow_redirects=True)
     assert r.status_code == 200
     invoices = storage.load_invoices()
     assert len(invoices) == 1
     assert invoices[0]["invoice_number"] == "INV-001"
     assert invoices[0]["total"] == round(200.0 * 1.05, 2)
-    # time entry is now invoiced
     assert storage.load_time_entries()[0]["invoiced"] is True
 
 

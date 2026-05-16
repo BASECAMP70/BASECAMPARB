@@ -37,6 +37,7 @@
     <thead>
       <tr>
         <th>Date</th>
+        <th>Project</th>
         <th>Description</th>
         <th>Hours</th>
         <th>Rate</th>
@@ -47,6 +48,7 @@
       {% for item in invoice.line_items %}
       <tr>
         <td>{{ item.date }}</td>
+        <td>{{ item.project_name or '' }}</td>
         <td>{{ item.description }}</td>
         {% if item.type == "time" %}
         <td>{{ item.hours }}</td>

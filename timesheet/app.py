@@ -402,81 +402,94 @@ def create_app(config=None):
 
     @app.route("/invoices")
     def invoices():
-        project_id = request.args.get("project_id", "")
-        projects = storage.load_projects()
-        project_map = {p["id"]: p for p in projects}
+        client_id = request.args.get("client_id", "")
         all_clients = storage.load_clients()
         client_map = {c["id"]: c for c in all_clients}
+        projects = storage.load_projects()
+        project_map = {p["id"]: p for p in projects}
         all_entries = storage.load_time_entries()
         all_expenses = storage.load_expenses()
         all_invoices = storage.load_invoices()
 
         preview = None
-        if project_id:
-            p = project_map.get(project_id)
-            uninvoiced_time = [e for e in all_entries if e["project_id"] == project_id and not e["invoiced"]]
-            uninvoiced_exp = [x for x in all_expenses if x["project_id"] == project_id and not x["invoiced"]]
-            time_subtotal = sum(e["hours"] * (p["rate"] if p else 0) for e in uninvoiced_time)
-            exp_subtotal = sum(x["amount"] for x in uninvoiced_exp)
-            subtotal = round(time_subtotal + exp_subtotal, 2)
-            settings_data = storage.load_settings()
-            gst_rate = settings_data.get("gst_rate", 0.05)
-            gst = round(subtotal * gst_rate, 2)
-            client = client_map.get(p.get("client_id", "")) if p else None
-            preview = {
-                "project": p,
-                "client": client,
-                "time_entries": uninvoiced_time,
-                "expenses": uninvoiced_exp,
-                "subtotal": subtotal,
-                "gst": gst,
-                "total": round(subtotal + gst, 2),
-            }
+        if client_id:
+            client = client_map.get(client_id)
+            client_projects = [p for p in projects if p.get("client_id") == client_id]
+            client_pids = {p["id"] for p in client_projects}
 
-        return render_template("invoices.html", projects=projects, project_map=project_map,
-                               client_map=client_map, invoices=all_invoices,
-                               preview=preview, selected_project=project_id)
+            sections = []
+            for p in client_projects:
+                time_entries = sorted(
+                    [e for e in all_entries if e["project_id"] == p["id"] and not e["invoiced"]],
+                    key=lambda e: e["date"])
+                expenses = sorted(
+                    [x for x in all_expenses if x["project_id"] == p["id"] and not x["invoiced"]],
+                    key=lambda x: x["date"])
+                if time_entries or expenses:
+                    sections.append({"project": p, "time_entries": time_entries, "expenses": expenses})
+
+            if sections:
+                settings_data = storage.load_settings()
+                gst_rate = settings_data.get("gst_rate", 0.05)
+                subtotal = round(sum(
+                    sum(e["hours"] * s["project"]["rate"] for e in s["time_entries"]) +
+                    sum(x["amount"] for x in s["expenses"])
+                    for s in sections), 2)
+                gst = round(subtotal * gst_rate, 2)
+                preview = {
+                    "client": client,
+                    "sections": sections,
+                    "subtotal": subtotal,
+                    "gst": gst,
+                    "total": round(subtotal + gst, 2),
+                }
+
+        return render_template("invoices.html", clients=all_clients, client_map=client_map,
+                               project_map=project_map, invoices=all_invoices,
+                               preview=preview, selected_client=client_id)
 
     @app.route("/invoices/generate", methods=["POST"])
     def invoices_generate():
         expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
-        project_id = request.form["project_id"]
+        client_id = request.form["client_id"]
         settings_data = storage.load_settings()
-        projects = storage.load_projects()
-        project_map = {p["id"]: p for p in projects}
-        p = project_map.get(project_id)
-        if not p:
-            flash("Project not found.", "error")
-            return redirect(url_for("invoices"))
-
         all_clients = storage.load_clients()
         client_map = {c["id"]: c for c in all_clients}
-        client = client_map.get(p.get("client_id", ""))
-        client_name = (client["name"] if client else request.form.get("client_name", "")).strip()
-        if not client_name:
-            flash("Project has no client assigned. Edit the project to assign a client.", "error")
+        client = client_map.get(client_id)
+        if not client:
+            flash("Client not found.", "error")
             return redirect(url_for("invoices"))
+
+        projects = storage.load_projects()
+        project_map = {p["id"]: p for p in projects}
+        client_projects = [p for p in projects if p.get("client_id") == client_id]
 
         all_entries = storage.load_time_entries()
         all_expenses = storage.load_expenses()
-        uninvoiced_time = [e for e in all_entries if e["project_id"] == project_id and not e["invoiced"]]
-        uninvoiced_exp = [x for x in all_expenses if x["project_id"] == project_id and not x["invoiced"]]
-
-        if not uninvoiced_time and not uninvoiced_exp:
-            flash("No uninvoiced entries for this project.", "error")
-            return redirect(url_for("invoices"))
 
         line_items = []
-        for e in uninvoiced_time:
-            amount = round(e["hours"] * p["rate"], 2)
-            line_items.append({"type": "time", "date": e["date"], "description": e["description"],
-                                "hours": e["hours"], "rate": p["rate"], "amount": amount,
-                                "entry_id": e["id"]})
-        for x in uninvoiced_exp:
-            line_items.append({"type": "expense", "date": x["date"],
-                                "description": x["description"], "amount": x["amount"],
-                                "pdf_filename": x.get("pdf_filename"),
-                                "expense_id": x["id"]})
+        for p in client_projects:
+            uninvoiced_time = sorted(
+                [e for e in all_entries if e["project_id"] == p["id"] and not e["invoiced"]],
+                key=lambda e: e["date"])
+            uninvoiced_exp = sorted(
+                [x for x in all_expenses if x["project_id"] == p["id"] and not x["invoiced"]],
+                key=lambda x: x["date"])
+            for e in uninvoiced_time:
+                amount = round(e["hours"] * p["rate"], 2)
+                line_items.append({"type": "time", "date": e["date"], "description": e["description"],
+                                    "project_name": p["name"],
+                                    "hours": e["hours"], "rate": p["rate"], "amount": amount,
+                                    "entry_id": e["id"]})
+            for x in uninvoiced_exp:
+                line_items.append({"type": "expense", "date": x["date"],
+                                    "description": x["description"], "project_name": p["name"],
+                                    "amount": x["amount"], "pdf_filename": x.get("pdf_filename"),
+                                    "expense_id": x["id"]})
+
+        if not line_items:
+            flash("No uninvoiced entries for this client.", "error")
+            return redirect(url_for("invoices"))
 
         subtotal = round(sum(li["amount"] for li in line_items), 2)
         gst_rate = settings_data.get("gst_rate", 0.05)
@@ -495,11 +508,10 @@ def create_app(config=None):
         invoice = {
             "id": storage.new_id(),
             "invoice_number": invoice_number,
-            "project_id": project_id,
-            "client_id": client["id"] if client else None,
-            "client_name": client_name,
-            "client_email": client["email"] if client else "",
-            "client_address": client.get("address", "") if client else "",
+            "client_id": client["id"],
+            "client_name": client["name"],
+            "client_email": client.get("email", ""),
+            "client_address": client.get("address", ""),
             "issued_date": dt_date.today().isoformat(),
             "subtotal": subtotal,
             "gst": gst,
@@ -634,8 +646,10 @@ def create_app(config=None):
             pid = e["project_id"]
             p = project_map.get(pid, {})
             if pid not in rows:
-                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0,
-                             "billable": 0.0, "expenses": 0, "entries": [], "expense_items": []}
+                rows[pid] = {"name": p.get("name", "Unknown"),
+                             "client_id": p.get("client_id") or "",
+                             "hours": 0, "billable": 0.0, "expenses": 0,
+                             "entries": [], "expense_items": []}
             entry_amount = round(e["hours"] * p.get("rate", 0), 2)
             rows[pid]["hours"] += e["hours"]
             rows[pid]["billable"] += entry_amount
@@ -644,8 +658,10 @@ def create_app(config=None):
             pid = x["project_id"]
             p = project_map.get(pid, {})
             if pid not in rows:
-                rows[pid] = {"name": p.get("name", "Unknown"), "hours": 0,
-                             "billable": 0.0, "expenses": 0, "entries": [], "expense_items": []}
+                rows[pid] = {"name": p.get("name", "Unknown"),
+                             "client_id": p.get("client_id") or "",
+                             "hours": 0, "billable": 0.0, "expenses": 0,
+                             "entries": [], "expense_items": []}
             rows[pid]["expenses"] += x["amount"]
             rows[pid]["expense_items"].append(x)
 

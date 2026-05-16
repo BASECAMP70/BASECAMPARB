@@ -1,3 +1,4 @@
+import copy
 import json
 import uuid
 from pathlib import Path
@@ -24,12 +25,10 @@ DEFAULTS = {
 def _load(filename):
     path = DATA_DIR / filename
     if not path.exists():
-        import copy
         return copy.deepcopy(DEFAULTS[filename])
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
-        import copy
         return copy.deepcopy(DEFAULTS[filename])
 
 

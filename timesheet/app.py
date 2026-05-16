@@ -123,6 +123,7 @@ def create_app(config=None):
             flash("Project not found.", "error")
             return redirect(url_for("projects"))
         storage.save_projects(projects)
+        flash("Project deactivated.", "success")
         return redirect(url_for("projects"))
 
     # Stub routes — implemented in later tasks

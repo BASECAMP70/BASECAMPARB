@@ -136,8 +136,7 @@
       {% for item in invoice.line_items %}
       <tr>
         <td>
-          {{ item.description }}
-          {% if item.project_name %}<div class="proj-tag">{{ item.project_name }}</div>{% endif %}
+          {% if item.project_name %}{{ item.project_name }}: {% endif %}{{ item.description }}
         </td>
         {% if item.type == "time" %}
         <td class="r">{{ item.hours }}</td>

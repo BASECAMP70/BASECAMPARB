@@ -1,29 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <style>
     body { font-family: Arial, sans-serif; font-size: 12px; color: #222; margin: 40px; }
     h1 { font-size: 22px; margin-bottom: 4px; }
-    .meta { color: #555; margin-bottom: 24px; }
+    .parties { display: flex; justify-content: space-between; margin-bottom: 24px; }
+    .party label { font-size: 10px; text-transform: uppercase; color: #888; display: block; margin-bottom: 4px; }
+    .invoice-meta { text-align: right; }
+    .invoice-meta p { margin: 2px 0; color: #555; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
     th { background: #f0f0f0; text-align: left; padding: 8px; border-bottom: 2px solid #ddd; }
     td { padding: 8px; border-bottom: 1px solid #eee; }
     .amount { text-align: right; }
-    .totals td { font-weight: bold; }
+    .totals td { font-weight: normal; }
     .grand-total td { background: #f0f0f0; font-size: 14px; font-weight: bold; }
+    .gst-note { color: #888; font-size: 10px; margin-top: 24px; }
   </style>
 </head>
 <body>
-  <h1>{{ settings.business_name }}</h1>
-  {% if settings.gst_number %}
-  <div class="meta">GST: {{ settings.gst_number }}</div>
-  {% endif %}
-
-  <div class="meta">
-    <strong>Invoice #:</strong> {{ invoice.invoice_number }}<br>
-    <strong>Date:</strong> {{ invoice.issued_date }}<br>
-    <strong>Bill To:</strong> {{ invoice.client_name }}
+  <div class="parties">
+    <div class="party">
+      <label>From</label>
+      <strong>{{ settings.business_name }}</strong>
+      {% if settings.gst_number %}<br>GST: {{ settings.gst_number }}{% endif %}
+    </div>
+    <div class="invoice-meta">
+      <p><strong>Invoice #{{ invoice.invoice_number }}</strong></p>
+      <p>Date: {{ invoice.issued_date }}</p>
+      <p>Bill To: {{ invoice.client_name }}</p>
+    </div>
   </div>
 
   <table>
@@ -45,8 +51,8 @@
         <td>{{ item.hours }}</td>
         <td>${{ "%.2f"|format(item.rate) }}</td>
         {% else %}
-        <td></td>
-        <td></td>
+        <td>—</td>
+        <td>Expense</td>
         {% endif %}
         <td class="amount">${{ "%.2f"|format(item.amount) }}</td>
       </tr>
@@ -54,9 +60,13 @@
     </tbody>
     <tfoot>
       <tr class="totals"><td colspan="4">Subtotal</td><td class="amount">${{ "%.2f"|format(invoice.subtotal) }}</td></tr>
-      <tr class="totals"><td colspan="4">GST ({{ (invoice.gst / invoice.subtotal * 100) | round(1) if invoice.subtotal else 0 }}%)</td><td class="amount">${{ "%.2f"|format(invoice.gst) }}</td></tr>
+      <tr class="totals"><td colspan="4">GST ({{ (settings.gst_rate * 100)|int }}%)</td><td class="amount">${{ "%.2f"|format(invoice.gst) }}</td></tr>
       <tr class="grand-total"><td colspan="4">Total (CAD)</td><td class="amount">${{ "%.2f"|format(invoice.total) }}</td></tr>
     </tfoot>
   </table>
+
+  {% if settings.gst_number %}
+  <p class="gst-note">GST Registration: {{ settings.gst_number }}</p>
+  {% endif %}
 </body>
 </html>

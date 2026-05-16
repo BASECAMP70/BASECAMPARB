@@ -3,73 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: Arial, sans-serif; font-size: 12px; color: #222; margin: 40px; }
-    h1 { font-size: 22px; margin-bottom: 4px; }
-    .parties { display: flex; justify-content: space-between; margin-bottom: 24px; }
-    .party label { font-size: 10px; text-transform: uppercase; color: #888; display: block; margin-bottom: 4px; }
-    .invoice-meta { text-align: right; }
-    .invoice-meta p { margin: 2px 0; color: #555; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-    th { background: #f0f0f0; text-align: left; padding: 8px; border-bottom: 2px solid #ddd; }
-    td { padding: 8px; border-bottom: 1px solid #eee; }
-    .amount { text-align: right; }
-    .totals td { font-weight: normal; }
-    .grand-total td { background: #f0f0f0; font-size: 14px; font-weight: bold; }
-    .gst-note { color: #888; font-size: 10px; margin-top: 24px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #333; padding: 48px; }
+
+    /* Header */
+    .header-table { width: 100%; margin-bottom: 40px; }
+    .business-name { font-size: 22px; font-weight: 700; color: #111; }
+    .gst-reg { font-size: 11px; color: #888; margin-top: 4px; }
+    .invoice-label { font-size: 28px; font-weight: 700; color: #111; text-align: right; }
+    .invoice-number { font-size: 14px; color: #666; text-align: right; margin-top: 2px; }
+
+    /* Bill To / Meta */
+    .meta-table { width: 100%; margin-bottom: 36px; }
+    .section-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #999; margin-bottom: 6px; }
+    .bill-to-name { font-size: 15px; font-weight: 700; color: #111; }
+    .bill-to-address { font-size: 12px; color: #555; margin-top: 4px; line-height: 1.5; white-space: pre-line; }
+    .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #999; padding-bottom: 2px; }
+    .meta-value { font-size: 13px; color: #333; font-weight: 600; }
+
+    /* Line items */
+    table.items { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+    table.items thead tr { border-bottom: 2px solid #111; }
+    table.items th { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #999;
+                     padding: 0 0 8px 0; text-align: left; font-weight: 600; }
+    table.items th.r { text-align: right; }
+    table.items tbody tr { border-bottom: 1px solid #e8e8e8; }
+    table.items td { padding: 10px 0; vertical-align: top; font-size: 13px; }
+    table.items td.r { text-align: right; color: #555; }
+    table.items td.amt { text-align: right; font-weight: 600; color: #111; }
+    .project-tag { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+    /* Totals */
+    table.totals { width: 260px; border-collapse: collapse; margin-left: auto; margin-top: 24px; }
+    table.totals td { padding: 5px 0; font-size: 13px; }
+    table.totals td.lbl { color: #666; }
+    table.totals td.amt { text-align: right; font-weight: 600; }
+    table.totals tr.total-due td { border-top: 2px solid #111; padding-top: 10px; font-size: 15px; font-weight: 700; color: #111; }
+
+    /* Footer */
+    .footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e8e8e8; font-size: 11px; color: #bbb; }
   </style>
 </head>
 <body>
-  <div class="parties">
-    <div class="party">
-      <label>From</label>
-      <strong>{{ settings.business_name }}</strong>
-      {% if settings.gst_number %}<br>GST: {{ settings.gst_number }}{% endif %}
-    </div>
-    <div class="invoice-meta">
-      <p><strong>Invoice #{{ invoice.invoice_number }}</strong></p>
-      <p>Date: {{ invoice.issued_date }}</p>
-      <p><strong>Bill To:</strong> {{ invoice.client_name }}</p>
-      {% if invoice.client_address %}<p style="white-space:pre-line;color:#555">{{ invoice.client_address }}</p>{% endif %}
-    </div>
-  </div>
 
-  <table>
+  <!-- Header -->
+  <table class="header-table" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="vertical-align:top">
+        <div class="business-name">{{ settings.business_name }}</div>
+        {% if settings.gst_number %}<div class="gst-reg">GST #{{ settings.gst_number }}</div>{% endif %}
+      </td>
+      <td style="vertical-align:top;text-align:right">
+        <div class="invoice-label">Invoice</div>
+        <div class="invoice-number">#{{ invoice.invoice_number }}</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Bill To / Date -->
+  <table class="meta-table" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="vertical-align:top;width:60%">
+        <div class="section-label">Bill To</div>
+        <div class="bill-to-name">{{ invoice.client_name }}</div>
+        {% if invoice.client_address %}<div class="bill-to-address">{{ invoice.client_address }}</div>{% endif %}
+      </td>
+      <td style="vertical-align:top;text-align:right">
+        <div class="meta-label">Issue Date</div>
+        <div class="meta-value">{{ invoice.issued_date }}</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Line items -->
+  <table class="items" cellpadding="0" cellspacing="0">
     <thead>
       <tr>
-        <th>Date</th>
-        <th>Project</th>
+        <th style="width:90px">Date</th>
         <th>Description</th>
-        <th>Hours</th>
-        <th>Rate</th>
-        <th class="amount">Amount (CAD)</th>
+        <th class="r" style="width:65px">Qty</th>
+        <th class="r" style="width:80px">Rate</th>
+        <th class="r" style="width:90px">Amount</th>
       </tr>
     </thead>
     <tbody>
       {% for item in invoice.line_items %}
       <tr>
         <td>{{ item.date }}</td>
-        <td>{{ item.project_name or '' }}</td>
-        <td>{{ item.description }}</td>
+        <td>
+          {{ item.description }}
+          {% if item.project_name %}<div class="project-tag">{{ item.project_name }}</div>{% endif %}
+        </td>
         {% if item.type == "time" %}
-        <td>{{ item.hours }}</td>
-        <td>${{ "%.2f"|format(item.rate) }}</td>
+        <td class="r">{{ item.hours }} hr</td>
+        <td class="r">${{ "%.2f"|format(item.rate) }}</td>
         {% else %}
-        <td>—</td>
-        <td>Expense</td>
+        <td class="r">—</td>
+        <td class="r">Expense</td>
         {% endif %}
-        <td class="amount">${{ "%.2f"|format(item.amount) }}</td>
+        <td class="amt">${{ "%.2f"|format(item.amount) }}</td>
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr class="totals"><td colspan="4">Subtotal</td><td class="amount">${{ "%.2f"|format(invoice.subtotal) }}</td></tr>
-      <tr class="totals"><td colspan="4">GST ({{ (settings.gst_rate * 100)|int }}%)</td><td class="amount">${{ "%.2f"|format(invoice.gst) }}</td></tr>
-      <tr class="grand-total"><td colspan="4">Total (CAD)</td><td class="amount">${{ "%.2f"|format(invoice.total) }}</td></tr>
-    </tfoot>
+  </table>
+
+  <!-- Totals -->
+  <table class="totals" cellpadding="0" cellspacing="0">
+    <tr>
+      <td class="lbl">Subtotal</td>
+      <td class="amt">${{ "%.2f"|format(invoice.subtotal) }}</td>
+    </tr>
+    <tr>
+      {% if invoice.subtotal %}
+        {% set gst_pct = (invoice.gst / invoice.subtotal * 100)|round(0)|int %}
+      {% else %}
+        {% set gst_pct = (settings.gst_rate * 100)|int %}
+      {% endif %}
+      <td class="lbl">GST ({{ gst_pct }}%)</td>
+      <td class="amt">${{ "%.2f"|format(invoice.gst) }}</td>
+    </tr>
+    <tr class="total-due">
+      <td class="lbl">Total Due (CAD)</td>
+      <td class="amt">${{ "%.2f"|format(invoice.total) }}</td>
+    </tr>
   </table>
 
   {% if settings.gst_number %}
-  <p class="gst-note">GST Registration: {{ settings.gst_number }}</p>
+  <div class="footer">GST Registration Number: {{ settings.gst_number }}</div>
   {% endif %}
+
 </body>
 </html>

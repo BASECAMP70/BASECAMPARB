@@ -29,13 +29,27 @@
     </div>
 
     <h2 style="margin-top:1.5rem">Features</h2>
-    <div class="form-group">
-      <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer">
+    <div class="feature-row">
+      <label class="toggle-switch">
         <input type="checkbox" name="enable_tasks" value="1" {{ 'checked' if s.get('enable_tasks', True) }}>
-        Enable Tasks
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
       </label>
-      <p class="text-muted" style="margin-top:0.3rem;font-size:0.8rem">Show the Tasks section in the nav and on project pages. Turn off if you bill only by project, not by task.</p>
+      <div>
+        <div class="feature-label">Tasks</div>
+        <div class="feature-desc">Show the Tasks section in the nav and on project pages. Turn off if you bill only by project.</div>
+      </div>
     </div>
+    <style>
+    .feature-row { display:flex; align-items:flex-start; gap:0.85rem; padding:0.75rem 0; }
+    .toggle-switch { position:relative; flex-shrink:0; width:42px; height:24px; cursor:pointer; }
+    .toggle-switch input { opacity:0; width:0; height:0; position:absolute; }
+    .toggle-track { position:absolute; inset:0; background:#ccc; border-radius:24px; transition:background .2s; }
+    .toggle-thumb { position:absolute; top:3px; left:3px; width:18px; height:18px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+    .toggle-switch input:checked + .toggle-track { background:var(--accent,#4f8ef7); }
+    .toggle-switch input:checked + .toggle-track .toggle-thumb { transform:translateX(18px); }
+    .feature-label { font-weight:600; font-size:0.9rem; color:#222; margin-bottom:2px; }
+    .feature-desc { font-size:0.8rem; color:#888; }
+    </style>
 
     <h2 style="margin-top:1.5rem">Email (SMTP)</h2>
     <div class="form-group">

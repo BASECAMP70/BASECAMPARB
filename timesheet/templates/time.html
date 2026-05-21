@@ -1,83 +1,519 @@
 {% extends "base.html" %}
-{% block title %}Time Entries{% endblock %}
+{% block title %}Time{% endblock %}
 {% block content %}
-<h1>Time Entries</h1>
 
-<div class="card">
-  <h2>Add Entry</h2>
-  <form method="post" action="/time/add" style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:1rem;align-items:flex-end">
+{# ── Tab bar ─────────────────────────────────────────────────────────── #}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+  <h1 style="margin:0">Time</h1>
+  <div class="time-tabs">
+    <a class="time-tab{% if view == 'day' %} active{% endif %}"
+       href="/time?view=day&date={{ day_date.isoformat() }}">Day</a>
+    <a class="time-tab{% if view == 'week' or not view %} active{% endif %}"
+       href="/time?view=week&week={{ week_start.isoformat() }}">Week</a>
+    <a class="time-tab{% if view == 'month' %} active{% endif %}"
+       href="/time?view=month&month={{ '%04d-%02d'|format(m_year, m_month) }}">Month</a>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════
+   DAY VIEW
+══════════════════════════════════════════════════════════════════════ #}
+{% if view == 'day' %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+  <div style="display:flex;align-items:center;gap:0.5rem">
+    <a class="btn btn-secondary" href="/time?view=day&date={{ prev_day }}" style="padding:6px 12px">&#8249;</a>
+    <span style="font-weight:600;min-width:200px;text-align:center">
+      {{ day_date.strftime('%A, %b ') }}{{ day_date.day }}, {{ day_date.year }}
+      {% if day_date.isoformat() == today %}<span style="font-size:0.75rem;background:var(--accent);color:#fff;border-radius:10px;padding:1px 8px;margin-left:6px">Today</span>{% endif %}
+    </span>
+    <a class="btn btn-secondary" href="/time?view=day&date={{ next_day }}" style="padding:6px 12px">&#8250;</a>
+    {% if day_date.isoformat() != today %}
+    <a class="btn btn-secondary" href="/time?view=day" style="margin-left:0.5rem">Today</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Quick-add form -->
+<div style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:16px;margin-bottom:1rem">
+  <form method="post" action="/time/add" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 3fr auto;gap:0.75rem;align-items:end">
+    <input type="hidden" name="date" value="{{ day_date.isoformat() }}">
     <div class="form-group" style="margin:0">
       <label>Project</label>
-      <select name="project_id" required>
+      <select name="project_id" id="day-project" required onchange="dayProjectChange(this)">
         <option value="">— select —</option>
-        {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+        {% for p in projects %}<option value="{{ p.id }}" data-rate="{{ p.rate }}">{{ p.name }}</option>{% endfor %}
       </select>
     </div>
-    <div class="form-group" style="margin:0"><label>Date</label><input name="date" type="date" required></div>
-    <div class="form-group" style="margin:0"><label>Hours</label><input name="hours" type="number" step="0.25" min="0.25" required></div>
-    <button class="btn btn-primary" type="submit" style="align-self:flex-end">Add</button>
-    <div class="form-group" style="margin:0;grid-column:1/-1">
-      <label>Description</label><input name="description" placeholder="Description">
-    </div>
-  </form>
-</div>
-
-<div style="display:flex;gap:1rem;margin-bottom:1rem;align-items:flex-end">
-  <form method="get" style="display:flex;gap:1rem;align-items:flex-end">
-    <div class="form-group" style="margin:0"><label>Project</label>
-      <select name="project_id"><option value="">All</option>
-        {% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if p.id == pf }}>{{ p.name }}</option>{% endfor %}
+    {% if settings.get('enable_tasks', True) %}
+    <div class="form-group" style="margin:0">
+      <label>Task</label>
+      <select name="task_id" id="day-task" onchange="dayTaskFillRate(this)">
+        <option value="">— none —</option>
       </select>
     </div>
-    <div class="form-group" style="margin:0"><label>From</label><input name="date_from" type="date" value="{{ df }}"></div>
-    <div class="form-group" style="margin:0"><label>To</label><input name="date_to" type="date" value="{{ dt }}"></div>
-    <button class="btn btn-secondary" type="submit">Filter</button>
+    {% endif %}
+    <div class="form-group" style="margin:0">
+      <label>Hours</label>
+      <input name="hours" type="number" step="0.25" min="0.25" placeholder="0.00" required>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Rate ($/hr)</label>
+      <input name="rate" id="day-rate" type="number" step="0.01" min="0" placeholder="0.00">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Description</label>
+      <input name="description" placeholder="What did you work on?">
+    </div>
+    <button class="btn btn-primary" type="submit" style="white-space:nowrap">Add</button>
   </form>
 </div>
+<script>
+function dayProjectChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const projectRate = opt.dataset.rate;
+  if (projectRate !== undefined) document.getElementById('day-rate').value = parseFloat(projectRate).toFixed(2);
+  const pid = sel.value;
+  const taskSel = document.getElementById('day-task');
+  if (!taskSel) return;
+  taskSel.innerHTML = '<option value="">— none —</option>';
+  (PROJECT_TASKS[pid] || []).forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.id; o.textContent = t.name; o.dataset.rate = t.rate != null ? t.rate : '';
+    taskSel.appendChild(o);
+  });
+}
+function dayTaskFillRate(sel) {
+  const r = sel.options[sel.selectedIndex].dataset.rate;
+  if (r) document.getElementById('day-rate').value = parseFloat(r).toFixed(2);
+}
+</script>
 
-{% if entries %}
-<table>
-  <thead><tr><th>Date</th><th>Project</th><th>Hours</th><th>Description</th><th></th></tr></thead>
-  <tbody>
-  {% for e in entries %}
-  <tr>
-    <td>{{ e.date }}</td>
-    <td>{{ project_map[e.project_id].name if e.project_id in project_map else '—' }}</td>
-    <td>{{ e.hours }}</td>
-    <td>{{ e.description }}{% if e.invoiced %} <span class="locked">&#128274; invoiced</span>{% endif %}</td>
-    <td style="text-align:right">
-      {% if not e.invoiced %}
-      <a class="btn btn-sm btn-secondary" href="/time/{{ e.id }}/edit">Edit</a>
-      <form class="inline" method="post" action="/time/{{ e.id }}/delete">
-        <button class="btn btn-sm btn-danger" onclick="return confirm('Delete?')">Delete</button>
-      </form>
+<!-- Entries list -->
+{% set all_day_entries = [] %}
+{% for p in projects %}{% for e in day_grid[p.id] %}{% set _ = all_day_entries.append((p, e)) %}{% endfor %}{% endfor %}
+
+{% if all_day_entries %}
+<div style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden">
+  <table style="box-shadow:none;border-radius:0">
+    <thead><tr>
+      <th>Project</th>
+      <th>Hours</th>
+      <th>Amount</th>
+      <th>Description</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    {% for p, e in all_day_entries|sort(attribute='1.hours', reverse=True) %}
+    <tr>
+      <td style="font-weight:600">{{ p.name }}<div style="font-size:0.75rem;color:#aaa;font-weight:normal">${{ "%.0f"|format(e.get('rate', p.rate)) }}/hr</div></td>
+      <td><span class="hours-pill" style="font-size:0.8rem">{{ e.hours }}h</span></td>
+      <td style="color:#555">${{ "%.2f"|format(e.hours * e.get('rate', p.rate)) }}</td>
+      <td style="color:#666;font-size:0.875rem">{{ e.description or '—' }}{% if e.invoiced %} <span style="font-size:0.75rem;color:#aaa">🔒</span>{% endif %}</td>
+      <td style="text-align:right;white-space:nowrap">
+        {% if not e.invoiced %}
+        <button class="btn btn-sm btn-secondary" type="button"
+          onclick="openDayEdit('{{ e.id }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}','{{ p.id }}',{{ e.rate if e.rate is defined else p.rate }},'{{ e.get("task_id") or "" }}')">Edit</button>
+        <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
+          <button class="btn btn-sm btn-danger">Delete</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    </tbody>
+    <tbody>
+      {%- set billed = namespace(v=0) -%}
+      {%- for p, e in all_day_entries -%}{%- set billed.v = billed.v + e.hours * e.get('rate', p.rate) -%}{%- endfor -%}
+      <tr style="background:#fafafa;border-top:2px solid #e5e5e5">
+        <td style="font-weight:700;padding:10px 12px">Total</td>
+        <td><span class="row-total" style="background:#555">{{ day_total }}h</span></td>
+        <td style="font-weight:700">${{ billed.v|money }}</td>
+        <td colspan="2"></td>
+      </tr>
+  </table>
+</div>
+{% else %}
+<p class="text-muted" style="text-align:center;padding:2rem">No entries for this day.</p>
+{% endif %}
+
+<!-- Inline edit modal (reuse cell modal) -->
+<script>
+function openDayEdit(id, hours, description, projectId, rate, taskId) {
+  _cell = { projectId, projectName: '', date: '{{ day_date.isoformat() }}' };
+  document.getElementById('edit-form').action = '/time/' + id + '/edit';
+  document.getElementById('edit-project-id').value = projectId;
+  document.getElementById('edit-date').value = '{{ day_date.isoformat() }}';
+  document.getElementById('edit-date-display').value = fmtDate('{{ day_date.isoformat() }}');
+  document.getElementById('edit-hours').value = hours;
+  document.getElementById('edit-rate').value = rate !== undefined ? parseFloat(rate).toFixed(2) : (PROJECT_RATES[projectId] !== undefined ? parseFloat(PROJECT_RATES[projectId]).toFixed(2) : '');
+  document.getElementById('edit-description').value = description;
+  _populateTaskSelect('edit-task', projectId, taskId || null);
+  document.getElementById('existing-entries').innerHTML = '';
+  document.getElementById('add-divider').style.display = 'none';
+  document.getElementById('modal-title').textContent = 'Edit Entry';
+  document.getElementById('view-mode').style.display = 'none';
+  document.getElementById('edit-mode').style.display = 'block';
+  document.getElementById('cell-modal').classList.add('open');
+  setTimeout(() => document.getElementById('edit-hours').focus(), 40);
+}
+</script>
+
+{# ══════════════════════════════════════════════════════════════════════
+   WEEK VIEW
+══════════════════════════════════════════════════════════════════════ #}
+{% elif view == 'month' %}
+{# ══════════════════════════════════════════════════════════════════════
+   (week is handled below, month jumps here due to elif ordering)
+   MONTH VIEW
+══════════════════════════════════════════════════════════════════════ #}
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem">
+  <a class="btn btn-secondary" href="/time?view=month&month={{ prev_month }}" style="padding:6px 12px">&#8249;</a>
+  <span style="font-weight:600;min-width:160px;text-align:center">{{ month_label }}</span>
+  <a class="btn btn-secondary" href="/time?view=month&month={{ next_month }}" style="padding:6px 12px">&#8250;</a>
+  {% set cur_month = today[:7] %}
+  {% if '%04d-%02d'|format(m_year, m_month) != cur_month %}
+  <a class="btn btn-secondary" href="/time?view=month" style="margin-left:0.5rem">Today</a>
+  {% endif %}
+  {% if month_total > 0 %}<span class="row-total" style="background:#555;margin-left:auto;font-size:0.9rem;padding:0 10px;height:30px">{{ month_total }}h total</span>{% endif %}
+</div>
+
+<div style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden">
+  <div class="month-grid">
+    {% for day_name in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+    <div class="month-dow">{{ day_name }}</div>
+    {% endfor %}
+    {% for week in cal_weeks %}
+    {% for d in week %}
+    {% set ds = d.isoformat() %}
+    {% set in_month = d.month == m_month %}
+    {% set hrs = daily_totals_month.get(ds, 0) %}
+    <a class="month-day{% if ds == today %} month-today{% endif %}{% if not in_month %} month-out{% endif %}{% if hrs > 0 %} month-has-hours{% endif %}"
+       href="/time?view=day&date={{ ds }}">
+      <span class="month-day-num{% if ds == today %} month-today-num{% endif %}">{{ d.day }}</span>
+      {% if hrs > 0 and in_month %}
+      <span class="month-hrs-pill">{{ hrs }}h</span>
       {% endif %}
+    </a>
+    {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+
+{% else %}
+{# ══════════════════════════════════════════════════════════════════════
+   WEEK VIEW (default)
+══════════════════════════════════════════════════════════════════════ #}
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem">
+  <a class="btn btn-secondary" href="/time?view=week&week={{ prev_week }}" style="padding:6px 12px">&#8249;</a>
+  <span style="font-weight:600;min-width:190px;text-align:center">{{ week_label }}</span>
+  <a class="btn btn-secondary" href="/time?view=week&week={{ next_week }}" style="padding:6px 12px">&#8250;</a>
+  {% if today_week != week_start.isoformat() %}
+  <a class="btn btn-secondary" href="/time?view=week" style="margin-left:0.5rem">Today</a>
+  {% endif %}
+</div>
+
+<div style="overflow-x:auto">
+<table class="week-grid">
+  <colgroup>
+    <col style="width:200px">
+    {% for d in week_dates %}<col>{% endfor %}
+    <col style="width:60px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th style="text-align:left;padding:10px 14px;color:#888;font-size:0.8rem;font-weight:600;text-transform:uppercase">Project</th>
+      {% for d in week_dates %}
+      <th class="day-header{% if d.isoformat() == today %} today{% endif %}">
+        <div class="day-name">{{ d.strftime('%a') }}</div>
+        <div class="day-num{% if d.isoformat() == today %} today-num{% endif %}">{{ d.day }}</div>
+      </th>
+      {% endfor %}
+      <th style="text-align:center;color:#888;font-size:0.8rem;font-weight:600;text-transform:uppercase;padding:10px 6px">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for p in projects %}
+  <tr class="project-row">
+    <td class="project-cell">
+      <div class="project-name">{{ p.name }}</div>
+      <div class="project-rate">${{ "%.0f"|format(p.rate) }}/hr</div>
+    </td>
+    {% for d in week_dates %}
+    {% set date_str = d.isoformat() %}
+    {% set cell_entries = grid[p.id][date_str] %}
+    {% set cell_hours = cell_entries|sum(attribute='hours') %}
+    <td class="time-cell{% if date_str == today %} today-col{% endif %}"
+        data-pid="{{ p.id }}" data-pname="{{ p.name }}" data-date="{{ date_str }}">
+      {% if cell_hours > 0 %}
+      <div class="hours-pill">{{ cell_hours }}</div>
+      {% else %}
+      <div class="hours-empty">+</div>
+      {% endif %}
+    </td>
+    {% endfor %}
+    <td class="total-cell">
+      {% if row_totals[p.id] > 0 %}<span class="row-total">{{ row_totals[p.id] }}</span>{% endif %}
     </td>
   </tr>
   {% endfor %}
   </tbody>
+  <tfoot>
+    <tr class="total-row">
+      <td style="padding:10px 14px;font-weight:700;font-size:0.85rem;color:#444">Total</td>
+      {% for d in week_dates %}
+      {% set dt_str = d.isoformat() %}
+      <td class="total-day-cell{% if dt_str == today %} today-col{% endif %}">
+        {% if daily_totals[dt_str] > 0 %}
+        <span style="font-weight:700">{{ daily_totals[dt_str] }}</span>
+        {% endif %}
+      </td>
+      {% endfor %}
+      <td class="total-cell">
+        {% if week_total > 0 %}<span class="row-total" style="background:#555">{{ week_total }}</span>{% endif %}
+      </td>
+    </tr>
+  </tfoot>
 </table>
-{% else %}
-<p class="text-muted">No time entries found.</p>
-{% endif %}
-
-{% if edit_entry is defined and edit_entry %}
-<div class="modal-overlay open" id="edit-modal">
-  <div class="modal">
-    <h2>Edit Entry</h2>
-    <form method="post" action="/time/{{ edit_entry.id }}/edit">
-      <div class="form-group"><label>Project</label>
-        <select name="project_id">
-          {% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if p.id == edit_entry.project_id }}>{{ p.name }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="form-group"><label>Date</label><input name="date" type="date" value="{{ edit_entry.date }}"></div>
-      <div class="form-group"><label>Hours</label><input name="hours" type="number" step="0.25" value="{{ edit_entry.hours }}"></div>
-      <div class="form-group"><label>Description</label><input name="description" value="{{ edit_entry.description }}"></div>
-      <button class="btn btn-primary" type="submit">Save</button>
-      <a class="btn btn-secondary" href="/time">Cancel</a>
-    </form>
-  </div>
 </div>
 {% endif %}
+
+<style>
+/* ── Tabs ────────────────────────────────────────────────────────────── */
+.time-tabs { display:flex;gap:2px;background:#eee;border-radius:6px;padding:3px; }
+.time-tab { text-decoration:none;padding:5px 18px;border-radius:4px;font-size:0.85rem;font-weight:600;color:#666; }
+.time-tab.active { background:#fff;color:#222;box-shadow:0 1px 3px rgba(0,0,0,.1); }
+
+/* ── Week grid ───────────────────────────────────────────────────────── */
+.week-grid { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.week-grid thead tr { border-bottom:2px solid #eee; }
+.day-header { text-align:center; padding:10px 6px; }
+.day-header.today { background:#f0f5ff; }
+.day-name { font-size:0.75rem; color:#999; text-transform:uppercase; font-weight:600; }
+.day-num { font-size:1rem; font-weight:600; color:#333; margin-top:2px; }
+.day-num.today-num { display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--accent);color:#fff;border-radius:50%; }
+.project-row { border-bottom:1px solid #f0f0f0; }
+.project-row:last-child { border-bottom:none; }
+.project-cell { padding:10px 14px; vertical-align:middle; }
+.project-name { font-weight:600; font-size:0.875rem; }
+.project-rate { font-size:0.75rem; color:#aaa; margin-top:2px; }
+.time-cell { text-align:center; padding:6px 4px; cursor:pointer; vertical-align:middle; transition:background .15s; }
+.time-cell:hover { background:#f5f8ff; }
+.time-cell.today-col { background:#fafcff; }
+.time-cell.today-col:hover { background:#eef3ff; }
+.hours-pill { display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:6px;min-width:38px;height:30px;font-size:0.85rem;font-weight:600;padding:0 6px; }
+.hours-empty { display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;color:#ddd;font-size:1.1rem;border-radius:6px; }
+.time-cell:hover .hours-empty { background:#e8efff;color:#aaa; }
+.total-cell { text-align:center; padding:6px; vertical-align:middle; }
+.row-total { display:inline-flex;align-items:center;justify-content:center;background:#888;color:#fff;border-radius:6px;min-width:34px;height:26px;font-size:0.8rem;font-weight:600;padding:0 6px; }
+.total-row { border-top:2px solid #e5e5e5; background:#fafafa; }
+.total-day-cell { text-align:center; padding:10px 4px; font-size:0.875rem; color:#444; }
+.total-day-cell.today-col { background:#f5f8ff; }
+
+/* ── Day view ────────────────────────────────────────────────────────── */
+.day-project-row:hover { background:#f5f8ff !important; }
+
+/* ── Month grid ──────────────────────────────────────────────────────── */
+.month-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+.month-dow { text-align:center; padding:8px 4px; font-size:0.72rem; font-weight:700; color:#999; text-transform:uppercase; border-bottom:1px solid #eee; }
+.month-day { display:flex; flex-direction:column; align-items:flex-start; padding:6px 8px; min-height:68px; border-right:1px solid #f0f0f0; border-bottom:1px solid #f0f0f0; text-decoration:none; color:inherit; transition:background .12s; }
+.month-day:hover { background:#f5f8ff; }
+.month-day.month-out { background:#fafafa; }
+.month-day.month-today { background:#f0f5ff; }
+.month-day-num { font-size:0.85rem; font-weight:600; color:#444; }
+.month-today-num { display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--accent);color:#fff;border-radius:50%;font-size:0.8rem; }
+.month-day.month-out .month-day-num { color:#ccc; }
+.month-hrs-pill { margin-top:4px; background:var(--accent); color:#fff; border-radius:4px; padding:1px 6px; font-size:0.75rem; font-weight:600; }
+</style>
+
+<!-- Cell popup modal -->
+<div class="modal-overlay" id="cell-modal">
+  <div class="modal" style="min-width:420px;max-width:500px">
+    <h2 id="modal-title" style="margin-bottom:1rem;font-size:1.1rem"></h2>
+
+    <!-- Existing entries -->
+    <div id="existing-entries"></div>
+
+    <!-- View mode: add new -->
+    <div id="view-mode">
+      <div id="add-divider" style="display:none;padding-top:0.75rem;margin-top:0.25rem;border-top:1px solid #eee">
+        <div style="font-size:0.8rem;font-weight:600;color:#888;margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:.03em">Add another entry</div>
+      </div>
+      <form method="post" action="/time/add" id="add-form">
+        <input type="hidden" name="project_id" id="modal-project-id">
+        <input type="hidden" name="date" id="modal-date">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
+          <div class="form-group" style="margin:0">
+            <label>Hours</label>
+            <input name="hours" id="modal-hours" type="number" step="0.25" min="0.25" placeholder="0.00" required>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Rate ($/hr)</label>
+            <input name="rate" id="modal-rate" type="number" step="0.01" min="0" placeholder="0.00">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Date</label>
+            <input id="modal-date-display" type="text" readonly style="background:#f5f5f5;color:#555">
+          </div>
+        </div>
+        {% if settings.get('enable_tasks', True) %}
+        <div class="form-group" style="margin-bottom:0.75rem">
+          <label>Task <span class="text-muted" style="font-size:0.8rem;font-weight:normal">(optional)</span></label>
+          <select name="task_id" id="modal-task" onchange="modalTaskFillRate(this)">
+            <option value="">— none —</option>
+          </select>
+        </div>
+        {% endif %}
+        <div class="form-group" style="margin-bottom:0.75rem">
+          <label>Description</label>
+          <input name="description" id="modal-description" placeholder="What did you work on?">
+        </div>
+        <div style="display:flex;gap:0.75rem">
+          <button class="btn btn-primary" type="submit">Save</button>
+          <button class="btn btn-secondary" type="button" onclick="closeCell()">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Edit mode -->
+    <div id="edit-mode" style="display:none">
+      <form method="post" id="edit-form">
+        <input type="hidden" name="project_id" id="edit-project-id">
+        <input type="hidden" name="date" id="edit-date">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
+          <div class="form-group" style="margin:0">
+            <label>Hours</label>
+            <input name="hours" id="edit-hours" type="number" step="0.25" min="0.25" required>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Rate ($/hr)</label>
+            <input name="rate" id="edit-rate" type="number" step="0.01" min="0">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Date</label>
+            <input id="edit-date-display" type="text" readonly style="background:#f5f5f5;color:#555">
+          </div>
+        </div>
+        {% if settings.get('enable_tasks', True) %}
+        <div class="form-group" style="margin-bottom:0.75rem">
+          <label>Task <span class="text-muted" style="font-size:0.8rem;font-weight:normal">(optional)</span></label>
+          <select name="task_id" id="edit-task">
+            <option value="">— none —</option>
+          </select>
+        </div>
+        {% endif %}
+        <div class="form-group" style="margin-bottom:0.75rem">
+          <label>Description</label>
+          <input name="description" id="edit-description">
+        </div>
+        <div style="display:flex;gap:0.75rem">
+          <button class="btn btn-primary" type="submit">Update</button>
+          <button class="btn btn-secondary" type="button" onclick="showViewMode()">&#8592; Back</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const GRID = {{ (day_grid_json if view == 'day' else grid_json) | tojson }};
+const PROJECT_RATES = { {% for p in projects %}"{{ p.id }}": {{ p.rate }}{% if not loop.last %}, {% endif %}{% endfor %} };
+const PROJECT_TASKS = {{ project_tasks | tojson }};
+let _cell = null;
+
+function _populateTaskSelect(selId, projectId, selectedTaskId) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— none —</option>';
+  (PROJECT_TASKS[projectId] || []).forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.id; o.textContent = t.name; o.dataset.rate = t.rate != null ? t.rate : '';
+    if (t.id === selectedTaskId) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+function modalTaskFillRate(sel) {
+  const r = sel.options[sel.selectedIndex].dataset.rate;
+  if (r) document.getElementById('modal-rate').value = parseFloat(r).toFixed(2);
+}
+
+document.addEventListener('click', function(e) {
+  const cell = e.target.closest('.time-cell');
+  if (cell) openCell(cell.dataset.pid, cell.dataset.pname, cell.dataset.date);
+  const editBtn = e.target.closest('[data-edit-id]');
+  if (editBtn) startEdit(editBtn.dataset.editId, parseFloat(editBtn.dataset.editHours), decodeURIComponent(editBtn.dataset.editDesc), editBtn.dataset.editRate !== '' ? parseFloat(editBtn.dataset.editRate) : undefined, editBtn.dataset.editTask || null);
+});
+
+function openCell(projectId, projectName, date) {
+  _cell = { projectId, projectName, date };
+  document.getElementById('modal-project-id').value = projectId;
+  document.getElementById('modal-date').value = date;
+  document.getElementById('modal-date-display').value = fmtDate(date);
+  document.getElementById('modal-hours').value = '';
+  document.getElementById('modal-rate').value = PROJECT_RATES[projectId] !== undefined ? parseFloat(PROJECT_RATES[projectId]).toFixed(2) : '';
+  document.getElementById('modal-description').value = '';
+  _populateTaskSelect('modal-task', projectId, null);
+  document.getElementById('modal-title').textContent = projectName + '  ·  ' + fmtDate(date);
+  renderEntries(projectId, date);
+  showViewMode();
+  document.getElementById('cell-modal').classList.add('open');
+  setTimeout(() => document.getElementById('modal-hours').focus(), 80);
+}
+
+function renderEntries(projectId, date) {
+  const entries = (GRID[projectId] || {})[date] || [];
+  const container = document.getElementById('existing-entries');
+  const divider = document.getElementById('add-divider');
+  if (entries.length === 0) { container.innerHTML = ''; divider.style.display = 'none'; return; }
+  divider.style.display = 'block';
+  container.innerHTML = entries.map(e => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f2f2f2">
+      <div>
+        <span style="font-weight:600;font-size:0.95rem">${e.hours}h</span>
+        ${e.description ? `<span style="color:#666;margin-left:6px;font-size:0.875rem">— ${e.description}</span>` : ''}
+        ${e.invoiced ? '<span style="font-size:0.75rem;color:#999;margin-left:6px">🔒 invoiced</span>' : ''}
+      </div>
+      ${!e.invoiced ? `<div style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-secondary"
+          data-edit-id="${e.id}"
+          data-edit-hours="${e.hours}"
+          data-edit-desc="${encodeURIComponent(e.description||'')}"
+          data-edit-rate="${e.rate !== undefined ? e.rate : ''}"
+          data-edit-task="${e.task_id || ''}">Edit</button>
+        <form class="inline" method="post" action="/time/${e.id}/delete" onsubmit="return confirm('Delete this entry?')">
+          <button class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+function startEdit(id, hours, description, rate, taskId) {
+  document.getElementById('edit-form').action = '/time/' + id + '/edit';
+  document.getElementById('edit-project-id').value = _cell.projectId;
+  document.getElementById('edit-date').value = _cell.date;
+  document.getElementById('edit-date-display').value = fmtDate(_cell.date);
+  document.getElementById('edit-hours').value = hours;
+  document.getElementById('edit-rate').value = rate !== undefined ? parseFloat(rate).toFixed(2) : (PROJECT_RATES[_cell.projectId] !== undefined ? parseFloat(PROJECT_RATES[_cell.projectId]).toFixed(2) : '');
+  document.getElementById('edit-description').value = description;
+  _populateTaskSelect('edit-task', _cell.projectId, taskId);
+  document.getElementById('view-mode').style.display = 'none';
+  document.getElementById('edit-mode').style.display = 'block';
+  setTimeout(() => document.getElementById('edit-hours').focus(), 40);
+}
+
+function showViewMode() {
+  document.getElementById('view-mode').style.display = 'block';
+  document.getElementById('edit-mode').style.display = 'none';
+}
+
+function closeCell() {
+  document.getElementById('cell-modal').classList.remove('open');
+  _cell = null;
+}
+
+function fmtDate(s) {
+  const d = new Date(s + 'T00:00:00');
+  return d.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+</script>
 {% endblock %}

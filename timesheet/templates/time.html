@@ -35,7 +35,7 @@
 
 <!-- Quick-add form -->
 <div style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:16px;margin-bottom:1rem">
-  <form method="post" action="/time/add" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 3fr auto;gap:0.75rem;align-items:end">
+  <form method="post" action="/time/add" style="display:grid;grid-template-columns:{% if settings.get('enable_tasks', True) %}2fr 1fr 1fr 1fr 3fr{% else %}2fr 1fr 1fr 3fr{% endif %} auto;gap:0.75rem;align-items:end">
     <input type="hidden" name="date" value="{{ day_date.isoformat() }}">
     <div class="form-group" style="margin:0">
       <label>Project</label>

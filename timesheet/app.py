@@ -278,6 +278,7 @@ def create_app(config=None):
                 "invoice_bg_color": request.form.get("invoice_bg_color", s.get("invoice_bg_color", "#FFFFFF")).strip() or "#FFFFFF",
                 "app_nav_color": request.form.get("app_nav_color", s.get("app_nav_color", "#1a1a2e")).strip() or "#1a1a2e",
                 "app_accent_color": request.form.get("app_accent_color", s.get("app_accent_color", "#4f8ef7")).strip() or "#4f8ef7",
+                "enable_tasks": request.form.get("enable_tasks") == "1",
             })
 
             # Logo upload

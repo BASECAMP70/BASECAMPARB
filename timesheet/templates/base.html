@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <title>{% block title %}Timesheet{% endblock %} — {{ settings.business_name or 'Timesheet' }}</title>
   <style>
     :root {
@@ -11,17 +12,26 @@
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #222; }
-    nav { background: var(--nav-bg); color: #fff; padding: 0 1.5rem; display: flex; align-items: center; gap: 1.5rem; height: 52px; }
-    nav a { color: rgba(255,255,255,.7); text-decoration: none; font-size: 0.9rem; padding: 4px 0; }
+    nav { background: var(--nav-bg); color: #fff; position: relative; }
+    nav .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; gap: 1.5rem; height: 52px; }
+    nav a { color: rgba(255,255,255,.7); text-decoration: none; font-size: 0.9rem; font-weight: 600; padding: 4px 0; }
     nav a:hover, nav a.active { color: #fff; border-bottom: 2px solid var(--accent); }
     nav .brand { font-weight: 700; color: #fff; font-size: 1rem; margin-right: 1rem; }
+    .nav-links { display: flex; align-items: center; gap: 1.5rem; }
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px; margin-left: auto; flex-direction: column; gap: 5px; }
+    .hamburger span { display: block; width: 22px; height: 2px; background: #fff; border-radius: 2px; transition: all 0.2s; }
+    .nav-mobile { display: none; background: var(--nav-bg); border-top: 1px solid rgba(255,255,255,.1); }
+    .nav-mobile.open { display: block; }
+    .nav-mobile a { display: block; color: rgba(255,255,255,.8); text-decoration: none; font-size: 0.95rem; font-weight: 600; padding: 13px 1.25rem; border-bottom: 1px solid rgba(255,255,255,.07); }
+    .nav-mobile a.active, .nav-mobile a:hover { color: #fff; background: rgba(255,255,255,.07); }
     .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
     h1 { font-size: 1.5rem; margin-bottom: 1.25rem; }
     h2 { font-size: 1.2rem; margin-bottom: 1rem; }
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     th { background: #f0f0f0; text-align: left; padding: 10px 12px; font-size: 0.85rem; color: #555; }
     td { padding: 10px 12px; border-top: 1px solid #eee; font-size: 0.9rem; }
-    tr:hover td { background: #fafafa; }
+    tbody tr:nth-child(even) td { background: #f0f2f6; }
+    tr:hover td { background: #eef2ff; }
     .btn { display: inline-block; padding: 7px 16px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.875rem; text-decoration: none; }
     .btn-primary { background: var(--accent); color: #fff; }
     .btn-primary:hover { filter: brightness(0.88); }
@@ -47,20 +57,63 @@
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:100; align-items:center; justify-content:center; }
     .modal-overlay.open { display:flex; }
     .modal { background:#fff; border-radius:8px; padding:2rem; width:480px; max-width:95vw; }
+    .tab-bar { display:flex; gap:2px; background:#eee; border-radius:6px; padding:3px; }
+    .tab-btn { background:none; border:none; padding:5px 16px; border-radius:4px; font-size:0.85rem; font-weight:600; color:#666; cursor:pointer; }
+    .tab-btn.active { background:#fff; color:#222; box-shadow:0 1px 3px rgba(0,0,0,.1); }
     .modal h2 { margin-bottom:1rem; }
+    /* Reusable responsive layouts */
+    .flex-form { display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap; }
+    .flex-form > .form-group, .flex-form > div { min-width:140px; flex:1; }
+    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    /* Mobile */
+    @media (max-width: 768px) {
+      .nav-links { display:none; }
+      .hamburger { display:flex; }
+      .container { padding:0 0.75rem; margin:1rem auto; }
+      .card { padding:1rem; }
+      h1 { font-size:1.25rem; }
+      h2 { font-size:1.05rem; }
+      table { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      .modal { padding:1.25rem; }
+      .btn { padding:8px 14px; }
+      .grid-3 { grid-template-columns:1fr; }
+      .grid-2 { grid-template-columns:1fr; }
+      .flex-form { flex-direction:column; }
+      .flex-form > .form-group, .flex-form > div { width:100%; min-width:unset; flex:unset; }
+    }
   </style>
 </head>
 <body>
 <nav>
-  <span class="brand">&#9201; {{ settings.business_name or 'Timesheet' }}</span>
-  <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">Dashboard</a>
-  <a href="{{ url_for('clients') }}" class="{{ 'active' if request.endpoint in ('clients',) }}">Clients</a>
-  <a href="{{ url_for('projects') }}" class="{{ 'active' if request.endpoint == 'projects' }}">Projects</a>
-  <a href="{{ url_for('time_entries') }}" class="{{ 'active' if request.endpoint == 'time_entries' }}">Time</a>
-  <a href="{{ url_for('expenses') }}" class="{{ 'active' if request.endpoint == 'expenses' }}">Expenses</a>
-  <a href="{{ url_for('invoices') }}" class="{{ 'active' if request.endpoint == 'invoices' }}">Invoices</a>
-  <a href="{{ url_for('report_monthly') }}" class="{{ 'active' if 'report' in (request.endpoint or '') }}">Reports</a>
-  <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Settings</a>
+  <div class="nav-inner">
+    <a href="{{ url_for('dashboard') }}" style="display:flex;align-items:center;gap:0.4rem;{{ 'border-bottom:2px solid var(--accent)' if request.endpoint == 'dashboard' else '' }}">
+      <img src="{{ url_for('static', filename='logo-5-icon.svg') }}" alt="Logo" style="height:28px;width:28px;object-fit:contain">
+    </a>
+    <div class="nav-links">
+      <a href="{{ url_for('time_entries') }}" class="{{ 'active' if request.endpoint == 'time_entries' }}">Time</a>
+      <a href="{{ url_for('clients') }}" class="{{ 'active' if request.endpoint in ('clients',) }}">Clients</a>
+      <a href="{{ url_for('projects') }}" class="{{ 'active' if request.endpoint == 'projects' }}">Projects</a>
+      {% if settings.get('enable_tasks', True) %}<a href="{{ url_for('tasks') }}" class="{{ 'active' if request.endpoint == 'tasks' }}">Tasks</a>{% endif %}
+      <a href="{{ url_for('expenses') }}" class="{{ 'active' if request.endpoint == 'expenses' }}">Expenses</a>
+      <a href="{{ url_for('invoices') }}" class="{{ 'active' if request.endpoint == 'invoices' }}">Invoices</a>
+      <a href="{{ url_for('report_monthly') }}" class="{{ 'active' if 'report' in (request.endpoint or '') }}">Reports</a>
+      <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Settings</a>
+    </div>
+    <button class="hamburger" onclick="document.getElementById('nav-mobile').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile" id="nav-mobile">
+    <a href="{{ url_for('time_entries') }}" class="{{ 'active' if request.endpoint == 'time_entries' }}">Time</a>
+    <a href="{{ url_for('clients') }}" class="{{ 'active' if request.endpoint in ('clients',) }}">Clients</a>
+    <a href="{{ url_for('projects') }}" class="{{ 'active' if request.endpoint == 'projects' }}">Projects</a>
+    {% if settings.get('enable_tasks', True) %}<a href="{{ url_for('tasks') }}" class="{{ 'active' if request.endpoint == 'tasks' }}">Tasks</a>{% endif %}
+    <a href="{{ url_for('expenses') }}" class="{{ 'active' if request.endpoint == 'expenses' }}">Expenses</a>
+    <a href="{{ url_for('invoices') }}" class="{{ 'active' if request.endpoint == 'invoices' }}">Invoices</a>
+    <a href="{{ url_for('report_monthly') }}" class="{{ 'active' if 'report' in (request.endpoint or '') }}">Reports</a>
+    <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Settings</a>
+  </div>
 </nav>
 <div class="container">
   {% for category, message in get_flashed_messages(with_categories=True) %}

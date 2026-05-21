@@ -6,14 +6,14 @@
 <div class="card">
   <h2>Add Project</h2>
   <form method="post" action="/projects/add">
-    <div style="display:flex;gap:1rem;align-items:flex-end">
+    <div class="flex-form" style="margin-bottom:0.75rem">
       <div class="form-group" style="flex:2;margin:0">
         <label>Name</label>
         <input name="name" required placeholder="Website Redesign">
       </div>
       <div class="form-group" style="flex:1;margin:0">
-        <label>Hourly Rate (CAD)</label>
-        <input name="rate" type="number" step="0.01" min="0" placeholder="125.00">
+        <label>Rate (CAD/hr)</label>
+        <input name="rate" type="number" step="0.01" min="0" placeholder="125.00" value="{{ settings.default_rate if settings.default_rate else '' }}">
       </div>
       <div class="form-group" style="flex:2;margin:0">
         <label>Client</label>
@@ -22,66 +22,291 @@
           {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
         </select>
       </div>
-      <button class="btn btn-primary" type="submit" style="white-space:nowrap">Add</button>
+    </div>
+    <div class="flex-form">
+      <div class="form-group" style="flex:1;margin:0">
+        <label>Status</label>
+        <select name="status">
+          <option value="active">Active</option>
+          <option value="on_hold">On Hold</option>
+          <option value="complete">Complete</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1;margin:0">
+        <label>Due Date</label>
+        <input name="due_date" type="date">
+      </div>
+      <div class="form-group" style="flex:1;margin:0">
+        <label>Budget (hrs)</label>
+        <input name="budget_hours" type="number" step="0.5" min="0" placeholder="80">
+      </div>
+      <div class="form-group" style="flex:1;margin:0">
+        <label>Budget ($)</label>
+        <input name="budget_dollars" type="number" step="0.01" min="0" placeholder="12000">
+      </div>
+      <button class="btn btn-primary" type="submit" style="white-space:nowrap;align-self:flex-end">Add</button>
     </div>
   </form>
 </div>
 
 {% if projects %}
-<table>
-  <thead><tr><th>Name</th><th>Client</th><th>Rate (CAD/hr)</th><th>Status</th><th></th></tr></thead>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;margin-top:1.5rem">
+  <h2 style="margin:0">Projects</h2>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showProjects('active',this)">Active</button>
+    <button class="tab-btn" onclick="showProjects('on_hold',this)">On Hold</button>
+    <button class="tab-btn" onclick="showProjects('complete',this)">Complete</button>
+  </div>
+</div>
+<table id="proj-table">
+  <thead><tr><th style="width:28px"></th><th>Name</th><th>Client</th><th>Rate</th><th>Due Date</th><th>Budget</th><th></th></tr></thead>
   <tbody>
   {% for p in projects %}
   {% set c = client_map.get(p.get('client_id', '')) %}
-  <tr>
-    <td>{{ p.name }}</td>
+  {% set status = p.get('status', 'active' if p.get('active', True) else 'complete') %}
+  {% set stats = project_stats.get(p.id, {'used_hours': 0, 'used_dollars': 0}) %}
+  {% set p_tasks = project_tasks.get(p.id, []) %}
+  <tr data-status="{{ status }}" class="proj-row">
+    <td>
+      <button class="expand-btn" onclick="toggleTasks('{{ p.id }}')" title="Show tasks">&#9654;</button>
+    </td>
+    <td>
+      {{ p.name }}
+      {% if status == 'on_hold' %}<span class="badge badge-on-hold" style="margin-left:4px">On Hold</span>{% endif %}
+      {% if p_tasks %}<span class="task-count">{{ p_tasks|length }}</span>{% endif %}
+    </td>
     <td>{{ c.name if c else '—' }}</td>
-    <td>${{ "%.2f"|format(p.rate) }}</td>
-    <td>{{ "Active" if p.active else "Inactive" }}</td>
-    <td style="text-align:right">
+    <td>${{ "%.2f"|format(p.rate) }}/hr</td>
+    <td style="white-space:nowrap">{{ p.get('due_date') or '—' }}</td>
+    <td style="min-width:160px">
+      {% if p.get('budget_hours') %}
+        {% set h_raw = (stats.used_hours / p.budget_hours * 100)|round(1) %}
+        {% set h_pct = [h_raw, 100]|min %}
+        {% set h_over = stats.used_hours > p.budget_hours %}
+        <div class="budget-row">
+          <span class="budget-label">{{ stats.used_hours }}h / {{ p.budget_hours|int }}h</span>
+          {% if h_over %}<span class="over-budget">over</span>{% endif %}
+        </div>
+        <div class="budget-bar"><div class="budget-bar-fill {{ 'over' if h_over }}" style="width:{{ h_pct }}%"></div></div>
+      {% endif %}
+      {% if p.get('budget_dollars') %}
+        {% set d_raw = (stats.used_dollars / p.budget_dollars * 100)|round(1) %}
+        {% set d_pct = [d_raw, 100]|min %}
+        {% set d_over = stats.used_dollars > p.budget_dollars %}
+        <div class="budget-row" style="margin-top:4px">
+          <span class="budget-label">${{ stats.used_dollars|money }} / ${{ p.budget_dollars|money }}</span>
+          {% if d_over %}<span class="over-budget">over</span>{% endif %}
+        </div>
+        <div class="budget-bar"><div class="budget-bar-fill {{ 'over' if d_over }}" style="width:{{ d_pct }}%"></div></div>
+      {% endif %}
+      {% if not p.get('budget_hours') and not p.get('budget_dollars') %}—{% endif %}
+    </td>
+    <td style="text-align:right;white-space:nowrap">
       <button class="btn btn-sm btn-secondary"
-        onclick='openEdit("{{ p.id }}", {{ p.name|tojson }}, {{ p.rate }}, {{ (p.get("client_id") or "")|tojson }})'>Edit</button>
-      {% if p.active %}
+        onclick='openEdit({{ p|tojson }})'>Edit</button>
+      {% if status != 'complete' %}
       <form class="inline" method="post" action="/projects/{{ p.id }}/deactivate">
-        <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Deactivate?')">Deactivate</button>
+        <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Mark project as complete?')">Complete</button>
+      </form>
+      {% else %}
+      <form class="inline" method="post" action="/projects/{{ p.id }}/reactivate">
+        <button class="btn btn-sm btn-secondary" type="submit">Reactivate</button>
       </form>
       {% endif %}
+    </td>
+  </tr>
+  <!-- Tasks sub-row -->
+  <tr id="tasks-{{ p.id }}" class="tasks-row" data-status="{{ status }}" style="display:none">
+    <td></td>
+    <td colspan="6" style="padding:0 0 0 1rem">
+      <div class="tasks-panel">
+        {% if p_tasks %}
+        <table class="tasks-inner-table">
+          <thead><tr><th>Task</th><th>Rate</th><th>Budget</th><th></th></tr></thead>
+          <tbody>
+          {% for t in p_tasks %}
+          <tr>
+            <td>{{ t.name }}</td>
+            <td>
+              {% if t.rate is not none and t.rate != None %}
+                ${{ "%.2f"|format(t.rate) }}/hr
+              {% else %}
+                <span class="text-muted">project default (${{ "%.0f"|format(p.rate) }}/hr)</span>
+              {% endif %}
+            </td>
+            <td style="font-size:0.8rem;color:#555">
+              {% if t.budget_hours %}{{ t.budget_hours|int }}h{% endif %}
+              {% if t.budget_hours and t.budget_dollars %} / {% endif %}
+              {% if t.budget_dollars %}${{ t.budget_dollars|money }}{% endif %}
+              {% if not t.budget_hours and not t.budget_dollars %}—{% endif %}
+            </td>
+            <td style="text-align:right;white-space:nowrap">
+              <button class="btn btn-sm btn-secondary" onclick='openTaskEdit({{ t|tojson }})'>Edit</button>
+              <form class="inline" method="post" action="/project-tasks/{{ t.pt_id }}/remove"
+                    onsubmit="return confirm('Remove task {{ t.name }} from this project?')">
+                <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+        {% set unassigned = project_unassigned.get(p.id, []) %}
+        {% if unassigned %}
+        <form method="post" action="/projects/{{ p.id }}/tasks/assign" class="task-add-form">
+          <select name="task_id" required style="flex:2">
+            <option value="">— assign task from library —</option>
+            {% for t in unassigned %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+          </select>
+          <input name="rate_override" type="number" step="0.01" min="0" placeholder="rate override" style="flex:1">
+          <input name="budget_hours" type="number" step="0.5" min="0" placeholder="budget hrs" style="flex:1">
+          <input name="budget_dollars" type="number" step="0.01" min="0" placeholder="budget $" style="flex:1">
+          <button class="btn btn-primary btn-sm" type="submit">Assign</button>
+        </form>
+        {% elif not all_tasks %}
+        <p class="text-muted" style="font-size:0.82rem;margin:0.25rem 0 0"><a href="/tasks">Create tasks</a> in the library to assign them here.</p>
+        {% else %}
+        <p class="text-muted" style="font-size:0.82rem;margin:0.25rem 0 0">All library tasks assigned.</p>
+        {% endif %}
+      </div>
     </td>
   </tr>
   {% endfor %}
   </tbody>
 </table>
+<p id="proj-empty" class="text-muted" style="display:none;margin-top:1rem">No projects in this category.</p>
 {% else %}
 <p class="text-muted">No projects yet. Add one above.</p>
 {% endif %}
 
 <!-- Edit modal -->
 <div class="modal-overlay" id="edit-modal">
-  <div class="modal">
+  <div class="modal" style="width:560px;max-width:95vw">
     <h2>Edit Project</h2>
     <form method="post" id="edit-form">
-      <div class="form-group"><label>Name</label><input name="name" id="edit-name" required></div>
-      <div class="form-group"><label>Rate (CAD/hr)</label><input name="rate" type="number" step="0.01" id="edit-rate"></div>
-      <div class="form-group">
-        <label>Client</label>
-        <select name="client_id" id="edit-client">
-          <option value="">— no client —</option>
-          {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
-        </select>
+      <div class="grid-2">
+        <div class="form-group"><label>Name</label><input name="name" id="edit-name" required></div>
+        <div class="form-group"><label>Rate (CAD/hr)</label><input name="rate" type="number" step="0.01" id="edit-rate"></div>
+        <div class="form-group">
+          <label>Client</label>
+          <select name="client_id" id="edit-client">
+            <option value="">— no client —</option>
+            {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status" id="edit-status">
+            <option value="active">Active</option>
+            <option value="on_hold">On Hold</option>
+            <option value="complete">Complete</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Due Date</label><input name="due_date" type="date" id="edit-due-date"></div>
+        <div class="form-group"><label>Budget (hrs)</label><input name="budget_hours" type="number" step="0.5" min="0" id="edit-budget-hours" placeholder="optional"></div>
+        <div class="form-group"><label>Budget ($)</label><input name="budget_dollars" type="number" step="0.01" min="0" id="edit-budget-dollars" placeholder="optional"></div>
       </div>
-      <button class="btn btn-primary" type="submit">Save</button>
-      <button class="btn btn-secondary" type="button" onclick="closeEdit()">Cancel</button>
+      <div style="margin-top:0.5rem">
+        <button class="btn btn-primary" type="submit">Save</button>
+        <button class="btn btn-secondary" type="button" onclick="closeEdit()">Cancel</button>
+      </div>
     </form>
   </div>
 </div>
+
+<style>
+.budget-row  { display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#555; margin-bottom:2px; }
+.budget-label { }
+.budget-bar  { height:6px; background:#eee; border-radius:3px; overflow:hidden; }
+.budget-bar-fill { height:100%; background:var(--accent); border-radius:3px; }
+.budget-bar-fill.over { background:#e74c3c; }
+.over-budget { color:#e74c3c; font-weight:700; font-size:0.7rem; }
+.badge-on-hold { background:#fff3cd; color:#856404; display:inline-block; padding:1px 7px; border-radius:10px; font-size:0.72rem; font-weight:600; }
+/* Expand */
+.expand-btn { background:none; border:none; cursor:pointer; color:#aaa; font-size:0.7rem; padding:2px 4px; border-radius:3px; transition:transform .15s, color .15s; }
+.expand-btn:hover { color:#555; }
+.expand-btn.open { transform:rotate(90deg); color:var(--accent); }
+.task-count { display:inline-flex; align-items:center; justify-content:center; background:#e8efff; color:var(--accent); border-radius:10px; font-size:0.7rem; font-weight:700; min-width:18px; height:18px; padding:0 5px; margin-left:5px; }
+.tasks-row td { background:#f8faff !important; }
+.tasks-panel { padding:0.75rem 0.75rem 0.75rem 0; }
+.tasks-inner-table { width:100%; border-collapse:collapse; background:transparent; box-shadow:none; margin-bottom:0.6rem; }
+.tasks-inner-table th { background:#eef1f8; font-size:0.78rem; padding:6px 10px; }
+.tasks-inner-table td { padding:6px 10px; border-top:1px solid #eaecf4; font-size:0.85rem; background:transparent !important; }
+.tasks-inner-table tr:hover td { background:#f0f4ff !important; }
+.task-add-form { display:flex; gap:0.5rem; align-items:center; }
+.task-add-form input { padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:0.85rem; }
+</style>
+
 <script>
-function openEdit(id, name, rate, clientId) {
-  document.getElementById('edit-form').action = '/projects/' + id + '/edit';
-  document.getElementById('edit-name').value = name;
-  document.getElementById('edit-rate').value = rate;
-  document.getElementById('edit-client').value = clientId;
+function showProjects(tab, btn) {
+  btn.closest('.tab-bar').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  let visible = 0;
+  document.querySelectorAll('#proj-table tbody tr.proj-row').forEach(row => {
+    const show = row.dataset.status === tab;
+    row.style.display = show ? '' : 'none';
+    // keep tasks sub-row hidden when project is hidden
+    const tasksRow = document.getElementById('tasks-' + row.querySelector('.expand-btn').getAttribute('onclick').match(/'([^']+)'/)[1]);
+    if (tasksRow) tasksRow.style.display = 'none';
+    if (show) visible++;
+  });
+  document.getElementById('proj-empty').style.display = visible === 0 ? '' : 'none';
+}
+showProjects('active', document.querySelector('.tab-btn.active'));
+
+function toggleTasks(pid) {
+  const row = document.getElementById('tasks-' + pid);
+  const btn = row.previousElementSibling.querySelector('.expand-btn');
+  const open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : '';
+  btn.classList.toggle('open', !open);
+}
+
+function openEdit(p) {
+  document.getElementById('edit-form').action = '/projects/' + p.id + '/edit';
+  document.getElementById('edit-name').value         = p.name;
+  document.getElementById('edit-rate').value         = p.rate;
+  document.getElementById('edit-client').value       = p.client_id || '';
+  document.getElementById('edit-status').value       = p.status || (p.active ? 'active' : 'complete');
+  document.getElementById('edit-due-date').value     = p.due_date || '';
+  document.getElementById('edit-budget-hours').value   = p.budget_hours != null ? p.budget_hours : '';
+  document.getElementById('edit-budget-dollars').value = p.budget_dollars != null ? p.budget_dollars : '';
   document.getElementById('edit-modal').classList.add('open');
 }
 function closeEdit() { document.getElementById('edit-modal').classList.remove('open'); }
+
+function openTaskEdit(t) {
+  document.getElementById('task-edit-form').action = '/project-tasks/' + t.pt_id + '/edit';
+  document.getElementById('task-edit-name').value           = t.name;
+  document.getElementById('task-edit-rate').value           = t.rate != null ? t.rate : '';
+  document.getElementById('task-edit-budget-hours').value   = t.budget_hours != null ? t.budget_hours : '';
+  document.getElementById('task-edit-budget-dollars').value = t.budget_dollars != null ? t.budget_dollars : '';
+  document.getElementById('task-edit-modal').classList.add('open');
+}
+function closeTaskEdit() { document.getElementById('task-edit-modal').classList.remove('open'); }
 </script>
+
+<!-- Task assignment edit modal -->
+<div class="modal-overlay" id="task-edit-modal">
+  <div class="modal">
+    <h2>Edit Task Assignment</h2>
+    <form method="post" id="task-edit-form">
+      <div class="form-group">
+        <label>Task</label>
+        <input id="task-edit-name" disabled style="background:#f5f5f5;color:#888">
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Rate Override (CAD/hr)</label><input name="rate_override" type="number" step="0.01" min="0" id="task-edit-rate" placeholder="leave blank to use task default"></div>
+        <div class="form-group"></div>
+        <div class="form-group"><label>Budget (hrs)</label><input name="budget_hours" type="number" step="0.5" min="0" id="task-edit-budget-hours" placeholder="optional"></div>
+        <div class="form-group"><label>Budget ($)</label><input name="budget_dollars" type="number" step="0.01" min="0" id="task-edit-budget-dollars" placeholder="optional"></div>
+      </div>
+      <div style="margin-top:0.5rem">
+        <button class="btn btn-primary" type="submit">Save</button>
+        <button class="btn btn-secondary" type="button" onclick="closeTaskEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}

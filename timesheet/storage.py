@@ -8,6 +8,8 @@ DATA_DIR = Path(__file__).parent / "data"
 DEFAULTS = {
     "clients.json": [],
     "projects.json": [],
+    "tasks.json": [],
+    "project_tasks.json": [],
     "time_entries.json": [],
     "expenses.json": [],
     "invoices.json": [],
@@ -61,6 +63,18 @@ def load_projects():
 
 def save_projects(data):
     _save("projects.json", data)
+
+def load_tasks():
+    return _load("tasks.json")
+
+def save_tasks(data):
+    _save("tasks.json", data)
+
+def load_project_tasks():
+    return _load("project_tasks.json")
+
+def save_project_tasks(data):
+    _save("project_tasks.json", data)
 
 def load_time_entries():
     return _load("time_entries.json")

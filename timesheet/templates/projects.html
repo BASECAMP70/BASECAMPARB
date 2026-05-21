@@ -182,7 +182,7 @@
 
 <!-- Edit modal -->
 <div class="modal-overlay" id="edit-modal">
-  <div class="modal" style="width:560px;max-width:95vw">
+  <div class="modal" style="width:600px;max-width:95vw">
     <h2>Edit Project</h2>
     <form method="post" id="edit-form">
       <div class="grid-2">
@@ -212,6 +212,21 @@
         <button class="btn btn-secondary" type="button" onclick="closeEdit()">Cancel</button>
       </div>
     </form>
+    <!-- Tasks section — outside the project edit form to avoid nesting -->
+    <div style="margin-top:1rem;border-top:1px solid #eee;padding-top:0.75rem">
+      <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">Tasks</div>
+      <div id="edit-tasks-list"></div>
+      <form method="post" id="edit-assign-form" class="task-add-form" style="margin-top:0.5rem">
+        <select name="task_id" id="edit-assign-task" required style="flex:2;min-width:130px">
+          <option value="">— assign task —</option>
+        </select>
+        <input name="rate_override" type="number" step="0.01" min="0" placeholder="rate override" style="flex:1;min-width:75px">
+        <input name="budget_hours" type="number" step="0.5" min="0" placeholder="budget hrs" style="flex:1;min-width:75px">
+        <input name="budget_dollars" type="number" step="0.01" min="0" placeholder="budget $" style="flex:1;min-width:75px">
+        <button class="btn btn-primary btn-sm" type="submit">Assign</button>
+      </form>
+      <p id="edit-all-assigned" class="text-muted" style="display:none;font-size:0.82rem;margin:0.5rem 0 0">All library tasks assigned. <a href="/tasks">Add more tasks</a> to the library.</p>
+    </div>
   </div>
 </div>
 
@@ -263,6 +278,9 @@ function toggleTasks(pid) {
   btn.classList.toggle('open', !open);
 }
 
+const PROJECT_TASKS_DATA     = {{ project_tasks     | tojson }};
+const PROJECT_UNASSIGNED_DATA = {{ project_unassigned | tojson }};
+
 function openEdit(p) {
   document.getElementById('edit-form').action = '/projects/' + p.id + '/edit';
   document.getElementById('edit-name').value         = p.name;
@@ -272,6 +290,47 @@ function openEdit(p) {
   document.getElementById('edit-due-date').value     = p.due_date || '';
   document.getElementById('edit-budget-hours').value   = p.budget_hours != null ? p.budget_hours : '';
   document.getElementById('edit-budget-dollars').value = p.budget_dollars != null ? p.budget_dollars : '';
+
+  // Populate tasks section
+  const tasks      = PROJECT_TASKS_DATA[p.id]     || [];
+  const unassigned = PROJECT_UNASSIGNED_DATA[p.id] || [];
+  const listEl     = document.getElementById('edit-tasks-list');
+  if (tasks.length) {
+    let html = '<table style="width:100%;font-size:0.82rem;border-collapse:collapse;margin-bottom:0.25rem"><tbody>';
+    for (const t of tasks) {
+      const rateStr = t.rate != null ? '$' + t.rate.toFixed(2) + '/hr' : '<span style="color:#aaa">project default</span>';
+      const budgetStr = [t.budget_hours ? t.budget_hours + 'h' : '', t.budget_dollars ? '$' + t.budget_dollars.toFixed(2) : ''].filter(Boolean).join(' / ') || '—';
+      html += `<tr>
+        <td style="padding:3px 8px 3px 0">${t.name}</td>
+        <td style="padding:3px 6px;color:#666;font-size:0.78rem">${rateStr}</td>
+        <td style="padding:3px 6px;color:#888;font-size:0.78rem">${budgetStr}</td>
+        <td style="padding:3px 0;text-align:right;white-space:nowrap">
+          <button class="btn btn-sm btn-secondary" type="button" onclick="openTaskEdit(${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button>
+          <form method="post" action="/project-tasks/${t.pt_id}/remove" style="display:inline" onsubmit="return confirm('Remove ${t.name.replace(/'/g,"\\'")} from this project?')">
+            <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    listEl.innerHTML = html;
+  } else {
+    listEl.innerHTML = '<p class="text-muted" style="font-size:0.82rem;margin:0 0 0.25rem">No tasks assigned yet.</p>';
+  }
+  const assignForm = document.getElementById('edit-assign-form');
+  const allMsg     = document.getElementById('edit-all-assigned');
+  if (unassigned.length) {
+    const sel = document.getElementById('edit-assign-task');
+    sel.innerHTML = '<option value="">— assign task —</option>';
+    unassigned.forEach(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.name; sel.appendChild(o); });
+    assignForm.action = '/projects/' + p.id + '/tasks/assign';
+    assignForm.style.display = 'flex';
+    allMsg.style.display = 'none';
+  } else {
+    assignForm.style.display = 'none';
+    allMsg.style.display = unassigned.length === 0 && tasks.length > 0 ? '' : 'none';
+  }
+
   document.getElementById('edit-modal').classList.add('open');
 }
 function closeEdit() { document.getElementById('edit-modal').classList.remove('open'); }

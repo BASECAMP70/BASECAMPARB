@@ -10,15 +10,15 @@
     .sep-lbl  { font-size: 10px; color: #aaa; padding-right: 12px; white-space: nowrap; vertical-align: top; }
     .sep-val  { border-left: 2px solid #ddd; padding-left: 12px; vertical-align: top; }
 
-    .from-name { font-weight: 700; color: #111; font-size: 11px; line-height: 1.8; }
+    .from-name { font-weight: 700; color: #111; font-size: 13px; line-height: 1.6; }
     .from-addr { color: #555; font-size: 11px; line-height: 1.8; }
 
     .meta-row-lbl { font-size: 10px; color: #aaa; padding-right: 12px; padding-bottom: 10px; white-space: nowrap; vertical-align: top; }
     .meta-row-val { border-left: 2px solid #ddd; padding-left: 12px; padding-bottom: 10px; font-size: 11px; color: #111; vertical-align: top; }
     .meta-bold    { font-weight: 700; }
 
-    .inv-for-name { font-size: 15px; font-weight: 700; color: #111; line-height: 1.4; }
-    .inv-for-addr { font-size: 10px; color: #666; line-height: 1.6; }
+    .inv-for-name { font-size: 13px; font-weight: 700; color: #111; line-height: 1.6; }
+    .inv-for-addr { font-size: 11px; color: #666; line-height: 1.8; }
 
     table.items { width: 100%; border-collapse: collapse; }
     table.items th { font-size: 10px; font-weight: 700; color: #333; text-align: left;
@@ -42,7 +42,8 @@
 <table width="100%" cellpadding="0" cellspacing="0" style="padding: 52px 60px;">
 <tr><td>
 
-  <!-- HEADER: logo left, From right -->
+  <!-- HEADER: logo left, doc type + From right -->
+  {% set doc_label = 'EXPENSE INVOICE' if invoice.invoice_type == 'expense' else 'INVOICE' %}
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 40px;">
     <tr>
       <td width="50%" valign="top">
@@ -54,6 +55,7 @@
         {% endif %}
       </td>
       <td width="50%" valign="top" align="right">
+        <div style="font-size:26px; font-weight:700; color:#111; letter-spacing:0.04em; margin-bottom:14px;">{{ doc_label }}</div>
         <table cellpadding="0" cellspacing="0" align="right">
           <tr>
             <td class="sep-lbl">From</td>
@@ -83,7 +85,7 @@
       <td width="50%" valign="top">
         <table cellpadding="0" cellspacing="0">
           <tr>
-            <td class="meta-row-lbl">Invoice ID</td>
+            <td class="meta-row-lbl">{{ doc_label }} ID</td>
             <td class="meta-row-val meta-bold">{{ invoice.invoice_number }}</td>
           </tr>
           <tr>
@@ -128,12 +130,15 @@
         <td>{% if item.project_name %}{{ item.project_name }}: {% endif %}{{ item.description }}</td>
         {% if item.type == "time" %}
         <td class="r">{{ item.hours }}</td>
-        <td class="r">${{ "%.2f"|format(item.rate) }}</td>
+        <td class="r">${{ item.rate|money }}</td>
+        {% elif item.type == "manual" and item.hours is defined and item.rate is defined %}
+        <td class="r">{{ item.hours }}</td>
+        <td class="r">${{ item.rate|money }}</td>
         {% else %}
         <td class="r">&#8212;</td>
         <td class="r">&#8212;</td>
         {% endif %}
-        <td class="amt">${{ "%.2f"|format(item.amount) }}</td>
+        <td class="amt">${{ item.amount|money }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -152,18 +157,18 @@
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td class="t-lbl">Subtotal</td>
-            <td class="t-amt">${{ "%.2f"|format(invoice.subtotal) }}</td>
+            <td class="t-amt">${{ invoice.subtotal|money }}</td>
           </tr>
           <tr>
             <td class="t-lbl">GST{% if settings.gst_number %} - {{ settings.gst_number }}{% endif %} ({{ gst_pct }}%)</td>
-            <td class="t-amt">${{ "%.2f"|format(invoice.gst) }}</td>
+            <td class="t-amt">${{ invoice.gst|money }}</td>
           </tr>
           <tr>
             <td colspan="2" style="border-top: 1px solid #ddd; padding: 0; height: 1px; font-size: 1px; line-height: 0;">&nbsp;</td>
           </tr>
           <tr>
             <td class="t-due-lbl">Amount Due</td>
-            <td class="t-due-amt">${{ "%.2f"|format(invoice.total) }}</td>
+            <td class="t-due-amt">${{ invoice.total|money }}</td>
           </tr>
         </table>
       </td>

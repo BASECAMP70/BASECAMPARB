@@ -59,7 +59,7 @@
   </div>
 </div>
 <table id="proj-table">
-  <thead><tr><th style="width:28px"></th><th>Name</th><th>Client</th><th>Rate</th><th>Due Date</th><th>Budget</th><th></th></tr></thead>
+  <thead><tr>{% if settings.get('enable_tasks', True) %}<th style="width:28px"></th>{% endif %}<th>Name</th><th>Client</th><th>Rate</th><th>Due Date</th><th>Budget</th><th></th></tr></thead>
   <tbody>
   {% for p in projects %}
   {% set c = client_map.get(p.get('client_id', '')) %}
@@ -67,13 +67,15 @@
   {% set stats = project_stats.get(p.id, {'used_hours': 0, 'used_dollars': 0}) %}
   {% set p_tasks = project_tasks.get(p.id, []) %}
   <tr data-status="{{ status }}" class="proj-row">
+    {% if settings.get('enable_tasks', True) %}
     <td>
       <button class="expand-btn" onclick="toggleTasks('{{ p.id }}')" title="Show tasks">&#9654;</button>
     </td>
+    {% endif %}
     <td>
       {{ p.name }}
       {% if status == 'on_hold' %}<span class="badge badge-on-hold" style="margin-left:4px">On Hold</span>{% endif %}
-      {% if p_tasks %}<span class="task-count">{{ p_tasks|length }}</span>{% endif %}
+      {% if settings.get('enable_tasks', True) and p_tasks %}<span class="task-count">{{ p_tasks|length }}</span>{% endif %}
     </td>
     <td>{{ c.name if c else '—' }}</td>
     <td>${{ "%.2f"|format(p.rate) }}/hr</td>
@@ -116,6 +118,7 @@
     </td>
   </tr>
   <!-- Tasks sub-row -->
+  {% if settings.get('enable_tasks', True) %}
   <tr id="tasks-{{ p.id }}" class="tasks-row" data-status="{{ status }}" style="display:none">
     <td></td>
     <td colspan="6" style="padding:0 0 0 1rem">
@@ -172,6 +175,7 @@
       </div>
     </td>
   </tr>
+  {% endif %}
   {% endfor %}
   </tbody>
 </table>
@@ -213,6 +217,7 @@
       </div>
     </form>
     <!-- Tasks section — outside the project edit form to avoid nesting -->
+    {% if settings.get('enable_tasks', True) %}
     <div style="margin-top:1rem;border-top:1px solid #eee;padding-top:0.75rem">
       <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">Tasks</div>
       <div id="edit-tasks-list"></div>
@@ -226,7 +231,9 @@
         <button class="btn btn-primary btn-sm" type="submit">Assign</button>
       </form>
       <p id="edit-all-assigned" class="text-muted" style="display:none;font-size:0.82rem;margin:0.5rem 0 0">All library tasks assigned. <a href="/tasks">Add more tasks</a> to the library.</p>
+  <p id="edit-no-tasks" class="text-muted" style="display:none;font-size:0.82rem;margin:0.5rem 0 0">No tasks in library yet. <a href="/tasks">Create tasks</a> first, then assign them here.</p>
     </div>
+    {% endif %}
   </div>
 </div>
 
@@ -319,6 +326,7 @@ function openEdit(p) {
   }
   const assignForm = document.getElementById('edit-assign-form');
   const allMsg     = document.getElementById('edit-all-assigned');
+  const noTasksMsg = document.getElementById('edit-no-tasks');
   if (unassigned.length) {
     const sel = document.getElementById('edit-assign-task');
     sel.innerHTML = '<option value="">— assign task —</option>';
@@ -326,9 +334,15 @@ function openEdit(p) {
     assignForm.action = '/projects/' + p.id + '/tasks/assign';
     assignForm.style.display = 'flex';
     allMsg.style.display = 'none';
+    noTasksMsg.style.display = 'none';
+  } else if (tasks.length > 0) {
+    assignForm.style.display = 'none';
+    allMsg.style.display = '';
+    noTasksMsg.style.display = 'none';
   } else {
     assignForm.style.display = 'none';
-    allMsg.style.display = unassigned.length === 0 && tasks.length > 0 ? '' : 'none';
+    allMsg.style.display = 'none';
+    noTasksMsg.style.display = '';
   }
 
   document.getElementById('edit-modal').classList.add('open');

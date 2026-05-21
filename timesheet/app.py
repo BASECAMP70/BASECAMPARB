@@ -14,6 +14,7 @@ load_dotenv()
 def create_app(config=None):
     app = Flask(__name__)
     app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-timesheet")
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
 
     if config:
         app.config.update(config)

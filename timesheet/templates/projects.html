@@ -269,8 +269,11 @@ function showProjects(tab, btn) {
     const show = row.dataset.status === tab;
     row.style.display = show ? '' : 'none';
     // keep tasks sub-row hidden when project is hidden
-    const tasksRow = document.getElementById('tasks-' + row.querySelector('.expand-btn').getAttribute('onclick').match(/'([^']+)'/)[1]);
-    if (tasksRow) tasksRow.style.display = 'none';
+    const expandBtn = row.querySelector('.expand-btn');
+    if (expandBtn) {
+      const tasksRow = document.getElementById('tasks-' + expandBtn.getAttribute('onclick').match(/'([^']+)'/)[1]);
+      if (tasksRow) tasksRow.style.display = 'none';
+    }
     if (show) visible++;
   });
   document.getElementById('proj-empty').style.display = visible === 0 ? '' : 'none';
@@ -298,51 +301,53 @@ function openEdit(p) {
   document.getElementById('edit-budget-hours').value   = p.budget_hours != null ? p.budget_hours : '';
   document.getElementById('edit-budget-dollars').value = p.budget_dollars != null ? p.budget_dollars : '';
 
-  // Populate tasks section
-  const tasks      = PROJECT_TASKS_DATA[p.id]     || [];
-  const unassigned = PROJECT_UNASSIGNED_DATA[p.id] || [];
-  const listEl     = document.getElementById('edit-tasks-list');
-  if (tasks.length) {
-    let html = '<table style="width:100%;font-size:0.82rem;border-collapse:collapse;margin-bottom:0.25rem"><tbody>';
-    for (const t of tasks) {
-      const rateStr = t.rate != null ? '$' + t.rate.toFixed(2) + '/hr' : '<span style="color:#aaa">project default</span>';
-      const budgetStr = [t.budget_hours ? t.budget_hours + 'h' : '', t.budget_dollars ? '$' + t.budget_dollars.toFixed(2) : ''].filter(Boolean).join(' / ') || '—';
-      html += `<tr>
-        <td style="padding:3px 8px 3px 0">${t.name}</td>
-        <td style="padding:3px 6px;color:#666;font-size:0.78rem">${rateStr}</td>
-        <td style="padding:3px 6px;color:#888;font-size:0.78rem">${budgetStr}</td>
-        <td style="padding:3px 0;text-align:right;white-space:nowrap">
-          <button class="btn btn-sm btn-secondary" type="button" onclick="openTaskEdit(${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button>
-          <form method="post" action="/project-tasks/${t.pt_id}/remove" style="display:inline" onsubmit="return confirm('Remove ${t.name.replace(/'/g,"\\'")} from this project?')">
-            <button class="btn btn-sm btn-danger" type="submit">Remove</button>
-          </form>
-        </td>
-      </tr>`;
+  // Populate tasks section (only if tasks are enabled)
+  const listEl = document.getElementById('edit-tasks-list');
+  if (listEl) {
+    const tasks      = PROJECT_TASKS_DATA[p.id]     || [];
+    const unassigned = PROJECT_UNASSIGNED_DATA[p.id] || [];
+    if (tasks.length) {
+      let html = '<table style="width:100%;font-size:0.82rem;border-collapse:collapse;margin-bottom:0.25rem"><tbody>';
+      for (const t of tasks) {
+        const rateStr = t.rate != null ? '$' + t.rate.toFixed(2) + '/hr' : '<span style="color:#aaa">project default</span>';
+        const budgetStr = [t.budget_hours ? t.budget_hours + 'h' : '', t.budget_dollars ? '$' + t.budget_dollars.toFixed(2) : ''].filter(Boolean).join(' / ') || '—';
+        html += `<tr>
+          <td style="padding:3px 8px 3px 0">${t.name}</td>
+          <td style="padding:3px 6px;color:#666;font-size:0.78rem">${rateStr}</td>
+          <td style="padding:3px 6px;color:#888;font-size:0.78rem">${budgetStr}</td>
+          <td style="padding:3px 0;text-align:right;white-space:nowrap">
+            <button class="btn btn-sm btn-secondary" type="button" onclick="openTaskEdit(${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button>
+            <form method="post" action="/project-tasks/${t.pt_id}/remove" style="display:inline" onsubmit="return confirm('Remove ${t.name.replace(/'/g,"\\'")} from this project?')">
+              <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      listEl.innerHTML = html;
+    } else {
+      listEl.innerHTML = '<p class="text-muted" style="font-size:0.82rem;margin:0 0 0.25rem">No tasks assigned yet.</p>';
     }
-    html += '</tbody></table>';
-    listEl.innerHTML = html;
-  } else {
-    listEl.innerHTML = '<p class="text-muted" style="font-size:0.82rem;margin:0 0 0.25rem">No tasks assigned yet.</p>';
-  }
-  const assignForm = document.getElementById('edit-assign-form');
-  const allMsg     = document.getElementById('edit-all-assigned');
-  const noTasksMsg = document.getElementById('edit-no-tasks');
-  if (unassigned.length) {
-    const sel = document.getElementById('edit-assign-task');
-    sel.innerHTML = '<option value="">— assign task —</option>';
-    unassigned.forEach(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.name; sel.appendChild(o); });
-    assignForm.action = '/projects/' + p.id + '/tasks/assign';
-    assignForm.style.display = 'flex';
-    allMsg.style.display = 'none';
-    noTasksMsg.style.display = 'none';
-  } else if (tasks.length > 0) {
-    assignForm.style.display = 'none';
-    allMsg.style.display = '';
-    noTasksMsg.style.display = 'none';
-  } else {
-    assignForm.style.display = 'none';
-    allMsg.style.display = 'none';
-    noTasksMsg.style.display = '';
+    const assignForm = document.getElementById('edit-assign-form');
+    const allMsg     = document.getElementById('edit-all-assigned');
+    const noTasksMsg = document.getElementById('edit-no-tasks');
+    if (unassigned.length) {
+      const sel = document.getElementById('edit-assign-task');
+      sel.innerHTML = '<option value="">— assign task —</option>';
+      unassigned.forEach(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.name; sel.appendChild(o); });
+      assignForm.action = '/projects/' + p.id + '/tasks/assign';
+      assignForm.style.display = 'flex';
+      allMsg.style.display = 'none';
+      noTasksMsg.style.display = 'none';
+    } else if (tasks.length > 0) {
+      assignForm.style.display = 'none';
+      allMsg.style.display = '';
+      noTasksMsg.style.display = 'none';
+    } else {
+      assignForm.style.display = 'none';
+      allMsg.style.display = 'none';
+      noTasksMsg.style.display = '';
+    }
   }
 
   document.getElementById('edit-modal').classList.add('open');

@@ -7,7 +7,7 @@
   <!-- Invoice metadata -->
   <div class="card" style="margin-bottom:1.5rem">
     <h2 style="margin-bottom:1.25rem">Invoice Details</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+    <div class="grid-3">
       <div class="form-group" style="margin:0">
         <label>Invoice Number</label>
         <input name="invoice_number" value="{{ invoice.invoice_number }}">
@@ -32,7 +32,8 @@
           <th>Description</th>
           <th class="text-right" style="width:80px">Qty / Hrs</th>
           <th class="text-right" style="width:85px">Rate</th>
-          <th class="text-right" style="width:90px">Amount</th>
+          <th class="text-right" style="width:120px">Amount</th>
+          <th style="width:50px;text-align:center">GST?</th>
           <th style="width:40px"></th>
         </tr>
       </thead>
@@ -42,6 +43,7 @@
           <td>
             <input type="hidden" name="item_{{ i }}_type"        value="{{ item.type }}">
             <input type="hidden" name="item_{{ i }}_entry_id"    value="{{ item.entry_id or '' }}">
+            <input type="hidden" name="item_{{ i }}_entry_ids"   value="{{ item.entry_ids or '' }}">
             <input type="hidden" name="item_{{ i }}_expense_id"  value="{{ item.expense_id or '' }}">
             <input type="hidden" name="item_{{ i }}_project_name" value="{{ item.project_name or '' }}">
             <input type="hidden" name="item_{{ i }}_date"        value="{{ item.date or '' }}">
@@ -54,14 +56,28 @@
             <input name="item_{{ i }}_description" value="{{ item.description }}" style="width:100%">
           </td>
           <td class="text-right" style="padding:10px 12px">
-            {% if item.type == "time" %}{{ item.hours }} hr{% else %}—{% endif %}
+            {% if item.type == "time" %}{{ item.hours }} hr
+            {% elif item.type == "manual" and item.hours is defined %}
+              <input name="item_{{ i }}_hours" type="number" step="0.25" min="0"
+                     value="{{ item.hours }}" style="width:70px;text-align:right"
+                     oninput="calcRow(this)">
+            {% else %}—{% endif %}
           </td>
           <td class="text-right" style="padding:10px 12px">
-            {% if item.type == "time" %}${{ "%.2f"|format(item.rate) }}{% else %}—{% endif %}
+            {% if item.type == "time" %}${{ "%.2f"|format(item.rate) }}
+            {% elif item.type == "manual" and item.rate is defined %}
+              <input name="item_{{ i }}_rate" type="number" step="0.01" min="0"
+                     value="{{ item.rate }}" style="width:75px;text-align:right"
+                     oninput="calcRow(this)">
+            {% else %}—{% endif %}
           </td>
           <td>
             <input name="item_{{ i }}_amount" type="number" step="0.01" value="{{ item.amount }}"
-                   style="text-align:right" onchange="recalc()">
+                   style="text-align:right;width:110px" onchange="recalc()">
+          </td>
+          <td style="text-align:center;padding:10px 4px">
+            <input type="checkbox" name="item_{{ i }}_gst" value="1" onchange="recalc()"
+                   {{ 'checked' if item.item_gst is defined and item.item_gst > 0 else '' }}>
           </td>
           <td style="text-align:center;padding:10px 4px">
             <button type="button" onclick="removeItem({{ i }})"
@@ -77,7 +93,7 @@
 
       <tfoot>
         <tr>
-          <td colspan="5" style="padding-top:0.75rem">
+          <td colspan="6" style="padding-top:0.75rem">
             <button type="button" class="btn btn-secondary btn-sm" onclick="addItem()">+ Add Line Item</button>
           </td>
         </tr>
@@ -116,10 +132,19 @@ function addItem() {
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td><input name="new_${n}_description" placeholder="Description" style="width:100%"></td>
-    <td class="text-right" style="padding:10px 12px">—</td>
-    <td class="text-right" style="padding:10px 12px">—</td>
-    <td><input name="new_${n}_amount" type="number" step="0.01" value="0.00"
-               style="text-align:right" onchange="recalc()"></td>
+    <td class="text-right" style="padding:6px 8px">
+      <input name="new_${n}_hours" type="number" step="0.25" min="0" placeholder="hrs"
+             style="width:70px;text-align:right" oninput="calcNewRow(this,${n})">
+    </td>
+    <td class="text-right" style="padding:6px 8px">
+      <input name="new_${n}_rate" type="number" step="0.01" min="0" placeholder="rate"
+             style="width:75px;text-align:right" oninput="calcNewRow(this,${n})">
+    </td>
+    <td><input name="new_${n}_amount" id="new_${n}_amount" type="number" step="0.01" value="0.00"
+               style="text-align:right;width:110px" onchange="recalc()"></td>
+    <td style="text-align:center;padding:10px 4px">
+      <input type="checkbox" name="new_${n}_gst" value="1" checked onchange="recalc()">
+    </td>
     <td style="text-align:center;padding:10px 4px">
       <button type="button" onclick="this.closest('tr').remove();recalc()"
               style="background:none;border:none;color:#c00;font-size:1.1rem;cursor:pointer">&#10005;</button>
@@ -127,14 +152,42 @@ function addItem() {
   document.getElementById('new-items-body').appendChild(tr);
 }
 
+function calcNewRow(el, n) {
+  const row = el.closest('tr');
+  const hrs = parseFloat(row.querySelector(`[name="new_${n}_hours"]`).value) || 0;
+  const rate = parseFloat(row.querySelector(`[name="new_${n}_rate"]`).value) || 0;
+  if (hrs > 0 && rate > 0) {
+    const amtEl = row.querySelector(`[name="new_${n}_amount"]`);
+    amtEl.value = (Math.round(hrs * rate * 100) / 100).toFixed(2);
+  }
+  recalc();
+}
+
+function calcRow(el) {
+  const row = el.closest('tr');
+  const hrsEl = row.querySelector('input[name$="_hours"]');
+  const rateEl = row.querySelector('input[name$="_rate"]');
+  const amtEl = row.querySelector('input[name$="_amount"]');
+  if (hrsEl && rateEl && amtEl) {
+    const hrs = parseFloat(hrsEl.value) || 0;
+    const rate = parseFloat(rateEl.value) || 0;
+    if (hrs > 0 && rate > 0) amtEl.value = (Math.round(hrs * rate * 100) / 100).toFixed(2);
+  }
+  recalc();
+}
+
 function recalc() {
-  let subtotal = 0;
+  let subtotal = 0, gst = 0;
   document.querySelectorAll('input[name$="_amount"]').forEach(el => {
-    if (!el.closest('tr') || el.closest('tr').style.opacity !== '0.35') {
-      subtotal += parseFloat(el.value) || 0;
-    }
+    const row = el.closest('tr');
+    if (!row || row.style.opacity === '0.35') return;
+    const amt = parseFloat(el.value) || 0;
+    subtotal += amt;
+    const name = el.name.replace('_amount', '_gst');
+    const cb = row.querySelector(`input[name="${name}"]`);
+    if (cb && cb.checked) gst += amt * GST_RATE;
   });
-  const gst = Math.round(subtotal * GST_RATE * 100) / 100;
+  gst = Math.round(gst * 100) / 100;
   const total = Math.round((subtotal + gst) * 100) / 100;
   document.getElementById('disp-subtotal').textContent = '$' + subtotal.toFixed(2);
   document.getElementById('disp-gst').textContent = '$' + gst.toFixed(2);

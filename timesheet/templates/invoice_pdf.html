@@ -114,6 +114,15 @@
     </tr>
   </table>
 
+  <!-- SUBJECT -->
+  {% if invoice.subject %}
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+    <tr>
+      <td style="font-size:13px; font-weight:700; color:#111;">{{ invoice.subject }}</td>
+    </tr>
+  </table>
+  {% endif %}
+
   <!-- LINE ITEMS -->
   <table class="items" cellpadding="0" cellspacing="0" style="margin-bottom: 4px;">
     <thead>

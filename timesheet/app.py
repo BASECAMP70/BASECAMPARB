@@ -1045,7 +1045,7 @@ def create_app(config=None):
         project_map = {p["id"]: p for p in projects}
         all_entries = storage.load_time_entries()
         all_expenses = storage.load_expenses()
-        all_invoices = storage.load_invoices()
+        all_invoices = sorted(storage.load_invoices(), key=lambda i: i.get("issued_date", ""), reverse=True)
         # Migrate invoices that predate the status field
         for inv in all_invoices:
             if "status" not in inv:

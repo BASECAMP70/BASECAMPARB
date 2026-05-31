@@ -1180,6 +1180,7 @@ def create_app(config=None):
         total = round(subtotal + gst, 2)
 
         invoice_number = _next_invoice_number("INV")
+        existing = storage.load_invoices()
 
         invoice = {
             "id": storage.new_id(),

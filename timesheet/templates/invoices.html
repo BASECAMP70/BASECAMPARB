@@ -3,10 +3,19 @@
 {% block content %}
 <h1>Invoices</h1>
 
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+  <h2 style="margin:0">Create</h2>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showCreate('invoice',this)">Invoice</button>
+    <button class="tab-btn" onclick="showCreate('blank',this)">Blank Invoice</button>
+  </div>
+</div>
+
+<div id="create-invoice">
 <div class="card">
   <h2>Generate Invoice</h2>
-  <form method="get" style="display:flex;gap:1rem;align-items:flex-end">
-    <div class="form-group" style="margin:0;flex:2">
+  <form method="get">
+    <div class="form-group" style="margin:0;max-width:360px">
       <label>Select Client</label>
       <select name="client_id" onchange="this.form.submit()">
         <option value="">— select client —</option>
@@ -15,107 +24,205 @@
     </div>
   </form>
 
-  {% if preview %}
-  <div style="margin-top:1.5rem">
-    <h3>Uninvoiced Items — {{ preview.client.name }}</h3>
-
-    {% for section in preview.sections %}
-    <h4 style="margin:1.25rem 0 0.5rem;color:#555;font-size:0.95rem;text-transform:uppercase;letter-spacing:.04em">{{ section.project.name }}</h4>
-    {% if section.time_entries %}
+  {% if time_preview %}
+  <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #eee">
+    <h3 style="margin-bottom:1rem">Time Invoice — {{ time_preview.client.name }}</h3>
+    {% for section in time_preview.sections %}
+    <h4 style="margin:1rem 0 0.5rem;color:#555;font-size:0.9rem;text-transform:uppercase;letter-spacing:.04em">{{ section.project.name }}</h4>
     <table style="margin-bottom:0.75rem">
       <thead><tr><th>Date</th><th>Description</th><th>Hours</th><th>Rate</th><th class="text-right">Amount</th></tr></thead>
       <tbody>
       {% for e in section.time_entries %}
       <tr>
         <td>{{ e.date }}</td><td>{{ e.description }}</td>
-        <td>{{ e.hours }}</td><td>${{ "%.2f"|format(section.project.rate) }}/hr</td>
-        <td class="text-right">${{ "%.2f"|format(e.hours * section.project.rate) }}</td>
+        <td>{{ e.hours }}</td><td>${{ e.get('rate', section.project.rate)|money }}/hr</td>
+        <td class="text-right">${{ (e.hours * e.get('rate', section.project.rate))|money }}</td>
       </tr>
       {% endfor %}
       </tbody>
     </table>
-    {% endif %}
-    {% if section.expenses %}
-    <table style="margin-bottom:0.75rem">
-      <thead><tr><th>Date</th><th>Expense</th><th colspan="2"></th><th class="text-right">Amount</th></tr></thead>
-      <tbody>
-      {% for x in section.expenses %}
-      <tr><td>{{ x.date }}</td><td>{{ x.description }}</td><td colspan="2"></td><td class="text-right">${{ "%.2f"|format(x.amount) }}</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
     {% endfor %}
-
-    <table style="width:280px;margin-left:auto;margin-top:1rem">
-      <tr><td>Subtotal</td><td class="text-right">${{ "%.2f"|format(preview.subtotal) }}</td></tr>
-      <tr><td>GST</td><td class="text-right">${{ "%.2f"|format(preview.gst) }}</td></tr>
-      <tr style="font-weight:700"><td>Total (CAD)</td><td class="text-right">${{ "%.2f"|format(preview.total) }}</td></tr>
+    <table style="width:280px;margin-left:auto;margin-top:0.75rem">
+      <tr><td>Subtotal</td><td class="text-right">${{ time_preview.subtotal|money }}</td></tr>
+      <tr><td>GST</td><td class="text-right">${{ time_preview.gst|money }}</td></tr>
+      <tr style="font-weight:700"><td>Total (CAD)</td><td class="text-right">${{ time_preview.total|money }}</td></tr>
     </table>
-    <form method="post" action="/invoices/generate" style="margin-top:1rem">
+    <form method="post" action="/invoices/generate" style="margin-top:1rem;display:flex;align-items:center;gap:1rem">
       <input type="hidden" name="client_id" value="{{ selected_client }}">
-      <button class="btn btn-primary" type="submit">Generate Invoice for {{ preview.client.name }}</button>
+      <div>
+        <div style="font-size:0.85rem;font-weight:600;color:#555;margin-bottom:0.4rem">Invoice Detail</div>
+        <div style="display:flex;gap:1.5rem">
+          <label style="font-weight:normal;display:flex;align-items:center;gap:0.35rem;cursor:pointer">
+            <input type="radio" name="detail_level" value="detailed" style="margin:0"> Detailed
+          </label>
+          <label style="font-weight:normal;display:flex;align-items:center;gap:0.35rem;cursor:pointer">
+            <input type="radio" name="detail_level" value="summary" checked style="margin:0"> Summary
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit" style="align-self:flex-end">Generate Time Invoice</button>
     </form>
   </div>
   {% elif selected_client %}
-  <p class="text-muted" style="margin-top:1rem">No uninvoiced entries for this client.</p>
+  <p class="text-muted" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #eee">No uninvoiced time entries for this client.</p>
+  {% endif %}
+
+  {% if expense_preview %}
+  <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #eee">
+    <h3 style="margin-bottom:1rem">Expense Invoice — {{ expense_preview.client.name }}</h3>
+    <form method="post" action="/invoices/generate-expense">
+      <input type="hidden" name="client_id" value="{{ selected_client }}">
+      <table id="exp-table" style="margin-bottom:0.75rem">
+        <thead><tr><th>Date</th><th>Description</th><th class="text-right">Amount</th><th style="text-align:center;white-space:nowrap">GST ({{ (settings.gst_rate * 100)|int }}%)?</th></tr></thead>
+        <tbody>
+        {% for x in expense_preview.expenses %}
+        <tr>
+          <td>{{ x.date }}</td>
+          <td>
+            {{ x.description }}
+            {% if x.pdf_filename %}<span class="text-muted" style="font-size:0.8rem;margin-left:6px">&#128206; receipt attached</span>{% endif %}
+          </td>
+          <td class="text-right" data-amount="{{ x.amount }}">${{ x.amount|money }}</td>
+          <td style="text-align:center">
+            <input type="checkbox" name="gst_{{ x.id }}" value="1" checked onchange="recalcExpGst()">
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <table style="width:280px;margin-left:auto;margin-top:0.75rem">
+        <tr><td>Subtotal</td><td class="text-right">${{ expense_preview.subtotal|money }}</td></tr>
+        <tr><td>GST</td><td class="text-right" id="exp-gst">${{ expense_preview.gst|money }}</td></tr>
+        <tr style="font-weight:700"><td>Total (CAD)</td><td class="text-right" id="exp-total">${{ expense_preview.total|money }}</td></tr>
+      </table>
+      {% if expense_preview.receipt_count > 0 %}
+      <p class="text-muted" style="margin-top:0.75rem;font-size:0.85rem">
+        {{ expense_preview.receipt_count }} receipt PDF{{ 's' if expense_preview.receipt_count != 1 }} will be appended to the invoice.
+      </p>
+      {% endif %}
+      <button class="btn btn-primary" type="submit" style="margin-top:1rem">Generate Expense Invoice</button>
+    </form>
+  </div>
+  {% elif selected_client %}
+  <p class="text-muted" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #eee">No uninvoiced expenses for this client.</p>
   {% endif %}
 </div>
+</div><!-- /create-invoice -->
+
+<div id="create-blank" style="display:none">
+<div class="card">
+  <h2>Blank Invoice</h2>
+  <form method="post" action="/invoices/create-blank">
+    <div class="form-group" style="margin:0;max-width:360px">
+      <label>Select Client</label>
+      <select name="client_id" onchange="this.form.submit()" required>
+        <option value="">— select client —</option>
+        {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+      </select>
+    </div>
+  </form>
+</div>
+</div><!-- /create-blank -->
 
 <style>
   .badge { display:inline-block; padding:2px 9px; border-radius:12px; font-size:0.75rem; font-weight:600; }
-  .badge-draft  { background:#e9ecef; color:#6c757d; }
-  .badge-sent   { background:#cfe2ff; color:#0a58ca; }
-  .badge-late   { background:#ffe4cc; color:#c85000; }
-  .badge-paid   { background:#d1fae5; color:#065f46; }
+  .badge-draft   { background:#e9ecef; color:#6c757d; }
+  .badge-sent    { background:#cfe2ff; color:#0a58ca; }
+  .badge-late    { background:#ffe4cc; color:#c85000; }
+  .badge-paid    { background:#d1fae5; color:#065f46; }
+  .badge-type    { background:#f3e8ff; color:#6b21a8; font-size:0.7rem; padding:2px 6px; border-radius:8px; }
+  .status-select { border-radius:12px; font-size:0.75rem; font-weight:600; padding:2px 6px; border:none; cursor:pointer; appearance:none; -webkit-appearance:none; }
+  .status-draft  { background:#e9ecef; color:#6c757d; }
+  .status-sent   { background:#cfe2ff; color:#0a58ca; }
+  .status-late   { background:#ffe4cc; color:#c85000; }
+  .status-paid   { background:#d1fae5; color:#065f46; }
 </style>
 
-<h2>Past Invoices</h2>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;margin-top:1.5rem">
+  <h2 style="margin:0">Invoices</h2>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('outstanding',this)">Outstanding</button>
+    <button class="tab-btn" onclick="showTab('paid',this)">Paid</button>
+  </div>
+</div>
 {% if invoices %}
-<table>
+<table id="tab-btnle">
   <thead><tr><th>#</th><th>Client</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead>
   <tbody>
-  {% for inv in invoices|sort(attribute='invoice_number', reverse=True) %}
+  {% for inv in invoices %}
   {% set status = inv.status if inv.status is defined else ('sent' if inv.sent else 'draft') %}
-  <tr>
-    <td>{{ inv.invoice_number }}</td>
+  <tr data-status="{{ status }}" data-total="{{ inv.total }}">
+    <td>
+      {{ inv.invoice_number }}
+      {% if inv.invoice_type == 'expense' %}<span class="badge-type" style="margin-left:4px">EXP</span>{% endif %}
+    </td>
     <td>{{ inv.client_name }}</td>
     <td>{{ inv.issued_date }}</td>
-    <td>${{ "%.2f"|format(inv.total) }}</td>
+    <td>${{ inv.total|money }}</td>
     <td>
-      <span class="badge badge-{{ status }}">{{ status|capitalize }}</span>
+      <form class="inline" method="post" action="/invoices/{{ inv.id }}/status">
+        <select name="status" onchange="this.form.submit()" class="status-select status-{{ status }}">
+          {% for s in ['draft','sent','late','paid'] %}
+          <option value="{{ s }}" {{ 'selected' if s == status }}>{{ s|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </form>
     </td>
     <td style="text-align:right;white-space:nowrap">
-      {% if status == 'sent' %}
-        <form class="inline" method="post" action="/invoices/{{ inv.id }}/status">
-          <input type="hidden" name="status" value="late">
-          <button class="btn btn-sm btn-secondary" type="submit">Mark Late</button>
-        </form>
-        <form class="inline" method="post" action="/invoices/{{ inv.id }}/status">
-          <input type="hidden" name="status" value="paid">
-          <button class="btn btn-sm btn-secondary" type="submit">Mark Paid</button>
-        </form>
-      {% elif status == 'late' %}
-        <form class="inline" method="post" action="/invoices/{{ inv.id }}/status">
-          <input type="hidden" name="status" value="paid">
-          <button class="btn btn-sm btn-secondary" type="submit">Mark Paid</button>
-        </form>
-      {% elif status == 'paid' %}
-        <span class="text-muted" style="font-size:0.8rem;margin-right:6px">Paid ✓</span>
-      {% endif %}
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/edit">Edit</a>
-      <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/preview" target="_blank">Preview</a>
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">PDF</a>
       <button class="btn btn-sm btn-primary"
         onclick='openEmail("{{ inv.id }}", {{ inv.invoice_number|tojson }}, {{ (inv.client_email or "")|tojson }})'>Email</button>
+      <form class="inline" method="post" action="/invoices/{{ inv.id }}/delete"
+            onsubmit="return confirm('Delete invoice {{ inv.invoice_number }}? This will un-invoice all associated time entries and expenses.')">
+        <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+      </form>
     </td>
   </tr>
   {% endfor %}
   </tbody>
+  <tfoot id="inv-tfoot">
+    <tr>
+      <td colspan="3" style="font-weight:700;padding:10px 12px">Outstanding Total</td>
+      <td id="inv-tfoot-total" style="font-weight:700;padding:10px 12px"></td>
+      <td colspan="2"></td>
+    </tr>
+  </tfoot>
 </table>
+<p id="inv-empty" class="text-muted" style="display:none;margin-top:1rem">No invoices in this category.</p>
 {% else %}
 <p class="text-muted">No invoices generated yet.</p>
 {% endif %}
+
+<script>
+function showCreate(tab, btn) {
+  btn.closest('.tab-bar').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('create-invoice').style.display = tab === 'invoice' ? '' : 'none';
+  document.getElementById('create-blank').style.display   = tab === 'blank'   ? '' : 'none';
+}
+
+function showTab(tab, btn) {
+  btn.closest('.tab-bar').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const rows = document.querySelectorAll('#tab-btnle tbody tr');
+  let visible = 0, total = 0;
+  rows.forEach(row => {
+    const s = row.dataset.status;
+    const show = tab === 'paid' ? s === 'paid' : s !== 'paid';
+    row.style.display = show ? '' : 'none';
+    if (show) { visible++; total += parseFloat(row.dataset.total) || 0; }
+  });
+  const empty = document.getElementById('inv-empty');
+  if (empty) empty.style.display = visible === 0 ? '' : 'none';
+  const tfoot = document.getElementById('inv-tfoot');
+  const tfootTotal = document.getElementById('inv-tfoot-total');
+  if (tfoot) tfoot.style.display = tab === 'outstanding' && visible > 0 ? '' : 'none';
+  if (tfootTotal) tfootTotal.textContent = '$' + total.toLocaleString('en-CA', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+const listTabs = document.querySelectorAll('.tab-bar')[1];
+showTab('outstanding', listTabs.querySelector('.tab-btn.active'));
+</script>
 
 <!-- Email modal -->
 <div class="modal-overlay" id="email-modal">
@@ -133,6 +240,21 @@
   </div>
 </div>
 <script>
+const EXP_GST_RATE = {{ settings.gst_rate }};
+function recalcExpGst() {
+  let gst = 0;
+  let subtotal = 0;
+  document.querySelectorAll('#exp-table tbody tr').forEach(row => {
+    const amt = parseFloat(row.querySelector('[data-amount]').dataset.amount) || 0;
+    subtotal += amt;
+    const cb = row.querySelector('input[type=checkbox]');
+    if (cb && cb.checked) gst += amt * EXP_GST_RATE;
+  });
+  gst = Math.round(gst * 100) / 100;
+  document.getElementById('exp-gst').textContent = '$' + gst.toFixed(2);
+  document.getElementById('exp-total').textContent = '$' + (Math.round((subtotal + gst) * 100) / 100).toFixed(2);
+}
+
 function openEmail(id, num, clientEmail) {
   document.getElementById('email-form').action = '/invoices/' + id + '/send';
   document.getElementById('email-recipient').value = clientEmail;

@@ -256,19 +256,19 @@ function recalcExpGst() {
 }
 
 function openEmail(id, num, clientEmail, invSubject, invType, issuedDate) {
-  document.getElementById('email-form').action = '/invoices/' + id + '/send';
-  document.getElementById('email-recipient').value = clientEmail;
-  document.getElementById('email-subject').value = invSubject || num;
-  const docWord = invType === 'expense' ? 'expense' : 'invoice';
-  let monthYear = '';
+  document.getElementById("email-form").action = "/invoices/" + id + "/send";
+  document.getElementById("email-recipient").value = clientEmail;
+  document.getElementById("email-subject").value = invSubject || num;
+  var docWord = invType === "expense" ? "expense" : "invoice";
+  var monthYear = "";
   if (issuedDate) {
-    const d = new Date(issuedDate + 'T00:00:00');
-    monthYear = ' ' + d.toLocaleString('default', {month: 'long', year: 'numeric'});
+    var d = new Date(issuedDate + "T00:00:00");
+    monthYear = " " + d.toLocaleString("default", {month: "long", year: "numeric"});
   }
-  const bizName = {{ settings.business_name | tojson }};
-  document.getElementById(‘email-body’).value = `Please find ${bizName}’s ${docWord} attached for${monthYear}.`;
-  document.getElementById('email-modal').classList.add('open');
+  var bizName = {{ settings.business_name | tojson }};
+  document.getElementById("email-body").value = "Please find " + bizName + "’s " + docWord + " attached for" + monthYear + ".";
+  document.getElementById("email-modal").classList.add("open");
 }
-function closeEmail() { document.getElementById('email-modal').classList.remove('open'); }
+function closeEmail() { document.getElementById("email-modal").classList.remove("open"); }
 </script>
 {% endblock %}

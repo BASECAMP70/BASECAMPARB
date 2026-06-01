@@ -265,7 +265,8 @@ function openEmail(id, num, clientEmail, invSubject, invType, issuedDate) {
     const d = new Date(issuedDate + 'T00:00:00');
     monthYear = ' ' + d.toLocaleString('default', {month: 'long', year: 'numeric'});
   }
-  document.getElementById('email-body').value = 'Please find your ' + docWord + ' attached for' + monthYear + '.';
+  const bizName = {{ settings.business_name | tojson }};
+  document.getElementById(‘email-body’).value = `Please find ${bizName}’s ${docWord} attached for${monthYear}.`;
   document.getElementById('email-modal').classList.add('open');
 }
 function closeEmail() { document.getElementById('email-modal').classList.remove('open'); }

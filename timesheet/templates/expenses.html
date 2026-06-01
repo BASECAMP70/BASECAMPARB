@@ -6,11 +6,11 @@
 <div class="card">
   <h2>Add Expense</h2>
   <form method="post" action="/expenses/add" enctype="multipart/form-data"
-        style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:1rem;align-items:flex-end">
-    <div class="form-group" style="margin:0"><label>Project</label>
-      <select name="project_id" required>
+        class="flex-form">
+    <div class="form-group" style="margin:0"><label>Client</label>
+      <select name="client_id" required>
         <option value="">— select —</option>
-        {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+        {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
       </select>
     </div>
     <div class="form-group" style="margin:0"><label>Date</label><input name="date" type="date" required></div>
@@ -28,9 +28,9 @@
 
 <div style="display:flex;gap:1rem;margin-bottom:1rem;align-items:flex-end">
   <form method="get" style="display:flex;gap:1rem;align-items:flex-end">
-    <div class="form-group" style="margin:0"><label>Project</label>
-      <select name="project_id"><option value="">All</option>
-        {% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if p.id == pf }}>{{ p.name }}</option>{% endfor %}
+    <div class="form-group" style="margin:0"><label>Client</label>
+      <select name="client_id"><option value="">All</option>
+        {% for c in clients %}<option value="{{ c.id }}" {{ 'selected' if c.id == cf }}>{{ c.name }}</option>{% endfor %}
       </select>
     </div>
     <div class="form-group" style="margin:0"><label>From</label><input name="date_from" type="date" value="{{ df }}"></div>
@@ -40,14 +40,27 @@
 </div>
 
 {% if expenses %}
-<table>
-  <thead><tr><th>Date</th><th>Project</th><th>Amount</th><th>Description</th><th></th></tr></thead>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;margin-top:0.5rem">
+  <div></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showExpTab('uninvoiced',this)">Uninvoiced</button>
+    <button class="tab-btn" onclick="showExpTab('invoiced',this)">Invoiced</button>
+  </div>
+</div>
+<table id="exp-table">
+  <thead><tr>
+    <th class="sortable" data-col="0" onclick="sortTable(0)">Date <span class="sort-icon">▼</span></th>
+    <th class="sortable" data-col="1" onclick="sortTable(1)">Client <span class="sort-icon"></span></th>
+    <th class="sortable" data-col="2" onclick="sortTable(2)">Amount <span class="sort-icon"></span></th>
+    <th>Description</th>
+    <th></th>
+  </tr></thead>
   <tbody>
   {% for x in expenses %}
-  <tr>
+  <tr data-invoiced="{{ '1' if x.invoiced else '0' }}">
     <td>{{ x.date }}</td>
-    <td>{{ project_map[x.project_id].name if x.project_id in project_map else '—' }}</td>
-    <td>${{ "%.2f"|format(x.amount) }}</td>
+    <td>{{ client_map[x.client_id].name if x.client_id and x.client_id in client_map else '—' }}</td>
+    <td data-val="{{ x.amount }}">${{ "%.2f"|format(x.amount) }}</td>
     <td>
       {{ x.description }}
       {% if x.pdf_filename %}<a class="btn btn-sm btn-secondary" href="/expenses/{{ x.id }}/receipt" style="margin-left:6px">&#128206; Receipt</a>{% endif %}
@@ -64,7 +77,61 @@
   </tr>
   {% endfor %}
   </tbody>
+  <tfoot>
+    <tr class="grand-total">
+      <td colspan="2" style="text-align:right;padding:10px 12px">Total</td>
+      <td id="exp-total" style="font-weight:700;padding:10px 12px"></td>
+      <td colspan="2"></td>
+    </tr>
+  </tfoot>
 </table>
+<style>
+th.sortable { cursor:pointer; user-select:none; white-space:nowrap; }
+th.sortable:hover { color:#222; }
+.sort-icon { font-size:0.7rem; color:#aaa; margin-left:3px; }
+th.sort-asc .sort-icon, th.sort-desc .sort-icon { color:#555; }
+</style>
+<script>
+function showExpTab(tab, btn) {
+  btn.closest(".tab-bar").querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
+  btn.classList.add("active");
+  var rows = document.querySelectorAll("#exp-table tbody tr");
+  var total = 0;
+  rows.forEach(function(row) {
+    var inv = row.dataset.invoiced === "1";
+    var show = tab === "invoiced" ? inv : !inv;
+    row.style.display = show ? "" : "none";
+    if (show) {
+      var amt = parseFloat(row.cells[2].dataset.val || 0);
+      total += amt;
+    }
+  });
+  var el = document.getElementById("exp-total");
+  if (el) el.textContent = "$" + total.toLocaleString("en-CA", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+showExpTab("uninvoiced", document.querySelector(".tab-btn.active"));
+
+let sortCol = 0, sortAsc = false;
+function sortTable(col) {
+  const tbody = document.querySelector('#exp-table tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = col !== 0; }
+  rows.sort((a, b) => {
+    const ac = a.cells[col], bc = b.cells[col];
+    const av = col === 2 ? parseFloat(ac.dataset.val || 0) : ac.textContent.trim();
+    const bv = col === 2 ? parseFloat(bc.dataset.val || 0) : bc.textContent.trim();
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ? 1 : -1;
+    return 0;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+  document.querySelectorAll('#exp-table th.sortable').forEach((th, i) => {
+    th.classList.remove('sort-asc','sort-desc');
+    th.querySelector('.sort-icon').textContent = '';
+    if (i === col) { th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc'); th.querySelector('.sort-icon').textContent = sortAsc ? '▲' : '▼'; }
+  });
+}
+</script>
 {% else %}
 <p class="text-muted">No expenses found.</p>
 {% endif %}
@@ -74,9 +141,9 @@
   <div class="modal">
     <h2>Edit Expense</h2>
     <form method="post" action="/expenses/{{ edit_expense.id }}/edit" enctype="multipart/form-data">
-      <div class="form-group"><label>Project</label>
-        <select name="project_id">
-          {% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if p.id == edit_expense.project_id }}>{{ p.name }}</option>{% endfor %}
+      <div class="form-group"><label>Client</label>
+        <select name="client_id">
+          {% for c in clients %}<option value="{{ c.id }}" {{ 'selected' if c.id == edit_expense.client_id }}>{{ c.name }}</option>{% endfor %}
         </select>
       </div>
       <div class="form-group"><label>Date</label><input name="date" type="date" value="{{ edit_expense.date }}"></div>

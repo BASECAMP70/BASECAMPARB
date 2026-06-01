@@ -172,7 +172,7 @@
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/edit">Edit</a>
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">PDF</a>
       <button class="btn btn-sm btn-primary"
-        onclick='openEmail("{{ inv.id }}", {{ inv.invoice_number|tojson }}, {{ (inv.client_email or "")|tojson }})'>Email</button>
+        onclick='openEmail("{{ inv.id }}", {{ inv.invoice_number|tojson }}, {{ (inv.client_email or "")|tojson }}, {{ (inv.subject or "")|tojson }})'>Email</button>
       <form class="inline" method="post" action="/invoices/{{ inv.id }}/delete"
             onsubmit="return confirm('Delete invoice {{ inv.invoice_number }}? This will un-invoice all associated time entries and expenses.')">
         <button class="btn btn-sm btn-danger" type="submit">Delete</button>
@@ -255,10 +255,11 @@ function recalcExpGst() {
   document.getElementById('exp-total').textContent = '$' + (Math.round((subtotal + gst) * 100) / 100).toFixed(2);
 }
 
-function openEmail(id, num, clientEmail) {
+function openEmail(id, num, clientEmail, invSubject) {
   document.getElementById('email-form').action = '/invoices/' + id + '/send';
   document.getElementById('email-recipient').value = clientEmail;
-  document.getElementById('email-subject').value = num + ' from ' + {{ settings.business_name | tojson }};
+  const from = {{ settings.business_name | tojson }};
+  document.getElementById('email-subject').value = invSubject ? invSubject + ' — ' + from : num + ' from ' + from;
   document.getElementById('email-modal').classList.add('open');
 }
 function closeEmail() { document.getElementById('email-modal').classList.remove('open'); }

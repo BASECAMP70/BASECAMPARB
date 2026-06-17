@@ -13,13 +13,20 @@
       </div>
       <div class="form-group" style="flex:1;margin:0">
         <label>Rate (CAD/hr)</label>
-        <input name="rate" type="number" step="0.01" min="0" placeholder="125.00" value="{{ settings.default_rate if settings.default_rate else '' }}">
+        <input name="rate" id="add-rate" type="number" step="0.01" min="0" placeholder="125.00" value="{{ settings.default_rate if settings.default_rate else '' }}">
       </div>
       <div class="form-group" style="flex:2;margin:0">
         <label>Client</label>
-        <select name="client_id">
+        <select name="client_id" id="add-client">
           <option value="">— no client —</option>
           {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="flex:2;margin:0">
+        <label>Parent Project <span style="font-weight:400;color:#aaa">(optional)</span></label>
+        <select name="parent_id" id="add-parent" onchange="addParentChange(this)">
+          <option value="">— none (top-level) —</option>
+          {% for p in top_level_projects %}<option value="{{ p.id }}" data-rate="{{ p.rate }}" data-client="{{ p.client_id or '' }}">{{ p.name }}</option>{% endfor %}
         </select>
       </div>
     </div>
@@ -64,16 +71,18 @@
   {% for p in projects %}
   {% set c = client_map.get(p.get('client_id', '')) %}
   {% set status = p.get('status', 'active' if p.get('active', True) else 'complete') %}
+  {% set display_status = project_display_status.get(p.id, status) %}
+  {% set is_sub = p.get('parent_id') %}
   {% set stats = project_stats.get(p.id, {'used_hours': 0, 'used_dollars': 0}) %}
   {% set p_tasks = project_tasks.get(p.id, []) %}
-  <tr data-status="{{ status }}" class="proj-row">
+  <tr data-status="{{ display_status }}" class="proj-row{% if is_sub %} proj-sub-row{% endif %}">
     {% if settings.get('enable_tasks', True) %}
     <td>
       <button class="expand-btn" onclick="toggleTasks('{{ p.id }}')" title="Show tasks">&#9654;</button>
     </td>
     {% endif %}
     <td>
-      {{ p.name }}
+      {% if is_sub %}<span class="sub-arrow">↳</span>{% endif %}{{ p.name }}
       {% if status == 'on_hold' %}<span class="badge badge-on-hold" style="margin-left:4px">On Hold</span>{% endif %}
       {% if settings.get('enable_tasks', True) and p_tasks %}<span class="task-count">{{ p_tasks|length }}</span>{% endif %}
     </td>
@@ -119,7 +128,7 @@
   </tr>
   <!-- Tasks sub-row -->
   {% if settings.get('enable_tasks', True) %}
-  <tr id="tasks-{{ p.id }}" class="tasks-row" data-status="{{ status }}" style="display:none">
+  <tr id="tasks-{{ p.id }}" class="tasks-row" data-status="{{ display_status }}" style="display:none">
     <td></td>
     <td colspan="6" style="padding:0 0 0 1rem">
       <div class="tasks-panel">
@@ -193,6 +202,13 @@
         <div class="form-group"><label>Name</label><input name="name" id="edit-name" required></div>
         <div class="form-group"><label>Rate (CAD/hr)</label><input name="rate" type="number" step="0.01" id="edit-rate"></div>
         <div class="form-group">
+          <label>Parent Project <span style="font-weight:400;color:#aaa">(optional)</span></label>
+          <select name="parent_id" id="edit-parent" onchange="editParentChange(this)">
+            <option value="">— none (top-level) —</option>
+            {% for p in top_level_projects %}<option value="{{ p.id }}" data-rate="{{ p.rate }}" data-client="{{ p.client_id or '' }}">{{ p.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
           <label>Client</label>
           <select name="client_id" id="edit-client">
             <option value="">— no client —</option>
@@ -245,6 +261,9 @@
 .budget-bar-fill.over { background:#e74c3c; }
 .over-budget { color:#e74c3c; font-weight:700; font-size:0.7rem; }
 .badge-on-hold { background:#fff3cd; color:#856404; display:inline-block; padding:1px 7px; border-radius:10px; font-size:0.72rem; font-weight:600; }
+.proj-sub-row td { background:#fafbff !important; }
+.proj-sub-row:hover td { background:#f0f4ff !important; }
+.sub-arrow { color:#bbb; margin-right:4px; font-size:0.8rem; }
 /* Expand */
 .expand-btn { background:none; border:none; cursor:pointer; color:#aaa; font-size:0.7rem; padding:2px 4px; border-radius:3px; transition:transform .15s, color .15s; }
 .expand-btn:hover { color:#555; }
@@ -291,10 +310,27 @@ function toggleTasks(pid) {
 const PROJECT_TASKS_DATA     = {{ project_tasks     | tojson }};
 const PROJECT_UNASSIGNED_DATA = {{ project_unassigned | tojson }};
 
+function addParentChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (opt.value) {
+    document.getElementById('add-rate').value = parseFloat(opt.dataset.rate).toFixed(2);
+    document.getElementById('add-client').value = opt.dataset.client || '';
+  }
+}
+
+function editParentChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (opt.value) {
+    document.getElementById('edit-rate').value = parseFloat(opt.dataset.rate).toFixed(2);
+    document.getElementById('edit-client').value = opt.dataset.client || '';
+  }
+}
+
 function openEdit(p) {
   document.getElementById('edit-form').action = '/projects/' + p.id + '/edit';
   document.getElementById('edit-name').value         = p.name;
   document.getElementById('edit-rate').value         = p.rate;
+  document.getElementById('edit-parent').value       = p.parent_id || '';
   document.getElementById('edit-client').value       = p.client_id || '';
   document.getElementById('edit-status').value       = p.status || (p.active ? 'active' : 'complete');
   document.getElementById('edit-due-date').value     = p.due_date || '';

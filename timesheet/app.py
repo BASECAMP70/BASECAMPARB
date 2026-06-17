@@ -400,13 +400,44 @@ def create_app(config=None):
             for p in all_projects
         }
 
+        # Organize projects hierarchically: top-level first, then their subs
+        top_level = [p for p in all_projects if not p.get("parent_id")]
+        subs_by_parent = {}
+        for p in all_projects:
+            if p.get("parent_id"):
+                subs_by_parent.setdefault(p["parent_id"], []).append(p)
+        ordered_projects = []
+        top_ids = {p["id"] for p in top_level}
+        for p in top_level:
+            ordered_projects.append(p)
+            for sp in subs_by_parent.get(p["id"], []):
+                ordered_projects.append(sp)
+        # Orphan subs (parent missing)
+        ordered_ids = {p["id"] for p in ordered_projects}
+        for p in all_projects:
+            if p["id"] not in ordered_ids:
+                ordered_projects.append(p)
+
+        # Display status: sub-projects appear in their parent's tab
+        project_display_status = {}
+        for p in ordered_projects:
+            natural = p.get("status", "active" if p.get("active", True) else "complete")
+            if p.get("parent_id"):
+                parent = project_map.get(p["parent_id"])
+                project_display_status[p["id"]] = parent.get("status", "active" if parent.get("active", True) else "complete") if parent else natural
+            else:
+                project_display_status[p["id"]] = natural
+
         return render_template("projects.html",
-            projects=all_projects,
+            projects=ordered_projects,
+            project_map=project_map,
+            project_display_status=project_display_status,
             project_stats=project_stats,
             project_tasks=project_tasks,
             project_unassigned=project_unassigned,
             client_map=client_map,
             clients=storage.load_clients(),
+            top_level_projects=top_level,
             all_tasks=all_tasks,
             settings=storage.load_settings()
         )
@@ -423,6 +454,7 @@ def create_app(config=None):
             flash("Project name is required.", "error")
             return redirect(url_for("projects"))
         client_id   = request.form.get("client_id", "").strip() or None
+        parent_id   = request.form.get("parent_id", "").strip() or None
         status      = request.form.get("status", "active")
         due_date    = request.form.get("due_date", "").strip() or None
         try:
@@ -436,10 +468,15 @@ def create_app(config=None):
         except ValueError:
             budget_dollars = None
         projects = storage.load_projects()
+        if parent_id:
+            parent = next((p for p in projects if p["id"] == parent_id), None)
+            if parent:
+                client_id = parent.get("client_id")
+                rate = parent.get("rate", rate)
         projects.append({
             "id": storage.new_id(), "name": name, "rate": rate,
             "currency": "CAD", "active": status != "complete",
-            "status": status, "client_id": client_id,
+            "status": status, "client_id": client_id, "parent_id": parent_id,
             "due_date": due_date, "budget_hours": budget_hours, "budget_dollars": budget_dollars,
         })
         storage.save_projects(projects)
@@ -457,6 +494,7 @@ def create_app(config=None):
                 except ValueError:
                     pass
                 p["client_id"] = request.form.get("client_id", "").strip() or None
+                p["parent_id"] = request.form.get("parent_id", "").strip() or None
                 p["status"]    = request.form.get("status", p.get("status", "active"))
                 p["active"]    = p["status"] != "complete"
                 p["due_date"]  = request.form.get("due_date", "").strip() or None
@@ -647,6 +685,20 @@ def create_app(config=None):
             rate = r["rate_override"] if r.get("rate_override") is not None else t.get("rate")
             project_tasks.setdefault(r["project_id"], []).append({"id": t["id"], "name": t["name"], "rate": rate})
 
+        # Build project groups for optgroup rendering in dropdowns
+        active_top = [p for p in active_projects if not p.get("parent_id")]
+        active_subs = [p for p in active_projects if p.get("parent_id")]
+        subs_by_parent = {}
+        for sp in active_subs:
+            subs_by_parent.setdefault(sp["parent_id"], []).append(sp)
+        active_top_ids = {p["id"] for p in active_top}
+        project_groups = []
+        for p in active_top:
+            project_groups.append({"project": p, "subs": subs_by_parent.get(p["id"], [])})
+        for sp in active_subs:
+            if sp["parent_id"] not in active_top_ids:
+                project_groups.append({"project": sp, "subs": []})
+
         # ── shared grid_json for popup modal (all entries keyed by project+date) ──
         def make_grid_json(entries, dates):
             g = {p["id"]: {d.isoformat(): [] for d in dates} for p in active_projects}
@@ -748,6 +800,7 @@ def create_app(config=None):
         return render_template("time.html",
                                view=view,
                                projects=active_projects,
+                               project_groups=project_groups,
                                project_map=project_map,
                                project_tasks=project_tasks,
                                task_map=task_map,
@@ -1116,6 +1169,7 @@ def create_app(config=None):
             return redirect(url_for("invoices"))
 
         projects = storage.load_projects()
+        project_map_inv = {p["id"]: p for p in projects}
         client_projects = [p for p in projects if p.get("client_id") == client_id]
 
         all_entries = storage.load_time_entries()
@@ -1126,6 +1180,8 @@ def create_app(config=None):
         entry_ids_invoiced = set()
 
         for p in client_projects:
+            parent_p = project_map_inv.get(p.get("parent_id")) if p.get("parent_id") else None
+            project_display_name = f"{parent_p['name']} › {p['name']}" if parent_p else p["name"]
             uninvoiced_time = sorted(
                 [e for e in all_entries if e["project_id"] == p["id"] and not e["invoiced"]],
                 key=lambda e: e["date"])
@@ -1143,7 +1199,7 @@ def create_app(config=None):
                 line_items.append({
                     "type": "time",
                     "description": summary_description,
-                    "project_name": p["name"],
+                    "project_name": project_display_name,
                     "hours": total_hours,
                     "rate": effective_rate,
                     "amount": amount,
@@ -1162,7 +1218,7 @@ def create_app(config=None):
                         "date": e["date"],
                         "description": e["description"],
                         "task_name": task_name,
-                        "project_name": p["name"],
+                        "project_name": project_display_name,
                         "hours": e["hours"],
                         "rate": entry_rate,
                         "amount": amount,

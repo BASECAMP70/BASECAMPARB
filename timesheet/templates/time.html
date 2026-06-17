@@ -119,8 +119,10 @@ function dayTaskFillRate(sel) {
     </tr></thead>
     <tbody>
     {% for p, e in all_day_entries|sort(attribute='1.hours', reverse=True) %}
+    {% set _par = project_map.get(p.get('parent_id')) if p.get('parent_id') else none %}
+    {% set pname_display = (_par.name ~ ' › ' ~ p.name) if _par else p.name %}
     <tr>
-      <td style="font-weight:600">{{ p.name }}<div style="font-size:0.75rem;color:#aaa;font-weight:normal">${{ "%.0f"|format(e.get('rate', p.rate)) }}/hr</div></td>
+      <td style="font-weight:600">{{ pname_display }}<div style="font-size:0.75rem;color:#aaa;font-weight:normal">${{ "%.0f"|format(e.get('rate', p.rate)) }}/hr</div></td>
       <td><span class="hours-pill" style="font-size:0.8rem">{{ e.hours }}h</span></td>
       <td style="color:#555">${{ "%.2f"|format(e.hours * e.get('rate', p.rate)) }}</td>
       <td style="color:#666;font-size:0.875rem">{{ e.description or '—' }}{% if e.invoiced %} <span style="font-size:0.75rem;color:#aaa">🔒</span>{% endif %}</td>
@@ -248,9 +250,11 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
   </thead>
   <tbody>
   {% for p in projects %}
+  {% set _par = project_map.get(p.get('parent_id')) if p.get('parent_id') else none %}
+  {% set pname_display = (_par.name ~ ' › ' ~ p.name) if _par else p.name %}
   <tr class="project-row">
     <td class="project-cell">
-      <div class="project-name">{{ p.name }}</div>
+      <div class="project-name">{{ pname_display }}</div>
       <div class="project-rate">${{ "%.0f"|format(p.rate) }}/hr</div>
     </td>
     {% for d in week_dates %}
@@ -258,7 +262,7 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
     {% set cell_entries = grid[p.id][date_str] %}
     {% set cell_hours = cell_entries|sum(attribute='hours') %}
     <td class="time-cell{% if date_str == today %} today-col{% endif %}"
-        data-pid="{{ p.id }}" data-pname="{{ p.name }}" data-date="{{ date_str }}">
+        data-pid="{{ p.id }}" data-pname="{{ pname_display }}" data-date="{{ date_str }}">
       {% if cell_hours > 0 %}
       <div class="hours-pill">{{ cell_hours }}</div>
       {% else %}

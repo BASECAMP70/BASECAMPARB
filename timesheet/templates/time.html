@@ -51,7 +51,6 @@
         {% for g in project_groups %}
           {% if g.subs %}
             <optgroup label="{{ g.project.name }}">
-              <option value="{{ g.project.id }}" data-rate="{{ g.project.rate }}">{{ g.project.name }}</option>
               {% for sp in g.subs %}<option value="{{ sp.id }}" data-rate="{{ sp.rate }}">{{ sp.name }}</option>{% endfor %}
             </optgroup>
           {% else %}
@@ -399,7 +398,6 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
             {% for g in project_groups %}
               {% if g.subs %}
                 <optgroup label="{{ g.project.name }}">
-                  <option value="{{ g.project.id }}" data-rate="{{ g.project.rate }}">{{ g.project.name }}</option>
                   {% for sp in g.subs %}<option value="{{ sp.id }}" data-rate="{{ sp.rate }}">{{ sp.name }}</option>{% endfor %}
                 </optgroup>
               {% else %}

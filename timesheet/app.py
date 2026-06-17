@@ -858,7 +858,11 @@ def create_app(config=None):
         if not date:
             flash("Date is required.", "error")
             return redirect(url_for("time_entries"))
-        project_map = {p["id"]: p for p in storage.load_projects()}
+        all_projects = storage.load_projects()
+        project_map = {p["id"]: p for p in all_projects}
+        if any(p.get("parent_id") == project_id for p in all_projects):
+            flash("Cannot log time to a parent project — select a sub-project instead.", "error")
+            return redirect(url_for("time_entries"))
         default_rate = project_map.get(project_id, {}).get("rate", 0)
         try:
             rate = float(request.form.get("rate", default_rate))
@@ -890,7 +894,12 @@ def create_app(config=None):
             flash("Cannot edit an invoiced entry.", "error")
             return _week_redirect(entry.get("date", ""))
         if request.method == "POST":
-            entry["project_id"] = request.form.get("project_id", entry["project_id"])
+            new_project_id = request.form.get("project_id", entry["project_id"])
+            all_projects_edit = storage.load_projects()
+            if any(p.get("parent_id") == new_project_id for p in all_projects_edit):
+                flash("Cannot log time to a parent project — select a sub-project instead.", "error")
+                return _week_redirect(entry.get("date", ""))
+            entry["project_id"] = new_project_id
             entry["date"] = request.form.get("date", entry["date"]).strip() or entry["date"]
             try:
                 hours = float(request.form.get("hours", entry["hours"]))
@@ -903,7 +912,7 @@ def create_app(config=None):
             entry["hours"] = hours
             entry["description"] = request.form.get("description", "").strip()
             entry["task_id"] = request.form.get("task_id", "").strip() or None
-            project_map = {p["id"]: p for p in storage.load_projects()}
+            project_map = {p["id"]: p for p in all_projects_edit}
             default_rate = project_map.get(entry["project_id"], {}).get("rate", 0)
             try:
                 entry["rate"] = float(request.form.get("rate", default_rate))

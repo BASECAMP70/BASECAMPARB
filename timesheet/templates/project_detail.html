@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+
+<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem">
+  <a href="{{ url_for('projects') }}" style="color:#aaa;text-decoration:none;font-size:0.9rem">&#8592; Projects</a>
+</div>
+
+<div style="display:flex;align-items:baseline;gap:0.75rem;margin-bottom:0.25rem">
+  <h1 style="margin:0">
+    {% if parent %}<span style="color:#bbb;font-weight:400;font-size:1.1rem">{{ parent.name }} › </span>{% endif %}{{ project.name }}
+  </h1>
+  {% set status = project.get('status', 'active' if project.get('active', True) else 'complete') %}
+  {% if status == 'on_hold' %}<span class="badge badge-on-hold">On Hold</span>
+  {% elif status == 'complete' %}<span class="badge badge-paid">Complete</span>{% endif %}
+</div>
+<p style="color:#888;font-size:0.875rem;margin-bottom:1.5rem">
+  {{ client.name if client else 'No client' }} &nbsp;·&nbsp; ${{ "%.2f"|format(project.rate) }}/hr
+</p>
+
+{# ── Summary cards ─────────────────────────────────────── #}
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
+  <div class="card" style="padding:1rem 1.25rem;margin:0">
+    <div style="font-size:0.75rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Total Hours</div>
+    <div style="font-size:1.6rem;font-weight:700;color:#222;margin-top:0.2rem">{{ total_hours }}h</div>
+  </div>
+  <div class="card" style="padding:1rem 1.25rem;margin:0">
+    <div style="font-size:0.75rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Uninvoiced</div>
+    <div style="font-size:1.6rem;font-weight:700;color:#f59e0b;margin-top:0.2rem">{{ uninvoiced_hours }}h</div>
+  </div>
+  <div class="card" style="padding:1rem 1.25rem;margin:0">
+    <div style="font-size:0.75rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Total Billed</div>
+    <div style="font-size:1.6rem;font-weight:700;color:#222;margin-top:0.2rem">${{ total_amount|money }}</div>
+  </div>
+</div>
+
+{# ── Sub-project summary if parent ─────────────────────── #}
+{% if sub_projects %}
+<h2 style="margin-bottom:0.75rem">Sub-Projects</h2>
+<table style="margin-bottom:1.5rem">
+  <thead><tr><th>Sub-Project</th><th class="text-right">Hours</th><th class="text-right">Amount</th></tr></thead>
+  <tbody>
+  {% for sp in sub_projects %}
+  {% set sp_entries = entries|selectattr('project_id', 'equalto', sp.id)|list %}
+  {% set sp_hours = sp_entries|sum(attribute='hours') %}
+  {% set sp_amount = namespace(v=0) %}
+  {% for e in sp_entries %}{% set sp_amount.v = sp_amount.v + e._amount %}{% endfor %}
+  <tr>
+    <td><a href="{{ url_for('project_detail', pid=sp.id) }}" style="color:inherit;text-decoration:none;font-weight:600">{{ sp.name }}</a></td>
+    <td class="text-right">{{ sp_hours|round(2) }}h</td>
+    <td class="text-right">${{ sp_amount.v|money }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{# ── Time entries ──────────────────────────────────────── #}
+<h2 style="margin-bottom:0.75rem">Time Entries</h2>
+{% if entries %}
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      {% if sub_projects %}<th>Sub-Project</th>{% endif %}
+      <th>Description</th>
+      {% if settings.get('enable_tasks', True) %}<th>Task</th>{% endif %}
+      <th class="text-right">Hours</th>
+      <th class="text-right">Rate</th>
+      <th class="text-right">Amount</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for e in entries %}
+  <tr>
+    <td style="white-space:nowrap;color:#666">{{ e.date }}</td>
+    {% if sub_projects %}<td style="font-size:0.85rem;color:#555">{{ e._project_name if e.project_id != project.id else '—' }}</td>{% endif %}
+    <td style="color:#333">{{ e.description or '—' }}</td>
+    {% if settings.get('enable_tasks', True) %}<td style="font-size:0.82rem;color:#888">{{ e._task_name or '—' }}</td>{% endif %}
+    <td class="text-right"><span class="hours-pill" style="font-size:0.8rem">{{ e.hours }}h</span></td>
+    <td class="text-right" style="color:#666;font-size:0.85rem">${{ "%.0f"|format(e.get('rate', project.rate)) }}/hr</td>
+    <td class="text-right" style="font-weight:600">${{ e._amount|money }}</td>
+    <td style="text-align:right;white-space:nowrap">
+      {% if e.invoiced %}
+        <span style="font-size:0.75rem;color:#aaa">Invoiced</span>
+      {% else %}
+        <span style="font-size:0.75rem;color:#f59e0b;font-weight:600">Uninvoiced</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr style="background:#f8f8f8;border-top:2px solid #e5e5e5">
+      <td colspan="{% if sub_projects %}2{% else %}1{% endif %}" style="font-weight:700;padding:10px 12px">Total</td>
+      <td {% if settings.get('enable_tasks', True) %}colspan="2"{% endif %}></td>
+      <td class="text-right"><span class="row-total" style="background:#555">{{ total_hours }}h</span></td>
+      <td></td>
+      <td class="text-right" style="font-weight:700">${{ total_amount|money }}</td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+{% else %}
+<p class="text-muted" style="padding:2rem;text-align:center">No time entries logged to this project yet.</p>
+{% endif %}
+
+<style>
+.text-right { text-align:right }
+.hours-pill { background:#e8efff;color:#1d3557;border-radius:10px;padding:2px 8px;font-weight:600;white-space:nowrap }
+.row-total  { background:var(--accent);color:#fff;border-radius:10px;padding:2px 9px;font-weight:700;white-space:nowrap;font-size:0.85rem }
+.badge { display:inline-block;padding:1px 7px;border-radius:10px;font-size:0.72rem;font-weight:600 }
+.badge-on-hold { background:#fff3cd;color:#856404 }
+.badge-paid    { background:#d1fae5;color:#065f46 }
+</style>
+{% endblock %}

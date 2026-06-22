@@ -443,6 +443,44 @@ def create_app(config=None):
             settings=storage.load_settings()
         )
 
+    @app.route("/projects/<pid>")
+    def project_detail(pid):
+        all_projects = storage.load_projects()
+        project_map  = {p["id"]: p for p in all_projects}
+        project = project_map.get(pid)
+        if not project:
+            flash("Project not found.", "error")
+            return redirect(url_for("projects"))
+        client_map = {c["id"]: c for c in storage.load_clients()}
+        client = client_map.get(project.get("client_id", ""))
+        task_map   = {t["id"]: t for t in storage.load_tasks()}
+        all_entries = storage.load_time_entries()
+        # Sub-projects of this project
+        sub_projects = [p for p in all_projects if p.get("parent_id") == pid]
+        # Collect relevant project ids: this project + its subs
+        relevant_ids = {pid} | {sp["id"] for sp in sub_projects}
+        entries = sorted(
+            [e for e in all_entries if e.get("project_id") in relevant_ids],
+            key=lambda e: e["date"], reverse=True)
+        # Annotate entries with project and task name
+        for e in entries:
+            p = project_map.get(e["project_id"], {})
+            e["_project_name"] = p.get("name", "")
+            e["_task_name"]    = task_map.get(e.get("task_id", ""), {}).get("name", "")
+            e["_amount"]       = round(e["hours"] * e.get("rate", p.get("rate", 0)), 2)
+        total_hours  = round(sum(e["hours"] for e in entries), 2)
+        total_amount = round(sum(e["_amount"] for e in entries), 2)
+        invoiced_hours  = round(sum(e["hours"] for e in entries if e.get("invoiced")), 2)
+        uninvoiced_hours = round(total_hours - invoiced_hours, 2)
+        parent = project_map.get(project.get("parent_id")) if project.get("parent_id") else None
+        return render_template("project_detail.html",
+            project=project, parent=parent, client=client,
+            sub_projects=sub_projects, entries=entries,
+            total_hours=total_hours, total_amount=total_amount,
+            invoiced_hours=invoiced_hours, uninvoiced_hours=uninvoiced_hours,
+            project_map=project_map,
+            settings=storage.load_settings())
+
     @app.route("/projects/add", methods=["POST"])
     def projects_add():
         name = request.form.get("name", "").strip()

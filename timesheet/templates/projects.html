@@ -82,7 +82,7 @@
     </td>
     {% endif %}
     <td>
-      {% if is_sub %}<span class="sub-arrow">↳</span>{% endif %}{{ p.name }}
+      {% if is_sub %}<span class="sub-arrow">↳</span>{% endif %}<a href="{{ url_for('project_detail', pid=p.id) }}" style="color:inherit;text-decoration:none;font-weight:600">{{ p.name }}</a>
       {% if status == 'on_hold' %}<span class="badge badge-on-hold" style="margin-left:4px">On Hold</span>{% endif %}
       {% if settings.get('enable_tasks', True) and p_tasks %}<span class="task-count">{{ p_tasks|length }}</span>{% endif %}
     </td>

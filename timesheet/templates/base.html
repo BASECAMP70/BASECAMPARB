@@ -97,7 +97,7 @@
       {% if settings.get('enable_tasks', True) %}<a href="{{ url_for('tasks') }}" class="{{ 'active' if request.endpoint == 'tasks' }}">Tasks</a>{% endif %}
       <a href="{{ url_for('expenses') }}" class="{{ 'active' if request.endpoint == 'expenses' }}">Expenses</a>
       <a href="{{ url_for('invoices') }}" class="{{ 'active' if request.endpoint == 'invoices' }}">Invoices</a>
-      <a href="{{ url_for('report_monthly') }}" class="{{ 'active' if 'report' in (request.endpoint or '') }}">Reports</a>
+      {% if settings.get('enable_reports', True) %}<a href="{{ url_for('report_monthly') }}" class="{{ 'active' if 'report' in (request.endpoint or '') }}">Reports</a>{% endif %}
       <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Settings</a>
     </div>
     <button class="hamburger" onclick="document.getElementById('nav-mobile').classList.toggle('open')" aria-label="Menu">
@@ -111,7 +111,7 @@
     {% if settings.get('enable_tasks', True) %}<a href="{{ url_for('tasks') }}" class="{{ 'active' if request.endpoint == 'tasks' }}">Tasks</a>{% endif %}
     <a href="{{ url_for('expenses') }}" class="{{ 'active' if request.endpoint == 'expenses' }}">Expenses</a>
     <a href="{{ url_for('invoices') }}" class="{{ 'active' if request.endpoint == 'invoices' }}">Invoices</a>
-    <a href="{{ url_for('report_monthly') }}" class="{{ 'active' if 'report' in (request.endpoint or '') }}">Reports</a>
+    {% if settings.get('enable_reports', True) %}<a href="{{ url_for('report_monthly') }}" class="{{ 'active' if 'report' in (request.endpoint or '') }}">Reports</a>{% endif %}
     <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Settings</a>
   </div>
 </nav>

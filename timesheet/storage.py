@@ -28,6 +28,7 @@ DEFAULTS = {
         "app_nav_color": "#1a1a2e",
         "app_accent_color": "#4f8ef7",
         "enable_tasks": True,
+        "enable_reports": True,
     },
 }
 

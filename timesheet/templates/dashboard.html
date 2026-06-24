@@ -3,57 +3,153 @@
 {% block content %}
 <h1>Dashboard</h1>
 
-<div class="card">
-  <h2>Log Time</h2>
-  <form method="post" style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:1rem;align-items:flex-end">
-    <div class="form-group" style="margin:0">
-      <label>Project</label>
-      <select name="project_id" required>
-        <option value="">— select —</option>
-        {% for p in projects %}
-        <option value="{{ p.id }}">{{ p.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="form-group" style="margin:0">
-      <label>Date</label>
-      <input name="date" type="date" value="{{ today }}" required>
-    </div>
-    <div class="form-group" style="margin:0">
-      <label>Hours</label>
-      <input name="hours" type="number" step="0.25" min="0.25" placeholder="2.5" required>
-    </div>
-    <button class="btn btn-primary" type="submit" style="align-self:flex-end">Add</button>
-    <div class="form-group" style="margin:0;grid-column:1/-1">
-      <label>Description</label>
-      <input name="description" placeholder="What did you work on?">
-    </div>
-  </form>
+{# ── Summary cards ──────────────────────────────────────────────────────── #}
+<div class="dash-cards">
+
+  <a class="dash-card dash-card--amber" href="{{ url_for('time_entries') }}">
+    <div class="dash-card__label">Uninvoiced Time</div>
+    <div class="dash-card__value">${{ uninvoiced_billed|money }}</div>
+    <div class="dash-card__sub">{{ uninvoiced_hours }}h unbilled</div>
+  </a>
+
+  <a class="dash-card dash-card--blue" href="{{ url_for('invoices') }}">
+    <div class="dash-card__label">Outstanding Invoices</div>
+    <div class="dash-card__value">${{ outstanding_total|money }}</div>
+    <div class="dash-card__sub">{{ outstanding|length }} invoice{{ 's' if outstanding|length != 1 }}</div>
+  </a>
+
+  <a class="dash-card dash-card--teal" href="{{ url_for('invoices') }}">
+    <div class="dash-card__label">Outstanding Expenses</div>
+    <div class="dash-card__value">${{ uninvoiced_exp_total|money }}</div>
+    <div class="dash-card__sub">{{ uninvoiced_exp_count }} expense{{ 's' if uninvoiced_exp_count != 1 }}</div>
+  </a>
+
+  <div class="dash-card dash-card--green">
+    <div class="dash-card__label">Total Pipeline</div>
+    <div class="dash-card__value">${{ pipeline_total|money }}</div>
+    <div class="dash-card__sub">outstanding + uninvoiced</div>
+  </div>
+
 </div>
 
-<h2>Today's Entries</h2>
-{% if today_entries %}
-<table>
-  <thead><tr><th>Project</th><th>Hours</th><th>Description</th><th></th></tr></thead>
-  <tbody>
-  {% for e in today_entries %}
-  <tr>
-    <td>{{ project_map[e.project_id].name if e.project_id in project_map else '—' }}</td>
-    <td>{{ e.hours }}</td>
-    <td>{{ e.description }}</td>
-    <td style="text-align:right">
-      <a class="btn btn-sm btn-secondary" href="/time/{{ e.id }}/edit">Edit</a>
-      {% if not e.invoiced %}
-      <form class="inline" method="post" action="/time/{{ e.id }}/delete">
-        <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Delete?')">Delete</button>
-      </form>
-      {% endif %}
-    </td>
-  </tr>
+
+{% if project_health %}
+<h2 style="margin-bottom:0.75rem">Project Health</h2>
+<div class="ph-grid">
+  {% for item in project_health %}
+  {% set p = item.project %}
+  {% set loop_idx = loop.index %}
+  <a href="{{ url_for('project_detail', pid=p.id) }}" class="ph-card {{ 'ph-card--warn' if item.get('hours_over') or item.get('dollars_over') }}">
+    <div class="ph-header">
+      <div>
+        <div class="ph-name">{{ p.name }}</div>
+        <div class="ph-client">{{ item.client.name }}{% if p.get('due_date') %} &nbsp;·&nbsp; due {{ p.due_date }}{% endif %}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        {% if item.get('hours_over') or item.get('dollars_over') %}
+        <span class="ph-alert">Over budget</span>
+        {% endif %}
+        {% if item.task_health %}
+        <button class="ph-expand-btn" onclick="event.preventDefault();event.stopPropagation();togglePhTasks('ph-tasks-{{ loop_idx }}')" title="Show tasks">&#9654;</button>
+        {% endif %}
+      </div>
+    </div>
+    {% if p.get('budget_hours') %}
+    <div class="ph-bar-label">
+      <span>{{ item.used_hours }}h of {{ p.budget_hours|int }}h</span>
+      <span>{{ item.hours_pct }}%</span>
+    </div>
+    <div class="ph-bar"><div class="ph-bar-fill {{ 'over' if item.get('hours_over') }}" style="width:{{ item.hours_pct }}%"></div></div>
+    {% endif %}
+    {% if p.get('budget_dollars') %}
+    <div class="ph-bar-label" style="margin-top:6px">
+      <span>${{ item.used_dollars|money }} of ${{ p.budget_dollars|money }}</span>
+      <span>{{ item.dollars_pct }}%</span>
+    </div>
+    <div class="ph-bar"><div class="ph-bar-fill {{ 'over' if item.get('dollars_over') }}" style="width:{{ item.dollars_pct }}%"></div></div>
+    {% endif %}
+    {% if item.task_health %}
+    <div id="ph-tasks-{{ loop_idx }}" class="ph-tasks" style="display:none">
+      {% for ti in item.task_health %}
+      {% set t = ti.task %}
+      <div class="ph-task-item {{ 'ph-task--warn' if ti.get('hours_over') or ti.get('dollars_over') }}">
+        <div class="ph-task-name">{{ t.name }}</div>
+        {% if t.get('budget_hours') %}
+        <div class="ph-bar-label" style="font-size:0.72rem">
+          <span>{{ ti.used_hours }}h of {{ t.budget_hours|int }}h</span>
+          <span>{{ ti.hours_pct }}%{% if ti.get('hours_over') %} <span style="color:#e74c3c">▲</span>{% endif %}</span>
+        </div>
+        <div class="ph-bar" style="height:5px"><div class="ph-bar-fill {{ 'over' if ti.get('hours_over') }}" style="width:{{ ti.hours_pct }}%"></div></div>
+        {% endif %}
+        {% if t.get('budget_dollars') %}
+        <div class="ph-bar-label" style="font-size:0.72rem;margin-top:4px">
+          <span>${{ ti.used_dollars|money }} of ${{ t.budget_dollars|money }}</span>
+          <span>{{ ti.dollars_pct }}%{% if ti.get('dollars_over') %} <span style="color:#e74c3c">▲</span>{% endif %}</span>
+        </div>
+        <div class="ph-bar" style="height:5px"><div class="ph-bar-fill {{ 'over' if ti.get('dollars_over') }}" style="width:{{ ti.dollars_pct }}%"></div></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </a>
   {% endfor %}
-  </tbody>
-</table>
-{% else %}
-<p class="text-muted">No entries logged today.</p>
+</div>
+<script>
+function togglePhTasks(id) {
+  const el = document.getElementById(id);
+  const btn = el.previousElementSibling && el.previousElementSibling.querySelector ? null : null;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : '';
+  // rotate button
+  const card = el.closest('.ph-card');
+  const expandBtn = card.querySelector('.ph-expand-btn');
+  if (expandBtn) expandBtn.classList.toggle('open', !open);
+}
+</script>
 {% endif %}
+
+<style>
+.dash-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+.dash-card { display:block; background:#fff; border-radius:8px; padding:1.25rem 1.5rem; box-shadow:0 1px 4px rgba(0,0,0,.08); border-top:4px solid #ccc; text-decoration:none; color:inherit; transition:box-shadow .15s, transform .15s; }
+.dash-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.12); transform:translateY(-2px); }
+.dash-card--blue  { border-top-color:#4f8ef7; }
+.dash-card--amber { border-top-color:#f59e0b; }
+.dash-card--teal  { border-top-color:#14b8a6; }
+.dash-card--green { border-top-color:#22c55e; }
+.dash-card__label { font-size:0.8rem; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:.04em; margin-bottom:0.4rem; }
+.dash-card__value { font-size:1.6rem; font-weight:700; color:#222; line-height:1.1; }
+.dash-card__sub   { font-size:0.8rem; color:#aaa; margin-top:0.3rem; }
+.badge { display:inline-block; padding:1px 7px; border-radius:10px; font-size:0.72rem; font-weight:600; }
+.badge-draft { background:#e9ecef; color:#6c757d; }
+.badge-sent  { background:#cfe2ff; color:#0a58ca; }
+.badge-late  { background:#ffe4cc; color:#c85000; }
+.badge-paid  { background:#d1fae5; color:#065f46; }
+/* Project Health */
+.ph-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+.ph-card { display:block; background:#fff; border-radius:8px; padding:1rem 1.25rem; box-shadow:0 1px 4px rgba(0,0,0,.08); border-left:4px solid var(--accent); text-decoration:none; color:inherit; transition:box-shadow .15s, transform .15s; }
+.ph-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.12); transform:translateY(-2px); }
+.ph-card--warn { border-left-color:#e74c3c; }
+.ph-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem; }
+.ph-name { font-weight:700; font-size:0.95rem; }
+.ph-client { font-size:0.78rem; color:#888; margin-top:2px; }
+.ph-alert { background:#fde8e8; color:#c0392b; font-size:0.72rem; font-weight:700; padding:2px 7px; border-radius:10px; white-space:nowrap; }
+.ph-bar-label { display:flex; justify-content:space-between; font-size:0.75rem; color:#555; margin-bottom:3px; }
+.ph-bar { height:8px; background:#eee; border-radius:4px; overflow:hidden; }
+.ph-bar-fill { height:100%; background:var(--accent); border-radius:4px; }
+.ph-bar-fill.over { background:#e74c3c; }
+.ph-expand-btn { background:none; border:none; cursor:pointer; color:#aaa; font-size:0.7rem; padding:2px 4px; border-radius:3px; transition:transform .15s, color .15s; }
+.ph-expand-btn:hover { color:#555; }
+.ph-expand-btn.open { transform:rotate(90deg); color:var(--accent); }
+.ph-tasks { margin-top:10px; border-top:1px solid #eee; padding-top:8px; display:flex; flex-direction:column; gap:8px; }
+.ph-task-item { padding:6px 8px; border-radius:4px; background:#f8faff; border-left:3px solid var(--accent); }
+.ph-task--warn { border-left-color:#e74c3c; }
+.ph-task-name { font-size:0.8rem; font-weight:600; color:#444; margin-bottom:4px; }
+@media (max-width:768px) {
+  .dash-cards { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:480px) {
+  .dash-cards { grid-template-columns:1fr; }
+}
+</style>
 {% endblock %}

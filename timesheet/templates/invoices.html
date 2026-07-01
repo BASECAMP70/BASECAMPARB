@@ -172,7 +172,7 @@
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/edit">Edit</a>
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">PDF</a>
       <button class="btn btn-sm btn-primary"
-        onclick='openEmail("{{ inv.id }}", {{ inv.invoice_number|tojson }}, {{ (inv.client_email or "")|tojson }}, {{ (inv.subject or "")|tojson }}, {{ (inv.invoice_type or "time")|tojson }}, {{ (inv.issued_date or "")|tojson }})'>Email</button>
+        onclick='openEmail("{{ inv.id }}", {{ inv.invoice_number|tojson }}, {{ (inv.client_email or "")|tojson }}, {{ (inv.subject or "")|tojson }}, {{ (inv.invoice_type or "time")|tojson }}, {{ (inv.entries_date or inv.issued_date or "")|tojson }})'>Email</button>
       <form class="inline" method="post" action="/invoices/{{ inv.id }}/delete"
             onsubmit="return confirm('Delete invoice {{ inv.invoice_number }}? This will un-invoice all associated time entries and expenses.')">
         <button class="btn btn-sm btn-danger" type="submit">Delete</button>

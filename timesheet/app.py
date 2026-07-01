@@ -1278,6 +1278,9 @@ def create_app(config=None):
             flash("No uninvoiced time entries for this client.", "error")
             return redirect(url_for("invoices"))
 
+        all_invoiced_dates = [e["date"] for e in all_entries if e["id"] in entry_ids_invoiced]
+        entries_date = max(all_invoiced_dates) if all_invoiced_dates else dt_date.today().isoformat()
+
         subtotal = round(sum(li["amount"] for li in line_items), 2)
         gst_rate = settings_data.get("gst_rate", 0.05)
         gst = round(subtotal * gst_rate, 2)
@@ -1295,6 +1298,7 @@ def create_app(config=None):
             "client_email": client.get("email", ""),
             "client_address": client.get("address", ""),
             "issued_date": dt_date.today().isoformat(),
+            "entries_date": entries_date,
             "subtotal": subtotal,
             "gst": gst,
             "total": total,

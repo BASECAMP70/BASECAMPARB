@@ -1151,6 +1151,17 @@ def create_app(config=None):
         for inv in all_invoices:
             if "status" not in inv:
                 inv["status"] = "sent" if inv.get("sent") else "draft"
+            # Backfill entries_date for invoices generated before this field existed
+            if "entries_date" not in inv:
+                dates = []
+                for li in inv.get("line_items", []):
+                    if li.get("date"):
+                        dates.append(li["date"])
+                    elif li.get("description") and " to " in li["description"]:
+                        dates.append(li["description"].split(" to ")[-1].strip())
+                    elif li.get("description") and li["description"][:4].isdigit():
+                        dates.append(li["description"].strip())
+                inv["entries_date"] = max(dates) if dates else inv.get("issued_date", "")
 
         time_preview = None
         expense_preview = None

@@ -73,7 +73,7 @@
     <form method="post" action="/invoices/generate-expense">
       <input type="hidden" name="client_id" value="{{ selected_client }}">
       <table id="exp-table" style="margin-bottom:0.75rem">
-        <thead><tr><th>Date</th><th>Description</th><th class="text-right">Amount</th><th style="text-align:center;white-space:nowrap">GST ({{ (settings.gst_rate * 100)|int }}%)?</th></tr></thead>
+        <thead><tr><th>Date</th><th>Description</th><th class="text-right">Amount</th><th style="text-align:center;white-space:nowrap">GST</th></tr></thead>
         <tbody>
         {% for x in expense_preview.expenses %}
         <tr>
@@ -83,9 +83,7 @@
             {% if x.pdf_filename %}<span class="text-muted" style="font-size:0.8rem;margin-left:6px">&#128206; receipt attached</span>{% endif %}
           </td>
           <td class="text-right" data-amount="{{ x.amount }}">${{ x.amount|money }}</td>
-          <td style="text-align:center">
-            <input type="checkbox" name="gst_{{ x.id }}" value="1" checked onchange="recalcExpGst()">
-          </td>
+          <td style="text-align:center;color:#888;font-size:0.85rem">{{ '✓' if x.get('gst', True) else '—' }}</td>
         </tr>
         {% endfor %}
         </tbody>
@@ -240,21 +238,6 @@ showTab('outstanding', listTabs.querySelector('.tab-btn.active'));
   </div>
 </div>
 <script>
-const EXP_GST_RATE = {{ settings.gst_rate }};
-function recalcExpGst() {
-  let gst = 0;
-  let subtotal = 0;
-  document.querySelectorAll('#exp-table tbody tr').forEach(row => {
-    const amt = parseFloat(row.querySelector('[data-amount]').dataset.amount) || 0;
-    subtotal += amt;
-    const cb = row.querySelector('input[type=checkbox]');
-    if (cb && cb.checked) gst += amt * EXP_GST_RATE;
-  });
-  gst = Math.round(gst * 100) / 100;
-  document.getElementById('exp-gst').textContent = '$' + gst.toFixed(2);
-  document.getElementById('exp-total').textContent = '$' + (Math.round((subtotal + gst) * 100) / 100).toFixed(2);
-}
-
 function openEmail(id, num, clientEmail, invSubject, invType, issuedDate) {
   document.getElementById("email-form").action = "/invoices/" + id + "/send";
   document.getElementById("email-recipient").value = clientEmail;

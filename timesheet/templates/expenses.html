@@ -23,6 +23,11 @@
       <label>Receipt PDF (optional)</label>
       <input name="receipt" type="file" accept=".pdf" style="padding:4px">
     </div>
+    <div class="form-group" style="margin:0;align-self:flex-end">
+      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" name="gst" value="1" checked style="width:auto;margin:0"> GST applicable
+      </label>
+    </div>
   </form>
 </div>
 
@@ -152,6 +157,11 @@ function sortTable(col) {
       <div class="form-group">
         <label>Replace Receipt PDF{% if edit_expense.pdf_filename %} (currently attached){% endif %}</label>
         <input name="receipt" type="file" accept=".pdf" style="padding:4px">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.875rem">
+          <input type="checkbox" name="gst" value="1" {{ 'checked' if edit_expense.get('gst', True) }} style="width:auto;margin:0"> GST applicable
+        </label>
       </div>
       <button class="btn btn-primary" type="submit">Save</button>
       <a class="btn btn-secondary" href="/expenses">Cancel</a>

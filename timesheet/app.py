@@ -1027,6 +1027,7 @@ def create_app(config=None):
             "date": date,
             "amount": amount,
             "description": request.form.get("description", "").strip(),
+            "gst": request.form.get("gst") == "1",
             "pdf_filename": pdf_filename,
             "invoiced": False,
         })
@@ -1059,6 +1060,7 @@ def create_app(config=None):
                 return redirect(url_for("expenses"))
             item["amount"] = amount
             item["description"] = request.form.get("description", "").strip()
+            item["gst"] = request.form.get("gst") == "1"
             receipt = request.files.get("receipt")
             if receipt and receipt.filename and receipt.filename.lower().endswith(".pdf") \
                     and receipt.mimetype == "application/pdf":
@@ -1198,7 +1200,7 @@ def create_app(config=None):
                 key=lambda x: x["date"])
             if client_expenses:
                 subtotal = round(sum(x["amount"] for x in client_expenses), 2)
-                gst = round(subtotal * gst_rate, 2)
+                gst = round(sum(x["amount"] * gst_rate for x in client_expenses if x.get("gst", True)), 2)
                 expense_preview = {
                     "client": client,
                     "expenses": client_expenses,
@@ -1356,7 +1358,7 @@ def create_app(config=None):
         line_items = []
         expense_ids_invoiced = set()
         for x in uninvoiced_exp:
-            include_gst = request.form.get(f"gst_{x['id']}") == "1"
+            include_gst = x.get("gst", True)
             item_gst = round(x["amount"] * gst_rate, 2) if include_gst else 0.0
             line_items.append({
                 "type": "expense",

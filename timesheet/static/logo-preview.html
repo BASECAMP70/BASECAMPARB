@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logo Options</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; margin: 0; padding: 2rem; color: #222; }
+    h1 { font-size: 1.3rem; margin-bottom: 1.5rem; }
+    .options { display: flex; flex-direction: column; gap: 1.5rem; }
+    .option { background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+    .option-label { padding: 0.75rem 1.25rem; font-size: 0.85rem; font-weight: 600; color: #555; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .preview-bar { background: #1a1a2e; padding: 10px 24px; display: flex; align-items: center; min-height: 52px; }
+    .preview-bar img { height: 32px; max-width: 200px; object-fit: contain; }
+    .option-desc { padding: 0.6rem 1.25rem; font-size: 0.82rem; color: #777; }
+    .upload-hint { font-size: 0.8rem; color: #4f8ef7; text-decoration: none; }
+  </style>
+</head>
+<body>
+<h1>Logo Options — preview against nav background</h1>
+<p style="color:#888;font-size:0.85rem;margin-bottom:1.5rem">Go to <a href="/settings">Settings → App Logo</a> to upload your chosen option.</p>
+
+<div class="options">
+
+  <div class="option">
+    <div class="option-label">
+      Option 1 — Badge + Wordmark
+      <a class="upload-hint" href="/static/logo-1.svg" download="logo.svg">Download SVG</a>
+    </div>
+    <div class="preview-bar">
+      <img src="/static/logo-1.svg" alt="Logo 1">
+    </div>
+    <div class="option-desc">Blue rounded-square badge (matches favicon) with "Basecamp" wordmark. Most consistent with the existing favicon.</div>
+  </div>
+
+  <div class="option">
+    <div class="option-label">
+      Option 2 — Monogram Circle
+      <a class="upload-hint" href="/static/logo-2.svg" download="logo.svg">Download SVG</a>
+    </div>
+    <div class="preview-bar">
+      <img src="/static/logo-2.svg" alt="Logo 2">
+    </div>
+    <div class="option-desc">Blue circle with "BC" monogram + "BASECAMP / CONSULTING" stacked. Professional, full company name.</div>
+  </div>
+
+  <div class="option">
+    <div class="option-label">
+      Option 3 — Open Hourglass
+      <a class="upload-hint" href="/static/logo-3.svg" download="logo.svg">Download SVG</a>
+    </div>
+    <div class="preview-bar">
+      <img src="/static/logo-3.svg" alt="Logo 3">
+    </div>
+    <div class="option-desc">Hourglass without background box — lighter, more minimal. Blue icon + white wordmark.</div>
+  </div>
+
+  <div class="option">
+    <div class="option-label">
+      Option 4 — Mountain Peaks
+      <a class="upload-hint" href="/static/logo-4.svg" download="logo.svg">Download SVG</a>
+    </div>
+    <div class="preview-bar">
+      <img src="/static/logo-4.svg" alt="Logo 4">
+    </div>
+    <div class="option-desc">Three mountain peaks with snow cap — plays on the "Basecamp" name. All-caps wordmark.</div>
+  </div>
+
+  <div class="option">
+    <div class="option-label">
+      Option 5 — Clock Face
+      <a class="upload-hint" href="/static/logo-5.svg" download="logo.svg">Download SVG</a>
+    </div>
+    <div class="preview-bar">
+      <img src="/static/logo-5.svg" alt="Logo 5">
+    </div>
+    <div class="option-desc">Minimalist clock face with hands — directly on-theme for time tracking. Clean and modern.</div>
+  </div>
+
+</div>
+
+<p style="margin-top:1.5rem;font-size:0.82rem;color:#aaa">To use: download the SVG, then upload it in Settings → App Logo.</p>
+</body>
+</html>

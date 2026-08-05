@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 36">
+  <!-- Open hourglass (no background box) in blue -->
+  <rect x="4" y="3" width="22" height="2.5" rx="1.2" fill="#4f8ef7"/>
+  <polygon points="4,5.5 26,5.5 20,16.5 10,16.5" fill="#4f8ef7" opacity="0.75"/>
+  <ellipse cx="15" cy="17.5" rx="3.5" ry="1.5" fill="#4f8ef7"/>
+  <polygon points="10,18.5 20,18.5 26,30" fill="#4f8ef7" opacity="0.75"/>
+  <polygon points="4,30 10,18.5 20,18.5 26,30" fill="#4f8ef7" opacity="0.75"/>
+  <rect x="4" y="30" width="22" height="2.5" rx="1.2" fill="#4f8ef7"/>
+  <!-- Wordmark -->
+  <text x="36" y="23" font-family="system-ui,-apple-system,sans-serif" font-size="15" font-weight="700" fill="white">Basecamp</text>
+</svg>

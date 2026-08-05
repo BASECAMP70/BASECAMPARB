@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 36">
+  <!-- Three mountain peaks -->
+  <polygon points="2,32 14,9 26,32" fill="#4f8ef7" opacity="0.45"/>
+  <polygon points="11,32 23,4 35,32" fill="#4f8ef7"/>
+  <polygon points="22,32 34,13 46,32" fill="#4f8ef7" opacity="0.6"/>
+  <!-- Snow cap on centre peak -->
+  <polygon points="23,4 29,14 17,14" fill="white" opacity="0.85"/>
+  <!-- Wordmark -->
+  <text x="54" y="25" font-family="system-ui,-apple-system,sans-serif" font-size="13" font-weight="700" fill="white" letter-spacing="1.2">BASECAMP</text>
+</svg>

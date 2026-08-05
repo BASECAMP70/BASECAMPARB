@@ -26,10 +26,10 @@ from openpyxl.utils import get_column_letter
 from timesheet import storage
 from timesheet import pdf as pdf_mod
 
-RECIPIENT    = "scott@basecampinc.ca"
+RECIPIENT     = "scott@basecampinc.ca"
 GDRIVE_FOLDER = r"Z:\My Drive\TIMESHEET"
 
-DATA_DIR  = Path(os.path.dirname(os.path.abspath(__file__))) / "timesheet" / "data"
+DATA_DIR = storage.DATA_DIR
 JSON_FILES = [
     "clients.json", "projects.json", "time_entries.json",
     "expenses.json", "invoices.json", "tasks.json",

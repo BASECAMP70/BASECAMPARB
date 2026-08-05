@@ -1,9 +1,10 @@
 import copy
 import json
+import os
 import uuid
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(os.environ.get("TIMESHEET_DATA", r"Z:\My Drive\TIMESHEET\data"))
 
 DEFAULTS = {
     "clients.json": [],

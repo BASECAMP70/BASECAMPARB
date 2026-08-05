@@ -1,0 +1,6 @@
+@echo off
+cd /d "%~dp0"
+echo Pulling latest updates...
+git pull
+echo Starting Timesheet...
+start /B python -m flask --app timesheet.app:create_app run --host 0.0.0.0 --port 5000

@@ -226,7 +226,7 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
   <input type="hidden" name="view" value="list">
   <div class="form-group" style="margin:0;min-width:160px;flex:1">
     <label>Project</label>
-    <select name="lf_project">
+    <select name="lf_project" onchange="this.form.submit()">
       <option value="">All projects</option>
       {% for p in projects %}
       {% set _par = project_map.get(p.get('parent_id')) if p.get('parent_id') else none %}
@@ -236,21 +236,20 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
   </div>
   <div class="form-group" style="margin:0">
     <label>From</label>
-    <input type="date" name="lf_from" value="{{ lf_from }}">
+    <input type="date" name="lf_from" value="{{ lf_from }}" onchange="this.form.submit()">
   </div>
   <div class="form-group" style="margin:0">
     <label>To</label>
-    <input type="date" name="lf_to" value="{{ lf_to }}">
+    <input type="date" name="lf_to" value="{{ lf_to }}" onchange="this.form.submit()">
   </div>
   <div class="form-group" style="margin:0;min-width:120px">
     <label>Status</label>
-    <select name="lf_invoiced">
+    <select name="lf_invoiced" onchange="this.form.submit()">
       <option value="" {{ 'selected' if lf_invoiced == '' }}>All</option>
       <option value="0" {{ 'selected' if lf_invoiced == '0' }}>Uninvoiced</option>
       <option value="1" {{ 'selected' if lf_invoiced == '1' }}>Invoiced</option>
     </select>
   </div>
-  <button class="btn btn-primary" type="submit">Filter</button>
   <a class="btn btn-secondary" href="/time?view=list">Clear</a>
 </form>
 

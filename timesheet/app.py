@@ -740,7 +740,7 @@ def create_app(config=None):
 
         # ── shared grid_json for popup modal (all entries keyed by project+date) ──
         def make_grid_json(entries, dates):
-            g = {p["id"]: {d.isoformat(): [] for d in dates} for p in active_projects}
+            g = {p["id"]: {d.isoformat(): [] for d in dates} for p in all_projects}
             for e in entries:
                 pid = e["project_id"]
                 if pid in g and e["date"] in g[pid]:
@@ -780,14 +780,14 @@ def create_app(config=None):
                       else f"{d0.strftime('%b')} {d0.day} – {d6.strftime('%b')} {d6.day}, {d6.year}")
         week_entries = [e for e in all_entries
                         if week_start.isoformat() <= e["date"] <= week_end.isoformat()]
-        grid = {p["id"]: {d.isoformat(): [] for d in week_dates} for p in active_projects}
+        grid = {p["id"]: {d.isoformat(): [] for d in week_dates} for p in all_projects}
         for e in week_entries:
             pid = e["project_id"]
             if pid in grid and e["date"] in grid[pid]:
                 grid[pid][e["date"]].append(e)
         row_totals = {p["id"]: round(
             sum(e["hours"] for d in week_dates for e in grid[p["id"]][d.isoformat()]), 2)
-            for p in active_projects}
+            for p in all_projects}
         daily_totals_week = {d.isoformat(): round(
             sum(e["hours"] for e in week_entries if e["date"] == d.isoformat()), 2)
             for d in week_dates}
@@ -803,7 +803,7 @@ def create_app(config=None):
         prev_day = (day_date - timedelta(days=1)).isoformat()
         next_day = (day_date + timedelta(days=1)).isoformat()
         day_entries_raw = [e for e in all_entries if e["date"] == day_date.isoformat()]
-        day_grid = {p["id"]: [] for p in active_projects}
+        day_grid = {p["id"]: [] for p in all_projects}
         for e in day_entries_raw:
             if e["project_id"] in day_grid:
                 day_grid[e["project_id"]].append(e)

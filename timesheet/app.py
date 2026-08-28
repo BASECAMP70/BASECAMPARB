@@ -836,9 +836,31 @@ def create_app(config=None):
                 daily_totals_month.get(e["date"], 0) + e["hours"], 2)
         month_total = round(sum(daily_totals_month.values()), 2)
 
+        # ── LIST ──────────────────────────────────────────────────────────────
+        lf_project  = request.args.get("lf_project", "")
+        lf_from     = request.args.get("lf_from", "")
+        lf_to       = request.args.get("lf_to", "")
+        lf_invoiced = request.args.get("lf_invoiced", "")
+        list_entries = list(all_entries)
+        if lf_project:
+            list_entries = [e for e in list_entries if e["project_id"] == lf_project]
+        if lf_from:
+            list_entries = [e for e in list_entries if e["date"] >= lf_from]
+        if lf_to:
+            list_entries = [e for e in list_entries if e["date"] <= lf_to]
+        if lf_invoiced == "0":
+            list_entries = [e for e in list_entries if not e.get("invoiced")]
+        elif lf_invoiced == "1":
+            list_entries = [e for e in list_entries if e.get("invoiced")]
+        list_entries = sorted(list_entries, key=lambda e: e["date"], reverse=True)
+        list_total_hours  = round(sum(e["hours"] for e in list_entries), 2)
+        list_total_amount = round(sum(
+            e["hours"] * e.get("rate", project_map.get(e.get("project_id",""), {}).get("rate", 0))
+            for e in list_entries), 2)
+
         return render_template("time.html",
                                view=view,
-                               projects=active_projects,
+                               projects=all_projects,
                                project_groups=project_groups,
                                project_map=project_map,
                                project_tasks=project_tasks,
@@ -871,7 +893,15 @@ def create_app(config=None):
                                daily_totals_month=daily_totals_month,
                                month_total=month_total,
                                m_year=m_year,
-                               m_month=m_month)
+                               m_month=m_month,
+                               # list
+                               list_entries=list_entries,
+                               list_total_hours=list_total_hours,
+                               list_total_amount=list_total_amount,
+                               lf_project=lf_project,
+                               lf_from=lf_from,
+                               lf_to=lf_to,
+                               lf_invoiced=lf_invoiced)
 
     def _week_redirect(date_str):
         """Redirect to the weekly view containing date_str."""

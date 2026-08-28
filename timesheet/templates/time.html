@@ -12,6 +12,8 @@
        href="/time?view=week&week={{ week_start.isoformat() }}">Week</a>
     <a class="time-tab{% if view == 'month' %} active{% endif %}"
        href="/time?view=month&month={{ '%04d-%02d'|format(m_year, m_month) }}">Month</a>
+    <a class="time-tab{% if view == 'list' %} active{% endif %}"
+       href="/time?view=list">List</a>
   </div>
 </div>
 
@@ -215,6 +217,95 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
     {% endfor %}
   </div>
 </div>
+
+{% elif view == 'list' %}
+{# ══════════════════════════════════════════════════════════════════════
+   LIST VIEW
+══════════════════════════════════════════════════════════════════════ #}
+<form method="get" style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:1rem">
+  <input type="hidden" name="view" value="list">
+  <div class="form-group" style="margin:0;min-width:160px;flex:1">
+    <label>Project</label>
+    <select name="lf_project">
+      <option value="">All projects</option>
+      {% for p in projects %}
+      {% set _par = project_map.get(p.get('parent_id')) if p.get('parent_id') else none %}
+      <option value="{{ p.id }}" {{ 'selected' if lf_project == p.id }}>{{ (_par.name ~ ' › ' ~ p.name) if _par else p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group" style="margin:0">
+    <label>From</label>
+    <input type="date" name="lf_from" value="{{ lf_from }}">
+  </div>
+  <div class="form-group" style="margin:0">
+    <label>To</label>
+    <input type="date" name="lf_to" value="{{ lf_to }}">
+  </div>
+  <div class="form-group" style="margin:0;min-width:120px">
+    <label>Status</label>
+    <select name="lf_invoiced">
+      <option value="" {{ 'selected' if lf_invoiced == '' }}>All</option>
+      <option value="0" {{ 'selected' if lf_invoiced == '0' }}>Uninvoiced</option>
+      <option value="1" {{ 'selected' if lf_invoiced == '1' }}>Invoiced</option>
+    </select>
+  </div>
+  <button class="btn btn-primary" type="submit">Filter</button>
+  <a class="btn btn-secondary" href="/time?view=list">Clear</a>
+</form>
+
+{% if list_entries %}
+<div style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden">
+<table>
+  <thead><tr>
+    <th>Date</th>
+    <th>Project</th>
+    <th>Description</th>
+    {% if settings.get('enable_tasks', True) %}<th>Task</th>{% endif %}
+    <th class="text-right">Hours</th>
+    <th class="text-right">Rate</th>
+    <th class="text-right">Amount</th>
+    <th></th>
+  </tr></thead>
+  <tbody>
+  {% for e in list_entries %}
+  {% set p = project_map.get(e.project_id, {}) %}
+  {% set _par = project_map.get(p.get('parent_id')) if p.get('parent_id') else none %}
+  {% set pname = (_par.name ~ ' › ' ~ p.name) if _par else p.get('name','—') %}
+  {% set rate = e.get('rate', p.get('rate', 0)) %}
+  <tr>
+    <td style="white-space:nowrap;color:#666">{{ e.date }}</td>
+    <td style="font-weight:600">{{ pname }}</td>
+    <td style="color:#333">{{ e.description or '—' }}</td>
+    {% if settings.get('enable_tasks', True) %}<td style="font-size:0.82rem;color:#888">{{ task_map.get(e.get('task_id',''), {}).get('name','—') }}</td>{% endif %}
+    <td class="text-right"><span class="hours-pill">{{ e.hours }}h</span></td>
+    <td class="text-right" style="color:#666;font-size:0.85rem">${{ "%.0f"|format(rate) }}/hr</td>
+    <td class="text-right" style="font-weight:600">${{ "%.2f"|format(e.hours * rate) }}</td>
+    <td style="text-align:right;white-space:nowrap">
+      {% if not e.invoiced %}
+      <a class="btn btn-sm btn-secondary" href="/time/{{ e.id }}/edit">Edit</a>
+      <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
+        <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+      </form>
+      {% else %}<span style="font-size:0.75rem;color:#aaa">Invoiced</span>{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr style="background:#f8f8f8;border-top:2px solid #e5e5e5">
+      <td colspan="{% if settings.get('enable_tasks', True) %}4{% else %}3{% endif %}" style="font-weight:700;padding:10px 12px">Total ({{ list_entries|length }} entries)</td>
+      <td class="text-right"><span class="row-total" style="background:#555">{{ list_total_hours }}h</span></td>
+      <td></td>
+      <td class="text-right" style="font-weight:700">${{ "%.2f"|format(list_total_amount) }}</td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+{% else %}
+<p class="text-muted" style="padding:2rem;text-align:center">No time entries match your filters.</p>
+{% endif %}
 
 {% else %}
 {# ══════════════════════════════════════════════════════════════════════

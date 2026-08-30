@@ -1,0 +1,448 @@
+/* ─── Reset & base ─────────────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; }
+a { text-decoration: none; }
+
+/* ─── Header ────────────────────────────────────────────────────────── */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px; background: #1a1d2e; border-bottom: 1px solid #2d3148;
+  position: sticky; top: 0; z-index: 10; gap: 16px;
+}
+.header-left  { display: flex; align-items: center; gap: 14px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.app-header h1 { font-size: 1rem; font-weight: 700; letter-spacing: 0.05em; color: #a78bfa; white-space: nowrap; }
+
+/* ─── WS Status indicator ───────────────────────────────────────────── */
+.ws-status { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; }
+.ws-dot    { font-size: 0.6rem; line-height: 1; }
+.ws-label  { font-weight: 600; }
+.ws-updated { color: #64748b; }
+
+.ws-live         .ws-dot   { color: #4ade80; }
+.ws-live         .ws-label { color: #4ade80; }
+.ws-connecting   .ws-dot   { color: #94a3b8; }
+.ws-connecting   .ws-label { color: #94a3b8; }
+.ws-reconnecting .ws-dot   { color: #fbbf24; }
+.ws-reconnecting .ws-label { color: #fbbf24; }
+
+/* ─── Bankroll input ────────────────────────────────────────────────── */
+.bankroll-label { font-size: 0.85rem; color: #94a3b8; white-space: nowrap; }
+.bankroll-input {
+  width: 80px; margin-left: 4px; padding: 2px 6px;
+  background: #2d3148; border: 1px solid #4a5568; border-radius: 4px;
+  color: #e2e8f0; font-size: 0.85rem;
+}
+.sound-toggle { background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 4px; }
+
+/* ─── Scraper start / stop button ──────────────────────────────────── */
+.scraper-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 5px; border: 1px solid;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.scraper-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.scraper-btn--running {
+  background: #0d1f18; border-color: #166534; color: #4ade80;
+}
+.scraper-btn--running:hover:not(:disabled) {
+  background: #1c1200; border-color: #78350f; color: #fbbf24;
+}
+
+.scraper-btn--stopped {
+  background: #1c0a0a; border-color: #7f1d1d; color: #f87171;
+}
+.scraper-btn--stopped:hover:not(:disabled) {
+  background: #0d1f18; border-color: #166534; color: #4ade80;
+}
+
+.email-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 5px; border: 1px solid;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.email-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.email-btn--active {
+  background: #0d1a2e; border-color: #1d4ed8; color: #93c5fd;
+}
+.email-btn--active:hover:not(:disabled) {
+  background: #1c1200; border-color: #78350f; color: #fbbf24;
+}
+
+.email-btn--paused {
+  background: #1c1a0d; border-color: #713f12; color: #fcd34d;
+}
+.email-btn--paused:hover:not(:disabled) {
+  background: #0d1a2e; border-color: #1d4ed8; color: #93c5fd;
+}
+
+/* ─── Alberta Sportsbooks panel ─────────────────────────────────────── */
+.book-section {
+  background: #13152a;
+  border-bottom: 1px solid #2d3148;
+  padding: 12px 20px 14px;
+}
+.book-section-header {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;
+}
+.book-section-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: #64748b; }
+.book-section-sub   { font-size: 0.68rem; color: #475569; }
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+@media (max-width: 900px) { .book-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 500px) { .book-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.book-card {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 6px; border: 1px solid #2d3148;
+  background: #1a1d2e; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.book-card:hover { background: #20243d; border-color: #4a5568; }
+
+/* Status-specific card colours */
+.book-card--ok    { border-color: #166534; background: #0d1f18; }
+.book-card--ok:hover { background: #0f2a1f; }
+.book-card--error { border-color: #7f1d1d; background: #1c0a0a; }
+.book-card--stale { border-color: #78350f; background: #1c1200; }
+
+/* Indicator dot */
+.book-card-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: #475569;
+}
+.book-card--ok    .book-card-dot { background: #4ade80; box-shadow: 0 0 6px #4ade8088; }
+.book-card--error .book-card-dot { background: #f87171; }
+.book-card--stale .book-card-dot { background: #fbbf24; }
+
+.book-card-body { min-width: 0; }
+.book-card-name {
+  font-size: 0.78rem; font-weight: 600; color: #e2e8f0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.book-card-meta { font-size: 0.68rem; color: #64748b; margin-top: 1px; }
+.book-card--ok    .book-card-meta { color: #86efac; }
+.book-card--error .book-card-meta { color: #fca5a5; }
+.book-card--stale .book-card-meta { color: #fcd34d; }
+.book-card--disabled { border-color: #2d3148; background: #10121f; opacity: 0.5; }
+
+.book-toggle-btn {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em;
+  padding: 2px 6px; border-radius: 4px; border: none; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.book-toggle-btn--on  { background: #166534; color: #4ade80; }
+.book-toggle-btn--on:hover  { background: #14532d; }
+.book-toggle-btn--off { background: #1e293b; color: #475569; }
+.book-toggle-btn--off:hover { background: #0f172a; }
+
+/* ─── Opportunities table ───────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left; padding: 8px 16px; font-size: 0.7rem; color: #64748b;
+  border-bottom: 1px solid #2d3148; text-transform: uppercase; letter-spacing: 0.06em;
+}
+td { padding: 10px 16px; border-bottom: 1px solid #1e2235; font-size: 0.875rem; vertical-align: top; }
+
+tr.opp-row { cursor: pointer; }
+tr.opp-row:hover { background: #1a1d2e; }
+tr.expanded-row  { background: #141628; }
+
+.td-sport  { white-space: nowrap; color: #94a3b8; font-size: 0.78rem; }
+.td-event  { font-weight: 500; }
+.game-date  { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
+.detected-at { font-size: 0.68rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; }
+.td-market { color: #94a3b8; font-size: 0.82rem; text-transform: capitalize; }
+.td-profit { white-space: nowrap; }
+.td-toggle { text-align: right; color: #475569; font-size: 0.75rem; padding-left: 4px; }
+
+/* ─── Profit badge ──────────────────────────────────────────────────── */
+.profit-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-weight: 700; font-size: 0.8rem; background: #14532d; color: #86efac;
+}
+
+/* ─── Bet instructions (always visible) ─────────────────────────────── */
+.bet-instructions { display: flex; flex-direction: column; gap: 3px; }
+
+.bet-leg {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.8rem; color: #cbd5e1;
+}
+.bet-book-name  { font-weight: 700; color: #a78bfa; white-space: nowrap; }
+.bet-sep        { color: #475569; font-size: 0.65rem; }
+.bet-selection  {
+  color: #e2e8f0; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bet-market-badge {
+  font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+  color: #64748b; border: 1px solid #334155;
+  padding: 0 5px; border-radius: 3px; white-space: nowrap;
+}
+.bet-amount  {
+  font-weight: 700; font-size: 0.85rem; color: #34d399;
+  background: #064e3b33; padding: 0 5px; border-radius: 3px;
+  white-space: nowrap;
+}
+.bet-odds    { color: #475569; font-size: 0.75rem; white-space: nowrap; }
+.bet-open-link {
+  font-size: 0.7rem; font-weight: 600; color: #38bdf8;
+  text-decoration: none; white-space: nowrap;
+  border: 1px solid #0ea5e933; padding: 0 5px; border-radius: 3px;
+  margin-left: auto;
+}
+.bet-open-link:hover { color: #7dd3fc; border-color: #38bdf8; background: #0ea5e910; }
+
+/* "Puck Line" / "Money Line" column label badge — what the sportsbook calls this market */
+.bet-column-badge {
+  font-size: 0.65rem; font-weight: 600;
+  color: #7dd3fc; border: 1px solid #0ea5e955;
+  padding: 0 5px; border-radius: 3px; white-space: nowrap;
+  cursor: help;
+}
+
+/* Scraped-at timestamp */
+.bet-scraped-at {
+  font-size: 0.65rem; color: #475569; white-space: nowrap; cursor: help;
+}
+
+.bet-profit-line {
+  font-size: 0.75rem; color: #4ade80; font-weight: 600;
+  margin-top: 2px; padding-left: 2px;
+}
+
+/* ─── Expanded detail / StakeCalculator ────────────────────────────── */
+.stake-calc { padding: 10px 20px 14px 40px; color: #94a3b8; font-size: 0.85rem; }
+.stake-row  {
+  display: flex; align-items: center; gap: 6px;
+  margin: 5px 0; font-size: 0.82rem;
+}
+.stake-book         { font-weight: 700; color: #a78bfa; white-space: nowrap; }
+.stake-arrow        { color: #475569; }
+.stake-selection    { color: #e2e8f0; font-weight: 600; flex: 1; }
+.stake-market-badge {
+  font-size: 0.62rem; font-weight: 600; text-transform: uppercase;
+  color: #64748b; border: 1px solid #334155;
+  padding: 0 4px; border-radius: 3px; white-space: nowrap;
+}
+.stake-meta         { color: #94a3b8; white-space: nowrap; }
+.stake-meta strong  { color: #34d399; }
+.stake-open-link {
+  font-size: 0.68rem; font-weight: 600; color: #38bdf8;
+  text-decoration: none; white-space: nowrap;
+  border: 1px solid #0ea5e933; padding: 0 5px; border-radius: 3px;
+}
+.stake-open-link:hover { color: #7dd3fc; border-color: #38bdf8; background: #0ea5e910; }
+.stake-scraped-at { font-size: 0.62rem; color: #475569; white-space: nowrap; cursor: help; }
+.stake-profit { margin-top: 8px; font-weight: 600; color: #86efac; }
+
+/* ─── Empty state ───────────────────────────────────────────────────── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 20px; gap: 8px; color: #475569;
+}
+.empty-icon  { font-size: 2.5rem; }
+.empty-title { font-size: 0.95rem; font-weight: 600; color: #64748b; }
+.empty-sub   { font-size: 0.8rem; }
+
+/* ─── Flash animation for new opportunities ─────────────────────────── */
+@keyframes flash-new {
+  0%   { background: #854d0e; }
+  100% { background: transparent; }
+}
+.new-flash { animation: flash-new 3s ease-out forwards; }
+
+/* ─── Mobile (≤ 640px) ───────────────────────────────────────────────── */
+@media (max-width: 640px) {
+
+  /* Header: wrap into two rows */
+  .app-header {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .header-left  { flex: 1 1 100%; }
+  .header-right { flex: 1 1 100%; justify-content: space-between; }
+  .app-header h1 { font-size: 0.88rem; }
+  .bankroll-label { font-size: 0.78rem; }
+  .bankroll-input { width: 64px; }
+
+  /* Book panel */
+  .book-section { padding: 10px 12px 12px; }
+
+  /* ── Opportunities: table → stacked cards ── */
+  table, thead, tbody, tr, td, th { display: block; width: 100%; box-sizing: border-box; }
+  thead { display: none; }
+
+  tr.opp-row {
+    background: #1a1d2e;
+    border: 1px solid #2d3148;
+    border-radius: 8px;
+    margin: 8px 12px 0;
+    padding: 10px 12px;
+    width: calc(100% - 24px);
+    cursor: pointer;
+  }
+  tr.opp-row:hover { background: #1e2240; }
+
+  /* Top meta line: sport + market inline */
+  .td-sport {
+    display: inline;
+    color: #64748b;
+    font-size: 0.7rem;
+    padding: 0;
+  }
+  .td-market {
+    display: inline;
+    color: #64748b;
+    font-size: 0.7rem;
+    padding: 0;
+    margin-left: 6px;
+    text-transform: capitalize;
+  }
+  .td-market::before { content: '· '; color: #334155; }
+
+  /* Event name */
+  .td-event {
+    font-size: 0.88rem;
+    padding: 3px 0 6px;
+    border-bottom: 1px solid #2d3148;
+  }
+
+  /* Profit badge */
+  .td-profit { padding: 6px 0 4px; }
+
+  /* Hide expand toggle — whole card is tappable */
+  .td-toggle { display: none; }
+
+  /* Bet instructions */
+  .td-bets { padding: 0; }
+
+  .bet-leg {
+    flex-wrap: wrap;
+    gap: 3px 6px;
+    padding: 5px 0;
+    border-bottom: 1px solid #1e2235;
+    align-items: baseline;
+  }
+  .bet-leg:last-of-type { border-bottom: none; }
+
+  /* Selection wraps to its own line */
+  .bet-selection {
+    flex: 1 1 100%;
+    font-size: 0.8rem;
+    white-space: normal;
+  }
+  .bet-scraped-at { display: none; }
+
+  .bet-profit-line { margin-top: 6px; font-size: 0.78rem; }
+
+  /* Expanded detail row */
+  tr.expanded-row {
+    background: #141628;
+    border: 1px solid #2d3148;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    margin: 0 12px 8px;
+    width: calc(100% - 24px);
+  }
+  tr.expanded-row td { padding: 0; }
+
+  /* Stake calculator on mobile */
+  .stake-calc { padding: 10px 12px 14px; }
+  .stake-row  { flex-wrap: wrap; gap: 4px; }
+  .stake-selection { flex: 1 1 100%; font-size: 0.8rem; white-space: normal; }
+  .stake-scraped-at { display: none; }
+}
+
+/* ─── Place Bets button ─────────────────────────────────────────────── */
+.td-action { white-space: nowrap; padding-right: 4px; }
+.place-bets-btn {
+  padding: 5px 12px; border-radius: 5px; border: none; cursor: pointer;
+  background: #22c55e; color: #0f1117; font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 0.02em; transition: background 0.15s, transform 0.1s;
+}
+.place-bets-btn:hover  { background: #16a34a; }
+.place-bets-btn:active { transform: scale(0.96); }
+
+/* ─── Bet Assistant panel ───────────────────────────────────────────── */
+.bet-assistant {
+  position: fixed; top: 72px; right: 16px; width: 360px; z-index: 200;
+  background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5); overflow: hidden;
+  font-size: 0.85rem;
+}
+
+.ba-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: #12142a; border-bottom: 1px solid #2d3148;
+}
+.ba-header-left  { display: flex; align-items: center; gap: 8px; }
+.ba-header-right { display: flex; align-items: center; gap: 8px; }
+.ba-title  { font-weight: 700; font-size: 0.9rem; color: #e2e8f0; }
+.ba-sport  { font-size: 0.75rem; color: #94a3b8; }
+.ba-profit { font-size: 0.8rem; }
+.ba-close  {
+  background: none; border: none; color: #64748b; cursor: pointer;
+  font-size: 1rem; line-height: 1; padding: 2px 4px; border-radius: 4px;
+}
+.ba-close:hover { color: #e2e8f0; background: #2d3148; }
+
+.ba-event {
+  padding: 10px 14px 8px; border-bottom: 1px solid #1e2236;
+}
+.ba-event-name { font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
+.ba-event-sub  { font-size: 0.75rem; color: #64748b; text-transform: capitalize; }
+
+.ba-stale-warning {
+  margin: 8px 14px; padding: 6px 10px; border-radius: 6px;
+  background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.3);
+  color: #fbbf24; font-size: 0.75rem;
+}
+
+.ba-legs { padding: 8px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+.ba-leg {
+  border: 1px solid #2d3148; border-radius: 8px; padding: 10px 12px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.ba-leg--done {
+  border-color: #22c55e; background: rgba(34,197,94,0.06);
+}
+.ba-leg-label {
+  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+}
+.ba-checkbox { margin-top: 2px; accent-color: #22c55e; width: 16px; height: 16px; flex-shrink: 0; }
+.ba-leg-body  { flex: 1; min-width: 0; }
+.ba-leg-top   { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.ba-leg-bottom { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ba-book-link {
+  font-weight: 700; color: #60a5fa; font-size: 0.82rem; text-decoration: none;
+}
+.ba-book-link:hover { text-decoration: underline; }
+.ba-leg-stake { font-weight: 700; color: #22c55e; font-size: 0.9rem; }
+.ba-leg-selection { color: #e2e8f0; font-size: 0.82rem; }
+.ba-leg-odds  { color: #94a3b8; font-size: 0.78rem; }
+.ba-scraped-at { display: block; font-size: 0.68rem; color: #475569; margin-top: 4px; }
+
+.ba-footer {
+  padding: 10px 14px; border-top: 1px solid #2d3148;
+  color: #94a3b8; font-size: 0.8rem; text-align: center;
+}
+.ba-footer--done {
+  color: #22c55e; background: rgba(34,197,94,0.07);
+}
+.ba-footer strong { color: #e2e8f0; }

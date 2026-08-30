@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Balance scale — classic arbitrage symbol -->
+  <rect x="22" y="8" width="4" height="28" rx="2" fill="#60a5fa"/>
+  <!-- Base -->
+  <rect x="14" y="36" width="20" height="4" rx="2" fill="#60a5fa"/>
+  <!-- Beam -->
+  <rect x="8" y="14" width="32" height="3" rx="1.5" fill="#3b82f6"/>
+  <!-- Left pan -->
+  <path d="M8 17 Q11 26 14 26 Q17 26 20 17" stroke="#22c55e" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Right pan (lower — heavier) -->
+  <path d="M28 17 Q31 28 34 28 Q37 28 40 17" stroke="#f59e0b" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Pan lines -->
+  <line x1="14" y1="17" x2="14" y2="26" stroke="#22c55e" stroke-width="1.5"/>
+  <line x1="20" y1="17" x2="20" y2="26" stroke="#22c55e" stroke-width="1.5"/>
+  <line x1="28" y1="17" x2="28" y2="28" stroke="#f59e0b" stroke-width="1.5"/>
+  <line x1="40" y1="17" x2="40" y2="28" stroke="#f59e0b" stroke-width="1.5"/>
+</svg>

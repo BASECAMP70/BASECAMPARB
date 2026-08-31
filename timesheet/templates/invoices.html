@@ -35,7 +35,7 @@
       {% for e in section.time_entries %}
       <tr>
         <td style="white-space:nowrap">{{ e.date }}</td>
-        <td>{{ e.description }}{% if e.get('task_id') and task_map.get(e.get('task_id')) %} <span class="text-muted">({{ task_map[e.task_id].name }})</span>{% endif %}</td>
+        <td>{{ section.display_name }}{% if e.description %} — {{ e.description }}{% endif %}{% if e.get('task_id') and task_map.get(e.get('task_id')) %} <span class="text-muted">({{ task_map[e.task_id].name }})</span>{% endif %}</td>
         <td style="white-space:nowrap">{{ e.hours }}</td><td style="white-space:nowrap">${{ e.get('rate', section.project.rate)|money }}/hr</td>
         <td class="text-right" style="white-space:nowrap">${{ (e.hours * e.get('rate', section.project.rate))|money }}</td>
       </tr>

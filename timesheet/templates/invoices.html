@@ -34,7 +34,7 @@
       {% set row_colors = ['#eef2ff','#edfaf4','#fff4e8','#f5eeff','#e8f7ff','#fdf8e8'] %}
       {% for section in time_preview.sections %}
       {% set dname = section.display_name if section.display_name else section.project.name %}
-      {% set ci = loop.index0 % 6 %}
+      {% set ci = section.color_index if section.color_index is defined else loop.index0 % 6 %}
       <tr><td colspan="5" style="background:{{ hdr_colors[ci] }};font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#444;padding:6px 12px;border-top:2px solid #ddd">{{ dname }}</td></tr>
       {% for e in section.time_entries %}
       <tr style="background:{{ row_colors[ci] }}">

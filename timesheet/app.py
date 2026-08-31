@@ -1199,7 +1199,8 @@ def create_app(config=None):
         expense_preview = None
         if client_id:
             client = client_map.get(client_id)
-            client_projects = [p for p in projects if p.get("client_id") == client_id]
+            _client_top_ids = {p["id"] for p in projects if p.get("client_id") == client_id}
+            client_projects = [p for p in projects if p.get("client_id") == client_id or p.get("parent_id") in _client_top_ids]
             settings_data = storage.load_settings()
             gst_rate = settings_data.get("gst_rate", 0.05)
 
@@ -1264,7 +1265,8 @@ def create_app(config=None):
 
         projects = storage.load_projects()
         project_map_inv = {p["id"]: p for p in projects}
-        client_projects = [p for p in projects if p.get("client_id") == client_id]
+        _client_top_ids = {p["id"] for p in projects if p.get("client_id") == client_id}
+        client_projects = [p for p in projects if p.get("client_id") == client_id or p.get("parent_id") in _client_top_ids]
 
         all_entries = storage.load_time_entries()
         all_expenses = storage.load_expenses()

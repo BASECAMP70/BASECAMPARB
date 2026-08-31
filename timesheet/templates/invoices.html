@@ -27,11 +27,11 @@
   {% if time_preview %}
   <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #eee">
     <h3 style="margin-bottom:1rem">Time Invoice — {{ time_preview.client.name }}</h3>
-    {% for section in time_preview.sections %}
-    <h4 style="margin:1rem 0 0.5rem;color:#555;font-size:0.9rem;text-transform:uppercase;letter-spacing:.04em">{{ section.project.name }}</h4>
     <table style="margin-bottom:0.75rem">
       <thead><tr><th>Date</th><th>Description</th><th>Hours</th><th>Rate</th><th class="text-right">Amount</th></tr></thead>
       <tbody>
+      {% for section in time_preview.sections %}
+      <tr><td colspan="5" style="background:#f5f5f5;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#555;padding:6px 12px">{{ section.display_name }}</td></tr>
       {% for e in section.time_entries %}
       <tr>
         <td>{{ e.date }}</td><td>{{ e.description }}</td>
@@ -39,9 +39,9 @@
         <td class="text-right">${{ (e.hours * e.get('rate', section.project.rate))|money }}</td>
       </tr>
       {% endfor %}
+      {% endfor %}
       </tbody>
     </table>
-    {% endfor %}
     <table style="width:280px;margin-left:auto;margin-top:0.75rem">
       <tr><td>Subtotal</td><td class="text-right">${{ time_preview.subtotal|money }}</td></tr>
       <tr><td>GST</td><td class="text-right">${{ time_preview.gst|money }}</td></tr>

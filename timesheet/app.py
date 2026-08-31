@@ -1210,7 +1210,9 @@ def create_app(config=None):
                     [e for e in all_entries if e["project_id"] == p["id"] and not e["invoiced"]],
                     key=lambda e: e["date"])
                 if time_entries:
-                    time_sections.append({"project": p, "time_entries": time_entries})
+                    parent_p = project_map.get(p.get("parent_id")) if p.get("parent_id") else None
+                    display_name = f"{parent_p['name']} › {p['name']}" if parent_p else p["name"]
+                    time_sections.append({"project": p, "display_name": display_name, "time_entries": time_entries})
             if time_sections:
                 subtotal = round(
                     sum(sum(e["hours"] * e.get("rate", s["project"]["rate"]) for e in s["time_entries"])

@@ -30,11 +30,14 @@
     <table style="margin-bottom:0.75rem">
       <thead><tr><th style="white-space:nowrap">Date</th><th style="width:99%">Description</th><th style="white-space:nowrap">Hours</th><th style="white-space:nowrap">Rate</th><th class="text-right" style="white-space:nowrap">Amount</th></tr></thead>
       <tbody>
+      {% set hdr_colors = ['#d8e4ff','#d0f0e0','#fde8cc','#ead8f5','#cceeff','#f5edcc'] %}
+      {% set row_colors = ['#eef2ff','#edfaf4','#fff4e8','#f5eeff','#e8f7ff','#fdf8e8'] %}
       {% for section in time_preview.sections %}
       {% set dname = section.display_name if section.display_name else section.project.name %}
-      <tr><td colspan="5" style="background:#f5f5f5;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#555;padding:6px 12px">{{ dname }}</td></tr>
+      {% set ci = loop.index0 % 6 %}
+      <tr><td colspan="5" style="background:{{ hdr_colors[ci] }};font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#444;padding:6px 12px;border-top:2px solid #ddd">{{ dname }}</td></tr>
       {% for e in section.time_entries %}
-      <tr>
+      <tr style="background:{{ row_colors[ci] }}">
         <td style="white-space:nowrap">{{ e.date }}</td>
         <td>{{ dname }}{% if e.description | trim %} — {{ e.description | trim }}{% endif %}{% if e.get('task_id') and task_map.get(e.get('task_id')) %} <span class="text-muted">({{ task_map[e.task_id].name }})</span>{% endif %}</td>
         <td style="white-space:nowrap">{{ e.hours }}</td><td style="white-space:nowrap">${{ e.get('rate', section.project.rate)|money }}/hr</td>

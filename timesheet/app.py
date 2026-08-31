@@ -1242,10 +1242,11 @@ def create_app(config=None):
                     "total": round(subtotal + gst, 2),
                 }
 
+        task_map = {t["id"]: t for t in storage.load_tasks()}
         return render_template("invoices.html", clients=all_clients, client_map=client_map,
                                project_map=project_map, invoices=all_invoices,
                                time_preview=time_preview, expense_preview=expense_preview,
-                               selected_client=client_id)
+                               selected_client=client_id, task_map=task_map)
 
     @app.route("/invoices/generate", methods=["POST"])
     def invoices_generate():

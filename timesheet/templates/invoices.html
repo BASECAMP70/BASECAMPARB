@@ -28,15 +28,16 @@
   <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #eee">
     <h3 style="margin-bottom:1rem">Time Invoice — {{ time_preview.client.name }}</h3>
     <table style="margin-bottom:0.75rem">
-      <thead><tr><th>Date</th><th>Description</th><th>Hours</th><th>Rate</th><th class="text-right">Amount</th></tr></thead>
+      <thead><tr><th style="white-space:nowrap">Date</th><th style="width:99%">Description</th><th style="white-space:nowrap">Hours</th><th style="white-space:nowrap">Rate</th><th class="text-right" style="white-space:nowrap">Amount</th></tr></thead>
       <tbody>
       {% for section in time_preview.sections %}
       <tr><td colspan="5" style="background:#f5f5f5;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#555;padding:6px 12px">{{ section.display_name }}</td></tr>
       {% for e in section.time_entries %}
       <tr>
-        <td>{{ e.date }}</td><td>{{ e.description }}</td>
-        <td>{{ e.hours }}</td><td>${{ e.get('rate', section.project.rate)|money }}/hr</td>
-        <td class="text-right">${{ (e.hours * e.get('rate', section.project.rate))|money }}</td>
+        <td style="white-space:nowrap">{{ e.date }}</td>
+        <td>{{ e.description }}{% if e.get('task_id') and task_map.get(e.get('task_id')) %} <span class="text-muted">({{ task_map[e.task_id].name }})</span>{% endif %}</td>
+        <td style="white-space:nowrap">{{ e.hours }}</td><td style="white-space:nowrap">${{ e.get('rate', section.project.rate)|money }}/hr</td>
+        <td class="text-right" style="white-space:nowrap">${{ (e.hours * e.get('rate', section.project.rate))|money }}</td>
       </tr>
       {% endfor %}
       {% endfor %}

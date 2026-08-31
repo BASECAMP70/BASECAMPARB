@@ -419,15 +419,10 @@ def create_app(config=None):
             if p["id"] not in ordered_ids:
                 ordered_projects.append(p)
 
-        # Display status: sub-projects appear in their parent's tab
+        # Display status: each project uses its own status
         project_display_status = {}
         for p in ordered_projects:
-            natural = p.get("status", "active" if p.get("active", True) else "complete")
-            if p.get("parent_id"):
-                parent = project_map.get(p["parent_id"])
-                project_display_status[p["id"]] = parent.get("status", "active" if parent.get("active", True) else "complete") if parent else natural
-            else:
-                project_display_status[p["id"]] = natural
+            project_display_status[p["id"]] = p.get("status", "active" if p.get("active", True) else "complete")
 
         return render_template("projects.html",
             projects=ordered_projects,

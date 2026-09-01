@@ -14,60 +14,102 @@
 <div id="create-invoice">
 <div class="card">
   <h2>Generate Invoice</h2>
-  <form method="get">
-    <div class="form-group" style="margin:0;max-width:360px">
-      <label>Select Client</label>
-      <select name="client_id" onchange="this.form.submit()">
-        <option value="">— select client —</option>
-        {% for c in clients %}<option value="{{ c.id }}" {{ 'selected' if c.id == selected_client }}>{{ c.name }}</option>{% endfor %}
-      </select>
+  <form method="get" id="preview-filter-form">
+    <div style="display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap">
+      <div class="form-group" style="margin:0;min-width:200px">
+        <label>Select Client</label>
+        <select name="client_id" onchange="this.form.submit()">
+          <option value="">— select client —</option>
+          {% for c in clients %}<option value="{{ c.id }}" {{ 'selected' if c.id == selected_client }}>{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      {% if selected_client %}
+      <div class="form-group" style="margin:0">
+        <label>From</label>
+        <input type="date" name="date_from" value="{{ date_from }}" onchange="this.form.submit()">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>To</label>
+        <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()">
+      </div>
+      {% endif %}
     </div>
   </form>
 
   {% if time_preview %}
   <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #eee">
     <h3 style="margin-bottom:1rem">Time Invoice — {{ time_preview.client.name }}</h3>
-    <table style="margin-bottom:0.75rem">
-      <thead><tr><th style="white-space:nowrap">Date</th><th style="width:99%">Description</th><th style="white-space:nowrap">Hours</th><th style="white-space:nowrap">Rate</th><th class="text-right" style="white-space:nowrap">Amount</th></tr></thead>
-      <tbody>
-      {% for section in time_preview.sections %}
-      {% set dname = section.display_name if section.display_name else section.project.name %}
-      <tr><td colspan="5" style="background:#e8e8e8;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#444;padding:6px 12px;border-top:2px solid #ccc">{{ dname }}</td></tr>
-      {% for e in section.time_entries %}
-      <tr style="background:#f7f7f7">
-        <td style="white-space:nowrap">{{ e.date }}</td>
-        <td>{{ dname }}{% if e.description | trim %} — {{ e.description | trim }}{% endif %}{% if e.get('task_id') and task_map.get(e.get('task_id')) %} <span class="text-muted">({{ task_map[e.task_id].name }})</span>{% endif %}</td>
-        <td style="white-space:nowrap">{{ e.hours }}</td><td style="white-space:nowrap">${{ e.get('rate', section.project.rate)|money }}/hr</td>
-        <td class="text-right" style="white-space:nowrap">${{ (e.hours * e.get('rate', section.project.rate))|money }}</td>
-      </tr>
-      {% endfor %}
-      {% endfor %}
-      </tbody>
-    </table>
-    <table style="width:280px;margin-left:auto;margin-top:0.75rem">
-      <tr><td>Subtotal</td><td class="text-right">${{ time_preview.subtotal|money }}</td></tr>
-      <tr><td>GST</td><td class="text-right">${{ time_preview.gst|money }}</td></tr>
-      <tr style="font-weight:700"><td>Total (CAD)</td><td class="text-right">${{ time_preview.total|money }}</td></tr>
-    </table>
-    <form method="post" action="/invoices/generate" style="margin-top:1rem;display:flex;align-items:center;gap:1rem">
+    <form method="post" action="/invoices/generate" id="generate-form">
       <input type="hidden" name="client_id" value="{{ selected_client }}">
-      <div>
-        <div style="font-size:0.85rem;font-weight:600;color:#555;margin-bottom:0.4rem">Invoice Detail</div>
-        <div style="display:flex;gap:1.5rem">
-          <label style="font-weight:normal;display:flex;align-items:center;gap:0.35rem;cursor:pointer">
-            <input type="radio" name="detail_level" value="detailed" style="margin:0"> Detailed
-          </label>
-          <label style="font-weight:normal;display:flex;align-items:center;gap:0.35rem;cursor:pointer">
-            <input type="radio" name="detail_level" value="summary" checked style="margin:0"> Summary
-          </label>
+      <input type="hidden" name="date_from" value="{{ date_from }}">
+      <input type="hidden" name="date_to" value="{{ date_to }}">
+      <table style="margin-bottom:0.75rem">
+        <thead><tr><th style="white-space:nowrap">Date</th><th style="width:99%">Description</th><th style="white-space:nowrap">Hours</th><th style="white-space:nowrap">Rate</th><th class="text-right" style="white-space:nowrap">Amount</th></tr></thead>
+        <tbody>
+        {% for section in time_preview.sections %}
+        {% set dname = section.display_name if section.display_name else section.project.name %}
+        <tr>
+          <td colspan="5" style="background:#e8e8e8;padding:0;border-top:2px solid #ccc">
+            <label style="display:flex;align-items:center;gap:0.5rem;padding:6px 12px;cursor:pointer;margin:0">
+              <input type="checkbox" name="project_ids" value="{{ section.project.id }}" checked
+                     onchange="updatePreviewTotals()" style="width:auto;margin:0">
+              <span style="font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#444">{{ dname }}</span>
+            </label>
+          </td>
+        </tr>
+        {% for e in section.time_entries %}
+        {% set eamt = e.hours * e.get('rate', section.project.rate) %}
+        <tr class="proj-entry-row" data-project="{{ section.project.id }}" data-amount="{{ eamt }}" style="background:#f7f7f7">
+          <td style="white-space:nowrap">{{ e.date }}</td>
+          <td>{{ dname }}{% if e.description | trim %} — {{ e.description | trim }}{% endif %}{% if e.get('task_id') and task_map.get(e.get('task_id')) %} <span class="text-muted">({{ task_map[e.task_id].name }})</span>{% endif %}</td>
+          <td style="white-space:nowrap">{{ e.hours }}</td><td style="white-space:nowrap">${{ e.get('rate', section.project.rate)|money }}/hr</td>
+          <td class="text-right" style="white-space:nowrap">${{ eamt|money }}</td>
+        </tr>
+        {% endfor %}
+        {% endfor %}
+        </tbody>
+      </table>
+      <table style="width:280px;margin-left:auto;margin-top:0.75rem">
+        <tr><td>Subtotal</td><td class="text-right" id="inv-subtotal">${{ time_preview.subtotal|money }}</td></tr>
+        <tr><td>GST</td><td class="text-right" id="inv-gst">${{ time_preview.gst|money }}</td></tr>
+        <tr style="font-weight:700"><td>Total (CAD)</td><td class="text-right" id="inv-total">${{ time_preview.total|money }}</td></tr>
+      </table>
+      <div style="margin-top:1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <div>
+          <div style="font-size:0.85rem;font-weight:600;color:#555;margin-bottom:0.4rem">Invoice Detail</div>
+          <div style="display:flex;gap:1.5rem">
+            <label style="font-weight:normal;display:flex;align-items:center;gap:0.35rem;cursor:pointer">
+              <input type="radio" name="detail_level" value="detailed" style="margin:0"> Detailed
+            </label>
+            <label style="font-weight:normal;display:flex;align-items:center;gap:0.35rem;cursor:pointer">
+              <input type="radio" name="detail_level" value="summary" checked style="margin:0"> Summary
+            </label>
+          </div>
         </div>
+        <button class="btn btn-primary" type="submit" style="align-self:flex-end">Generate Time Invoice</button>
       </div>
-      <button class="btn btn-primary" type="submit" style="align-self:flex-end">Generate Time Invoice</button>
     </form>
   </div>
   {% elif selected_client %}
   <p class="text-muted" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #eee">No uninvoiced time entries for this client.</p>
   {% endif %}
+  <script>
+  const GST_RATE = {{ gst_rate }};
+  function updatePreviewTotals() {
+    const checked = new Set([...document.querySelectorAll('input[name="project_ids"]:checked')].map(cb => cb.value));
+    let sub = 0;
+    document.querySelectorAll('.proj-entry-row').forEach(row => {
+      const show = checked.has(row.dataset.project);
+      row.style.display = show ? '' : 'none';
+      if (show) sub += parseFloat(row.dataset.amount || 0);
+    });
+    const gst = sub * GST_RATE;
+    const fmt = n => '$' + n.toLocaleString('en-CA', {minimumFractionDigits:2, maximumFractionDigits:2});
+    document.getElementById('inv-subtotal').textContent = fmt(sub);
+    document.getElementById('inv-gst').textContent = fmt(gst);
+    document.getElementById('inv-total').textContent = fmt(sub + gst);
+  }
+  </script>
 
   {% if expense_preview %}
   <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #eee">

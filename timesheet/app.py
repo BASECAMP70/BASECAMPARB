@@ -1192,6 +1192,8 @@ def create_app(config=None):
 
         time_preview = None
         expense_preview = None
+        date_from = request.args.get("date_from", "")
+        date_to   = request.args.get("date_to", "")
         if client_id:
             client = client_map.get(client_id)
             _client_top_ids = {p["id"] for p in projects if p.get("client_id") == client_id}
@@ -1203,7 +1205,9 @@ def create_app(config=None):
             time_sections = []
             for p in client_projects:
                 time_entries = sorted(
-                    [e for e in all_entries if e["project_id"] == p["id"] and not e["invoiced"]],
+                    [e for e in all_entries if e["project_id"] == p["id"] and not e["invoiced"]
+                     and (not date_from or e["date"] >= date_from)
+                     and (not date_to or e["date"] <= date_to)],
                     key=lambda e: e["date"])
                 if time_entries:
                     parent_p = project_map.get(p.get("parent_id")) if p.get("parent_id") else None
@@ -1243,7 +1247,9 @@ def create_app(config=None):
         return render_template("invoices.html", clients=all_clients, client_map=client_map,
                                project_map=project_map, invoices=all_invoices,
                                time_preview=time_preview, expense_preview=expense_preview,
-                               selected_client=client_id, task_map=task_map)
+                               selected_client=client_id, task_map=task_map,
+                               date_from=date_from, date_to=date_to,
+                               gst_rate=settings_data.get("gst_rate", 0.05) if client_id else 0.05)
 
     @app.route("/invoices/generate", methods=["POST"])
     def invoices_generate():
@@ -1251,6 +1257,9 @@ def create_app(config=None):
         expense_pdf_dir = storage.DATA_DIR / "expense_pdfs"
         client_id = request.form["client_id"]
         detail_level = request.form.get("detail_level", "detailed")
+        selected_project_ids = set(request.form.getlist("project_ids"))
+        gen_date_from = request.form.get("date_from", "")
+        gen_date_to   = request.form.get("date_to", "")
         settings_data = storage.load_settings()
         all_clients = storage.load_clients()
         client_map = {c["id"]: c for c in all_clients}
@@ -1263,6 +1272,8 @@ def create_app(config=None):
         project_map_inv = {p["id"]: p for p in projects}
         _client_top_ids = {p["id"] for p in projects if p.get("client_id") == client_id}
         client_projects = [p for p in projects if p.get("client_id") == client_id or p.get("parent_id") in _client_top_ids]
+        if selected_project_ids:
+            client_projects = [p for p in client_projects if p["id"] in selected_project_ids]
 
         all_entries = storage.load_time_entries()
         all_expenses = storage.load_expenses()
@@ -1275,7 +1286,9 @@ def create_app(config=None):
             parent_p = project_map_inv.get(p.get("parent_id")) if p.get("parent_id") else None
             project_display_name = f"{parent_p['name']} › {p['name']}" if parent_p else p["name"]
             uninvoiced_time = sorted(
-                [e for e in all_entries if e["project_id"] == p["id"] and not e["invoiced"]],
+                [e for e in all_entries if e["project_id"] == p["id"] and not e["invoiced"]
+                 and (not gen_date_from or e["date"] >= gen_date_from)
+                 and (not gen_date_to or e["date"] <= gen_date_to)],
                 key=lambda e: e["date"])
 
             if not uninvoiced_time:

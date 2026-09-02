@@ -117,34 +117,59 @@
     <form method="post" action="/invoices/generate-expense">
       <input type="hidden" name="client_id" value="{{ selected_client }}">
       <table id="exp-table" style="margin-bottom:0.75rem">
-        <thead><tr><th>Date</th><th>Description</th><th class="text-right">Amount</th><th style="text-align:center;white-space:nowrap">GST</th></tr></thead>
+        <thead><tr><th style="width:32px"></th><th>Date</th><th>Description</th><th class="text-right">Amount</th><th style="text-align:center;white-space:nowrap">GST</th></tr></thead>
         <tbody>
         {% for x in expense_preview.expenses %}
-        <tr>
+        <tr class="exp-entry-row" data-amount="{{ x.amount }}" data-has-gst="{{ 'true' if x.get('gst', True) else 'false' }}">
+          <td style="text-align:center;padding:6px 8px">
+            <input type="checkbox" name="expense_ids" value="{{ x.id }}" checked
+                   onchange="updateExpenseTotals()" style="width:auto;margin:0">
+          </td>
           <td>{{ x.date }}</td>
           <td>
             {{ x.description }}
             {% if x.pdf_filename %}<span class="text-muted" style="font-size:0.8rem;margin-left:6px">&#128206; receipt attached</span>{% endif %}
           </td>
-          <td class="text-right" data-amount="{{ x.amount }}">${{ x.amount|money }}</td>
+          <td class="text-right">${{ x.amount|money }}</td>
           <td style="text-align:center;color:#888;font-size:0.85rem">{{ '✓' if x.get('gst', True) else '—' }}</td>
         </tr>
         {% endfor %}
         </tbody>
       </table>
       <table style="width:280px;margin-left:auto;margin-top:0.75rem">
-        <tr><td>Subtotal</td><td class="text-right">${{ expense_preview.subtotal|money }}</td></tr>
+        <tr><td>Subtotal</td><td class="text-right" id="exp-subtotal">${{ expense_preview.subtotal|money }}</td></tr>
         <tr><td>GST</td><td class="text-right" id="exp-gst">${{ expense_preview.gst|money }}</td></tr>
         <tr style="font-weight:700"><td>Total (CAD)</td><td class="text-right" id="exp-total">${{ expense_preview.total|money }}</td></tr>
       </table>
-      {% if expense_preview.receipt_count > 0 %}
-      <p class="text-muted" style="margin-top:0.75rem;font-size:0.85rem">
+      <p class="text-muted" id="exp-receipt-note" style="margin-top:0.75rem;font-size:0.85rem">
+        {% if expense_preview.receipt_count > 0 %}
         {{ expense_preview.receipt_count }} receipt PDF{{ 's' if expense_preview.receipt_count != 1 }} will be appended to the invoice.
+        {% endif %}
       </p>
-      {% endif %}
-      <button class="btn btn-primary" type="submit" style="margin-top:1rem">Generate Expense Invoice</button>
+      <button class="btn btn-primary" type="submit" style="margin-top:0.5rem">Generate Expense Invoice</button>
     </form>
   </div>
+  <script>
+  function updateExpenseTotals() {
+    const GST = typeof GST_RATE !== 'undefined' ? GST_RATE : {{ gst_rate }};
+    let sub = 0, gst = 0, receipts = 0;
+    document.querySelectorAll('.exp-entry-row').forEach(row => {
+      const cb = row.querySelector('input[name="expense_ids"]');
+      const show = cb && cb.checked;
+      row.style.display = show ? '' : 'none';
+      if (show) {
+        const amt = parseFloat(row.dataset.amount || 0);
+        sub += amt;
+        if (row.dataset.hasGst === 'true') gst += amt * GST;
+        if (row.querySelector('.text-muted')) receipts++;
+      }
+    });
+    const fmt = n => '$​' + n.toLocaleString('en-CA', {minimumFractionDigits:2, maximumFractionDigits:2});
+    document.getElementById('exp-subtotal').textContent = fmt(sub);
+    document.getElementById('exp-gst').textContent = fmt(Math.round(gst * 100) / 100);
+    document.getElementById('exp-total').textContent = fmt(Math.round((sub + gst) * 100) / 100);
+  }
+  </script>
   {% elif selected_client %}
   <p class="text-muted" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #eee">No uninvoiced expenses for this client.</p>
   {% endif %}

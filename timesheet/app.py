@@ -1390,8 +1390,10 @@ def create_app(config=None):
             return redirect(url_for("invoices"))
 
         all_expenses = storage.load_expenses()
+        selected_expense_ids = set(request.form.getlist("expense_ids"))
         uninvoiced_exp = sorted(
-            [x for x in all_expenses if x.get("client_id") == client_id and not x["invoiced"]],
+            [x for x in all_expenses if x.get("client_id") == client_id and not x["invoiced"]
+             and (not selected_expense_ids or x["id"] in selected_expense_ids)],
             key=lambda x: x["date"])
 
         if not uninvoiced_exp:

@@ -161,10 +161,10 @@ def build_data_zip(all_expenses, excel_bytes=None):
             rel = src_file.relative_to(app_root)
             zf.write(src_file, f"app/{rel}")
 
-        # Top-level scripts and setup files
+        # Top-level scripts and setup files (skip .bat — Gmail blocks them)
         for name in TOP_LEVEL_FILES:
             p = app_root / name
-            if p.exists():
+            if p.exists() and not name.endswith(".bat"):
                 zf.write(p, f"app/{name}")
 
         # Expense receipt PDFs — rename from UUID to readable name
@@ -231,21 +231,31 @@ def send_backup():
 
     zip_name = f"timesheet-backup-{today}.zip"
 
+    excel_name = f"timesheet-backup-{today}.xlsx"
+
     msg = MIMEMultipart()
     msg["From"]    = smtp_user
     msg["To"]      = RECIPIENT
     msg["Subject"] = subject
     msg.attach(MIMEText(
-        f"Weekly timesheet backup attached.\n\nContents of {zip_name}:\n"
-        f"  timesheet-backup-{today}.xlsx — Excel export (Time, Expenses, Invoices)\n"
-        f"  data/                         — JSON data files\n"
-        f"  expense_receipts/             — expense receipt PDFs\n"
-        f"  invoices/                     — invoice PDFs\n"
-        f"  app/                          — app source code (templates, Python, static files)",
+        f"Weekly timesheet backup — {today}\n\n"
+        f"Attached: Excel export (Time, Expenses, Invoices tabs)\n\n"
+        f"Full backup (JSON data, PDFs, app source) saved to Google Drive:\n"
+        f"  {GDRIVE_FOLDER}\\{zip_name}",
         "plain"
     ))
 
-    attach(msg, zip_bytes, zip_name)
+    # Attach Excel only — Gmail blocks ZIPs containing scripts
+    attach(msg, excel_bytes, excel_name,
+           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    # Copy full ZIP to Google Drive first — always saved even if email fails
+    folder = Path(GDRIVE_FOLDER)
+    try:
+        (folder / zip_name).write_bytes(zip_bytes)
+        print(f"Copied to Google Drive: {folder / zip_name}")
+    except Exception as e:
+        print(f"WARNING: Google Drive copy failed for {zip_name}: {e}")
 
     print("Sending email...")
     with smtplib.SMTP(smtp_host, smtp_port) as server:
@@ -256,15 +266,6 @@ def send_backup():
         server.sendmail(smtp_user, RECIPIENT, msg.as_string())
 
     print(f"Backup sent to {RECIPIENT} — subject: {subject}")
-
-    # Copy all three to Google Drive
-    folder = Path(GDRIVE_FOLDER)
-    for data, name in [(zip_bytes, zip_name)]:
-        try:
-            (folder / name).write_bytes(data)
-            print(f"Copied to Google Drive: {folder / name}")
-        except Exception as e:
-            print(f"WARNING: Google Drive copy failed for {name}: {e}")
 
 
 if __name__ == "__main__":

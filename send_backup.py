@@ -125,12 +125,18 @@ def build_time_csv(all_entries):
 
 
 def build_data_zip(all_expenses, excel_bytes=None):
-    """ZIP containing: JSON data files, expense receipt PDFs, generated invoice PDFs."""
+    """ZIP containing: JSON data files, expense receipt PDFs, generated invoice PDFs, app source."""
     from timesheet.app import create_app
     app = create_app()
     settings_data = storage.load_settings()
     expense_pdf_dir = DATA_DIR / "expense_pdfs"
     clients = {c["id"]: c for c in storage.load_clients()}
+
+    app_root = Path(os.path.dirname(os.path.abspath(__file__)))
+    SKIP_APP_DIRS = {"__pycache__", "data", "expense_pdfs", "invoice_logos", "app_logos"}
+
+    # Top-level files to include in backup
+    TOP_LEVEL_FILES = ["send_backup.py", "start_timesheet.bat", "SETUP.bat", "SETUP.md"]
 
     buf = BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -144,6 +150,22 @@ def build_data_zip(all_expenses, excel_bytes=None):
             path = DATA_DIR / name
             if path.exists():
                 zf.write(path, f"data/{name}")
+
+        # App source code — timesheet/ package (templates, static, Python files)
+        timesheet_dir = app_root / "timesheet"
+        for src_file in timesheet_dir.rglob("*"):
+            if not src_file.is_file():
+                continue
+            if any(part in SKIP_APP_DIRS for part in src_file.relative_to(app_root).parts):
+                continue
+            rel = src_file.relative_to(app_root)
+            zf.write(src_file, f"app/{rel}")
+
+        # Top-level scripts and setup files
+        for name in TOP_LEVEL_FILES:
+            p = app_root / name
+            if p.exists():
+                zf.write(p, f"app/{name}")
 
         # Expense receipt PDFs — rename from UUID to readable name
         for x in all_expenses:
@@ -218,7 +240,8 @@ def send_backup():
         f"  timesheet-backup-{today}.xlsx — Excel export (Time, Expenses, Invoices)\n"
         f"  data/                         — JSON data files\n"
         f"  expense_receipts/             — expense receipt PDFs\n"
-        f"  invoices/                     — invoice PDFs",
+        f"  invoices/                     — invoice PDFs\n"
+        f"  app/                          — app source code (templates, Python, static files)",
         "plain"
     ))
 

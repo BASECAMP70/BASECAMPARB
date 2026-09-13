@@ -29,6 +29,7 @@ from timesheet import pdf as pdf_mod
 RECIPIENT     = "scott@basecampinc.ca"
 GDRIVE_FOLDER = r"Z:\My Drive\TIMESHEET"
 
+APP_ROOT = Path(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = storage.DATA_DIR
 JSON_FILES = [
     "clients.json", "projects.json", "time_entries.json",
@@ -132,7 +133,7 @@ def build_data_zip(all_expenses, excel_bytes=None):
     expense_pdf_dir = DATA_DIR / "expense_pdfs"
     clients = {c["id"]: c for c in storage.load_clients()}
 
-    app_root = Path(os.path.dirname(os.path.abspath(__file__)))
+    app_root = APP_ROOT
     SKIP_APP_DIRS = {"__pycache__", "data", "expense_pdfs", "invoice_logos", "app_logos"}
 
     # Top-level files to include in backup
@@ -239,15 +240,25 @@ def send_backup():
     msg["Subject"] = subject
     msg.attach(MIMEText(
         f"Weekly timesheet backup — {today}\n\n"
-        f"Attached: Excel export (Time, Expenses, Invoices tabs)\n\n"
+        f"Attachments:\n"
+        f"  {excel_name}      — Excel export (Time, Expenses, Invoices tabs)\n"
+        f"  SETUP.md                    — Full installation / restore instructions\n\n"
         f"Full backup (JSON data, PDFs, app source) saved to Google Drive:\n"
-        f"  {GDRIVE_FOLDER}\\{zip_name}",
+        f"  {GDRIVE_FOLDER}\\{zip_name}\n\n"
+        f"To restore on a new PC: install Python 3.11+ and Git, clone from GitHub,\n"
+        f"then run SETUP.bat. Restore data\ from the Google Drive ZIP.\n"
+        f"See SETUP.md (attached) for complete step-by-step instructions.",
         "plain"
     ))
 
-    # Attach Excel only — Gmail blocks ZIPs containing scripts
+    # Attach Excel — Gmail blocks ZIPs containing scripts
     attach(msg, excel_bytes, excel_name,
            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    # Attach SETUP.md so restore instructions are always in the email
+    setup_md = APP_ROOT / "SETUP.md"
+    if setup_md.exists():
+        attach(msg, setup_md.read_bytes(), "SETUP.md", mime="text/markdown")
 
     # Copy full ZIP to Google Drive first — always saved even if email fails
     folder = Path(GDRIVE_FOLDER)

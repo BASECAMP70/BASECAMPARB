@@ -1598,7 +1598,7 @@ def create_app(config=None):
     @app.route("/invoices/<inv_id>/status", methods=["POST"])
     def invoices_status(inv_id):
         new_status = request.form.get("status", "").strip()
-        if new_status not in ("draft", "sent", "late", "paid"):
+        if new_status not in ("draft", "sent", "late", "partial", "paid"):
             flash("Invalid status.", "error")
             return redirect(url_for("invoices"))
         inv_list = storage.load_invoices()
@@ -1609,6 +1609,38 @@ def create_app(config=None):
                     inv["sent"] = True
                 storage.save_invoices(inv_list)
                 flash(f"Invoice marked as {new_status}.", "success")
+                return redirect(url_for("invoices"))
+        flash("Invoice not found.", "error")
+        return redirect(url_for("invoices"))
+
+    @app.route("/invoices/<inv_id>/payment", methods=["POST"])
+    def invoices_payment(inv_id):
+        try:
+            amount = round(float(request.form.get("amount", 0)), 2)
+        except ValueError:
+            flash("Invalid payment amount.", "error")
+            return redirect(url_for("invoices"))
+        if amount <= 0:
+            flash("Payment amount must be greater than zero.", "error")
+            return redirect(url_for("invoices"))
+        date_str = request.form.get("date", dt_date.today().isoformat())
+        note = request.form.get("note", "").strip()
+
+        inv_list = storage.load_invoices()
+        for inv in inv_list:
+            if inv["id"] == inv_id:
+                if "payments" not in inv:
+                    inv["payments"] = []
+                inv["payments"].append({"date": date_str, "amount": amount, "note": note})
+                inv["amount_paid"] = round(sum(p["amount"] for p in inv["payments"]), 2)
+                if inv["amount_paid"] >= inv["total"]:
+                    inv["status"] = "paid"
+                    flash(f"Payment of ${amount:,.2f} recorded — invoice fully paid.", "success")
+                else:
+                    inv["status"] = "partial"
+                    balance = round(inv["total"] - inv["amount_paid"], 2)
+                    flash(f"Payment of ${amount:,.2f} recorded — ${balance:,.2f} remaining.", "success")
+                storage.save_invoices(inv_list)
                 return redirect(url_for("invoices"))
         flash("Invoice not found.", "error")
         return redirect(url_for("invoices"))

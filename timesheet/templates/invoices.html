@@ -196,13 +196,15 @@
   .badge-draft   { background:#e9ecef; color:#6c757d; }
   .badge-sent    { background:#cfe2ff; color:#0a58ca; }
   .badge-late    { background:#ffe4cc; color:#c85000; }
+  .badge-partial { background:#fff3cd; color:#856404; }
   .badge-paid    { background:#d1fae5; color:#065f46; }
   .badge-type    { background:#f3e8ff; color:#6b21a8; font-size:0.7rem; padding:2px 6px; border-radius:8px; }
   .status-select { border-radius:12px; font-size:0.75rem; font-weight:600; padding:2px 6px; border:none; cursor:pointer; appearance:none; -webkit-appearance:none; }
-  .status-draft  { background:#e9ecef; color:#6c757d; }
-  .status-sent   { background:#cfe2ff; color:#0a58ca; }
-  .status-late   { background:#ffe4cc; color:#c85000; }
-  .status-paid   { background:#d1fae5; color:#065f46; }
+  .status-draft   { background:#e9ecef; color:#6c757d; }
+  .status-sent    { background:#cfe2ff; color:#0a58ca; }
+  .status-late    { background:#ffe4cc; color:#c85000; }
+  .status-partial { background:#fff3cd; color:#856404; }
+  .status-paid    { background:#d1fae5; color:#065f46; }
 </style>
 
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;margin-top:1.5rem">
@@ -218,24 +220,35 @@
   <tbody>
   {% for inv in invoices %}
   {% set status = inv.status if inv.status is defined else ('sent' if inv.sent else 'draft') %}
-  <tr data-status="{{ status }}" data-total="{{ inv.total }}">
+  {% set amount_paid = inv.amount_paid or 0 %}
+  {% set balance = (inv.total - amount_paid)|round(2) %}
+  <tr data-status="{{ status }}" data-total="{{ inv.total }}" data-balance="{{ balance }}">
     <td>
       {{ inv.invoice_number }}
       {% if inv.invoice_type == 'expense' %}<span class="badge-type" style="margin-left:4px">EXP</span>{% endif %}
     </td>
     <td>{{ inv.client_name }}</td>
     <td>{{ inv.issued_date }}</td>
-    <td>${{ inv.total|money }}</td>
+    <td>
+      ${{ inv.total|money }}
+      {% if amount_paid > 0 and status != 'paid' %}
+      <div style="font-size:0.78rem;color:#888;margin-top:2px">${{ amount_paid|money }} paid &middot; ${{ balance|money }} due</div>
+      {% endif %}
+    </td>
     <td>
       <form class="inline" method="post" action="/invoices/{{ inv.id }}/status">
         <select name="status" onchange="this.form.submit()" class="status-select status-{{ status }}">
-          {% for s in ['draft','sent','late','paid'] %}
+          {% for s in ['draft','sent','late','partial','paid'] %}
           <option value="{{ s }}" {{ 'selected' if s == status }}>{{ s|capitalize }}</option>
           {% endfor %}
         </select>
       </form>
     </td>
     <td style="text-align:right;white-space:nowrap">
+      {% if status != 'paid' %}
+      <button class="btn btn-sm btn-secondary"
+        onclick="openPayment('{{ inv.id }}', '{{ inv.invoice_number }}', {{ balance }})">$ Pay</button>
+      {% endif %}
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/edit">Edit</a>
       <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/pdf">PDF</a>
       <button class="btn btn-sm btn-primary"
@@ -278,7 +291,14 @@ function showTab(tab, btn) {
     const s = row.dataset.status;
     const show = tab === 'paid' ? s === 'paid' : s !== 'paid';
     row.style.display = show ? '' : 'none';
-    if (show) { visible++; total += parseFloat(row.dataset.total) || 0; }
+    if (show) {
+      visible++;
+      // Use balance (remaining) for outstanding total, full total for paid
+      const amt = tab === 'paid'
+        ? parseFloat(row.dataset.total) || 0
+        : parseFloat(row.dataset.balance ?? row.dataset.total) || 0;
+      total += amt;
+    }
   });
   const empty = document.getElementById('inv-empty');
   if (empty) empty.style.display = visible === 0 ? '' : 'none';
@@ -322,5 +342,41 @@ function openEmail(id, num, clientEmail, invSubject, invType, issuedDate) {
   document.getElementById("email-modal").classList.add("open");
 }
 function closeEmail() { document.getElementById("email-modal").classList.remove("open"); }
+</script>
+
+<!-- Payment modal -->
+<div class="modal-overlay" id="payment-modal">
+  <div class="modal">
+    <h2 style="margin-bottom:1rem">Record Payment — <span id="pay-inv-num"></span></h2>
+    <form method="post" id="payment-form">
+      <div class="form-group">
+        <label>Amount ($)</label>
+        <input type="number" name="amount" id="pay-amount" step="0.01" min="0.01" required>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" name="date" id="pay-date" required>
+      </div>
+      <div class="form-group">
+        <label>Note <span class="text-muted">(optional — e.g. Cheque #123, e-transfer)</span></label>
+        <input type="text" name="note" id="pay-note" placeholder="e.g. Cheque #123">
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem">
+        <button class="btn btn-primary" type="submit">Record Payment</button>
+        <button class="btn btn-secondary" type="button" onclick="document.getElementById('payment-modal').classList.remove('open')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function openPayment(invId, invNum, balance) {
+  document.getElementById('pay-inv-num').textContent = invNum;
+  document.getElementById('pay-amount').value = balance.toFixed(2);
+  document.getElementById('pay-amount').max = balance.toFixed(2);
+  document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('pay-note').value = '';
+  document.getElementById('payment-form').action = '/invoices/' + invId + '/payment';
+  document.getElementById('payment-modal').classList.add('open');
+}
 </script>
 {% endblock %}

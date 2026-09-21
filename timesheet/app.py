@@ -92,7 +92,9 @@ def create_app(config=None):
         outstanding = [i for i in all_invoices
                        if i.get("status") not in ("paid",)
                        and i.get("invoice_type") != "expense"]
-        outstanding_total = round(sum(i.get("total", 0) for i in outstanding), 2)
+        def _inv_balance(inv):
+            return round(inv.get("total", 0) - inv.get("amount_paid", 0), 2)
+        outstanding_total = round(sum(_inv_balance(i) for i in outstanding), 2)
 
         # Uninvoiced time entries
         uninvoiced_entries = [e for e in all_entries if not e.get("invoiced")]
@@ -111,7 +113,7 @@ def create_app(config=None):
         outstanding_exp_invoices = [i for i in all_invoices
                                     if i.get("invoice_type") == "expense"
                                     and i.get("status") not in ("paid",)]
-        outstanding_exp_invoices_total = round(sum(i.get("total", 0) for i in outstanding_exp_invoices), 2)
+        outstanding_exp_invoices_total = round(sum(_inv_balance(i) for i in outstanding_exp_invoices), 2)
 
         uninvoiced_exp_total = round(uninvoiced_exp_records_total + outstanding_exp_invoices_total, 2)
         uninvoiced_exp_count = len(uninvoiced_expenses) + len(outstanding_exp_invoices)
@@ -126,7 +128,7 @@ def create_app(config=None):
             if cid not in outstanding_by_client:
                 outstanding_by_client[cid] = {"client": client_map.get(cid, {"name": inv.get("client_name", "—")}), "invoices": [], "total": 0}
             outstanding_by_client[cid]["invoices"].append(inv)
-            outstanding_by_client[cid]["total"] = round(outstanding_by_client[cid]["total"] + inv.get("total", 0), 2)
+            outstanding_by_client[cid]["total"] = round(outstanding_by_client[cid]["total"] + _inv_balance(inv), 2)
 
         # Outstanding expense invoices by client for expenses section
         exp_invoices_by_client = {}

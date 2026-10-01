@@ -3,6 +3,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+from email.utils import formataddr
 
 
 def send_invoice_email(settings, recipient, subject, body, pdf_bytes, invoice_number):
@@ -15,8 +16,9 @@ def send_invoice_email(settings, recipient, subject, body, pdf_bytes, invoice_nu
     if not smtp_user or not smtp_password:
         raise ValueError("SMTP credentials not configured. Go to Settings to add them.")
 
+    business_name = settings.get("business_name", "Basecamp Consulting Inc.")
     msg = MIMEMultipart()
-    msg["From"] = smtp_user
+    msg["From"] = formataddr((business_name, smtp_user))
     msg["To"] = recipient
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))

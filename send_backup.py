@@ -15,6 +15,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+from email.utils import formataddr
 
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -234,8 +235,9 @@ def send_backup():
 
     excel_name = f"timesheet-backup-{today}.xlsx"
 
+    business_name = settings.get("business_name", "Basecamp Consulting Inc.")
     msg = MIMEMultipart()
-    msg["From"]    = smtp_user
+    msg["From"]    = formataddr((business_name, smtp_user))
     msg["To"]      = RECIPIENT
     msg["Subject"] = subject
     msg.attach(MIMEText(

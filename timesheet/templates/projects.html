@@ -96,7 +96,7 @@
         {% set h_over = stats.used_hours > p.budget_hours %}
         <div class="budget-row">
           <span class="budget-label">{{ stats.used_hours }}h / {{ p.budget_hours|int }}h</span>
-          {% if h_over %}<span class="over-budget">over</span>{% endif %}
+          {% if h_over %}<span class="over-budget">+{{ (stats.used_hours - p.budget_hours)|round(1) }}h over</span>{% endif %}
         </div>
         <div class="budget-bar"><div class="budget-bar-fill {{ 'over' if h_over }}" style="width:{{ h_pct }}%"></div></div>
       {% endif %}

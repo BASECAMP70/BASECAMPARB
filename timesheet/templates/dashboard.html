@@ -57,7 +57,11 @@
     {% if p.get('budget_hours') %}
     <div class="ph-bar-label">
       <span>{{ item.used_hours }}h of {{ p.budget_hours|int }}h</span>
+      {% if item.get('hours_over') %}
+      <span style="color:#e74c3c;font-weight:700">+{{ (item.used_hours - p.budget_hours)|round(1) }}h over</span>
+      {% else %}
       <span>{{ item.hours_pct }}%</span>
+      {% endif %}
     </div>
     <div class="ph-bar"><div class="ph-bar-fill {{ 'over' if item.get('hours_over') }}" style="width:{{ item.hours_pct }}%"></div></div>
     {% endif %}
@@ -77,7 +81,7 @@
         {% if t.get('budget_hours') %}
         <div class="ph-bar-label" style="font-size:0.72rem">
           <span>{{ ti.used_hours }}h of {{ t.budget_hours|int }}h</span>
-          <span>{{ ti.hours_pct }}%{% if ti.get('hours_over') %} <span style="color:#e74c3c">▲</span>{% endif %}</span>
+          {% if ti.get('hours_over') %}<span style="color:#e74c3c;font-weight:700">+{{ (ti.used_hours - t.budget_hours)|round(1) }}h over</span>{% else %}<span>{{ ti.hours_pct }}%</span>{% endif %}
         </div>
         <div class="ph-bar" style="height:5px"><div class="ph-bar-fill {{ 'over' if ti.get('hours_over') }}" style="width:{{ ti.hours_pct }}%"></div></div>
         {% endif %}

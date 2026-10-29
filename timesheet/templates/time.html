@@ -282,7 +282,8 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
     <td class="text-right" style="font-weight:600">${{ "%.2f"|format(e.hours * rate) }}</td>
     <td style="text-align:right;white-space:nowrap">
       {% if not e.invoiced %}
-      <a class="btn btn-sm btn-secondary" href="/time/{{ e.id }}/edit">Edit</a>
+      <button class="btn btn-sm btn-secondary" type="button"
+        onclick="openListEdit('{{ e.id }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}','{{ p.id }}',{{ rate }},'{{ e.get("task_id") or "" }}','{{ e.date }}')">Edit</button>
       <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
         <button class="btn btn-sm btn-danger" type="submit">Delete</button>
       </form>
@@ -539,6 +540,24 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
 const GRID = {{ (day_grid_json if view == 'day' else grid_json) | tojson }};
 const PROJECT_RATES = { {% for p in projects %}"{{ p.id }}": {{ p.rate }}{% if not loop.last %}, {% endif %}{% endfor %} };
 const PROJECT_TASKS = {{ project_tasks | tojson }};
+
+function openListEdit(id, hours, description, projectId, rate, taskId, date) {
+  _cell = { projectId, projectName: '', date };
+  document.getElementById('edit-form').action = '/time/' + id + '/edit';
+  document.getElementById('edit-project-sel').value = projectId;
+  document.getElementById('edit-date').value = date;
+  document.getElementById('edit-hours').value = hours;
+  document.getElementById('edit-rate').value = rate !== undefined ? parseFloat(rate).toFixed(2) : (PROJECT_RATES[projectId] !== undefined ? parseFloat(PROJECT_RATES[projectId]).toFixed(2) : '');
+  document.getElementById('edit-description').value = description;
+  _populateTaskSelect('edit-task', projectId, taskId || null);
+  document.getElementById('existing-entries').innerHTML = '';
+  document.getElementById('add-divider').style.display = 'none';
+  document.getElementById('modal-title').textContent = 'Edit Entry';
+  document.getElementById('view-mode').style.display = 'none';
+  document.getElementById('edit-mode').style.display = 'block';
+  document.getElementById('cell-modal').classList.add('open');
+  setTimeout(() => document.getElementById('edit-hours').focus(), 40);
+}
 let _cell = null;
 
 function _populateTaskSelect(selId, projectId, selectedTaskId) {

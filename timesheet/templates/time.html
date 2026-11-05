@@ -252,15 +252,9 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
 {% set active_tab = request.args.get('lf_tab', 'uninvoiced') %}
 <div class="lst-tabs" style="display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid #e5e5e5">
   <button class="lst-tab-btn{% if active_tab == 'uninvoiced' %} active{% endif %}"
-    onclick="switchListTab('uninvoiced')">
-    Uninvoiced
-    {% if uninvoiced_entries %}<span class="lst-tab-count">{{ uninvoiced_entries|length }}</span>{% endif %}
-  </button>
+    onclick="switchListTab('uninvoiced')">Uninvoiced</button>
   <button class="lst-tab-btn{% if active_tab == 'invoiced' %} active{% endif %}"
-    onclick="switchListTab('invoiced')">
-    Invoiced
-    {% if invoiced_groups %}<span class="lst-tab-count" style="background:#888">{{ invoiced_groups|length }} invoices</span>{% endif %}
-  </button>
+    onclick="switchListTab('invoiced')">Invoiced</button>
 </div>
 
 {# ── UNINVOICED SECTION ───────────────────────────────────────────── #}
@@ -321,56 +315,39 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
 {# ── INVOICED SECTION ─────────────────────────────────────────────── #}
 <div id="lst-sec-invoiced" {% if active_tab != 'invoiced' %}style="display:none"{% endif %}>
 {% if invoiced_groups %}
+<div style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden">
+<table>
+  <thead><tr><th>#</th><th>Client</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead>
+  <tbody>
   {% for grp in invoiced_groups %}
   {% set inv = grp.invoice %}
-  {% set grp_hours = grp.entries | sum(attribute='hours') %}
-  {% set grp_amount = namespace(v=0) %}
-  {% for e in grp.entries %}{% set grp_amount.v = grp_amount.v + e.hours * e.get('rate', project_map.get(e.get('project_id',''), {}).get('rate', 0)) %}{% endfor %}
-  <div style="margin-bottom:1.25rem">
-    <div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 1rem;background:#f0f4ff;border-radius:8px 8px 0 0;border:1px solid #dce4f7;border-bottom:none">
-      {% if inv %}
-      <span style="font-weight:700;font-size:0.95rem">{{ inv.invoice_number }}</span>
-      <span style="color:#666;font-size:0.85rem">{{ inv.client_name }}</span>
-      <span style="color:#999;font-size:0.82rem">{{ inv.issued_date or '' }}</span>
-      <span class="badge badge-{{ inv.status }}" style="margin-left:auto">{{ inv.status|title }}</span>
-      {% else %}
-      <span style="font-weight:700;color:#999">Unknown Invoice</span>
+  {% if inv %}
+  {% set status = inv.status if inv.status is defined else ('sent' if inv.sent else 'draft') %}
+  {% set amount_paid = inv.amount_paid or 0 %}
+  {% set balance = (inv.total - amount_paid)|round(2) %}
+  <tr>
+    <td>
+      {{ inv.invoice_number }}
+      {% if inv.invoice_type == 'expense' %}<span class="badge-type" style="margin-left:4px">EXP</span>{% endif %}
+    </td>
+    <td>{{ inv.client_name }}</td>
+    <td>{{ inv.issued_date or '' }}</td>
+    <td>
+      ${{ inv.total|money }}
+      {% if amount_paid > 0 and status != 'paid' %}
+      <div style="font-size:0.78rem;color:#888;margin-top:2px">${{ amount_paid|money }} paid &middot; ${{ balance|money }} due</div>
       {% endif %}
-      <span class="row-total" style="background:#555{% if inv %};margin-left:{% if inv %}0{% else %}auto{% endif %}{% endif %}">{{ grp_hours }}h</span>
-      <span style="font-weight:700;font-size:0.9rem">${{ "%.2f"|format(grp_amount.v) }}</span>
-    </div>
-    <div style="background:#fff;border-radius:0 0 8px 8px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;border:1px solid #e5e5e5;border-top:none">
-    <table>
-      <thead><tr>
-        <th>Date</th>
-        <th>Project</th>
-        <th>Description</th>
-        {% if settings.get('enable_tasks', True) %}<th>Task</th>{% endif %}
-        <th class="text-right">Hours</th>
-        <th class="text-right">Rate</th>
-        <th class="text-right">Amount</th>
-      </tr></thead>
-      <tbody>
-      {% for e in grp.entries %}
-      {% set p = project_map.get(e.project_id, {}) %}
-      {% set _par = project_map.get(p.get('parent_id')) if p.get('parent_id') else none %}
-      {% set pname = (_par.name ~ ' › ' ~ p.name) if _par else p.get('name','—') %}
-      {% set rate = e.get('rate', p.get('rate', 0)) %}
-      <tr>
-        <td style="white-space:nowrap;color:#666">{{ e.date }}</td>
-        <td style="font-weight:600">{{ pname }}</td>
-        <td style="color:#333">{{ e.description or '—' }}</td>
-        {% if settings.get('enable_tasks', True) %}<td style="font-size:0.82rem;color:#888">{{ task_map.get(e.get('task_id',''), {}).get('name','—') }}</td>{% endif %}
-        <td class="text-right"><span class="hours-pill">{{ e.hours }}h</span></td>
-        <td class="text-right" style="color:#666;font-size:0.85rem">${{ "%.0f"|format(rate) }}/hr</td>
-        <td class="text-right" style="font-weight:600">${{ "%.2f"|format(e.hours * rate) }}</td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    </div>
-  </div>
+    </td>
+    <td><span class="badge badge-{{ status }}">{{ status|capitalize }}</span></td>
+    <td style="text-align:right;white-space:nowrap">
+      <a class="btn btn-sm btn-secondary" href="/invoices/{{ inv.id }}/edit">View</a>
+    </td>
+  </tr>
+  {% endif %}
   {% endfor %}
+  </tbody>
+</table>
+</div>
 {% else %}
 <p class="text-muted" style="padding:2rem;text-align:center">No invoiced time entries{% if lf_project or lf_from or lf_to %} match your filters{% endif %}.</p>
 {% endif %}
@@ -380,7 +357,13 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
 .lst-tab-btn { background:none; border:none; border-bottom:3px solid transparent; padding:8px 18px; font-size:0.9rem; font-weight:600; color:#888; cursor:pointer; margin-bottom:-2px; transition:color .15s, border-color .15s; }
 .lst-tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
 .lst-tab-btn:hover:not(.active) { color:#555; }
-.lst-tab-count { display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:10px;font-size:0.68rem;font-weight:700;min-width:18px;height:18px;padding:0 5px;margin-left:5px;vertical-align:middle; }
+.badge { display:inline-block; padding:2px 9px; border-radius:12px; font-size:0.75rem; font-weight:600; }
+.badge-draft   { background:#e9ecef; color:#6c757d; }
+.badge-sent    { background:#cfe2ff; color:#0a58ca; }
+.badge-late    { background:#ffe4cc; color:#c85000; }
+.badge-partial { background:#fff3cd; color:#856404; }
+.badge-paid    { background:#d1fae5; color:#065f46; }
+.badge-type    { background:#f3e8ff; color:#6b21a8; font-size:0.7rem; padding:2px 6px; border-radius:8px; }
 </style>
 <script>
 function switchListTab(tab) {

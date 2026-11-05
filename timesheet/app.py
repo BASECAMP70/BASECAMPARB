@@ -838,22 +838,51 @@ def create_app(config=None):
         lf_from     = request.args.get("lf_from", "")
         lf_to       = request.args.get("lf_to", "")
         lf_invoiced = request.args.get("lf_invoiced", "")
-        list_entries = list(all_entries)
-        if lf_project:
-            list_entries = [e for e in list_entries if e["project_id"] == lf_project]
-        if lf_from:
-            list_entries = [e for e in list_entries if e["date"] >= lf_from]
-        if lf_to:
-            list_entries = [e for e in list_entries if e["date"] <= lf_to]
-        if lf_invoiced == "0":
-            list_entries = [e for e in list_entries if not e.get("invoiced")]
-        elif lf_invoiced == "1":
-            list_entries = [e for e in list_entries if e.get("invoiced")]
-        list_entries = sorted(list_entries, key=lambda e: e["date"], reverse=True)
-        list_total_hours  = round(sum(e["hours"] for e in list_entries), 2)
+
+        def _list_filter(entries):
+            r = list(entries)
+            if lf_project:
+                r = [e for e in r if e["project_id"] == lf_project]
+            if lf_from:
+                r = [e for e in r if e["date"] >= lf_from]
+            if lf_to:
+                r = [e for e in r if e["date"] <= lf_to]
+            return sorted(r, key=lambda e: e["date"], reverse=True)
+
+        uninvoiced_entries = _list_filter(e for e in all_entries if not e.get("invoiced"))
+        invoiced_entries   = _list_filter(e for e in all_entries if e.get("invoiced"))
+
+        # Keep legacy list_entries for backward compat (used by lf_invoiced filter if ever needed)
+        list_entries = uninvoiced_entries
+        list_total_hours  = round(sum(e["hours"] for e in uninvoiced_entries), 2)
         list_total_amount = round(sum(
             e["hours"] * e.get("rate", project_map.get(e.get("project_id",""), {}).get("rate", 0))
-            for e in list_entries), 2)
+            for e in uninvoiced_entries), 2)
+
+        # Build entry_id → invoice mapping for grouping invoiced entries
+        all_invoices_list = storage.load_invoices()
+        entry_to_invoice = {}
+        for inv in all_invoices_list:
+            for li in inv.get("line_items", []):
+                for eid in li.get("entry_ids", "").split(","):
+                    if eid:
+                        entry_to_invoice[eid] = inv
+                if li.get("entry_id"):
+                    entry_to_invoice[li["entry_id"]] = inv
+
+        # Group invoiced entries by invoice (preserve invoice date order, newest first)
+        inv_groups_map = {}
+        for e in invoiced_entries:
+            inv = entry_to_invoice.get(e["id"])
+            inv_id = inv["id"] if inv else "__unknown__"
+            if inv_id not in inv_groups_map:
+                inv_groups_map[inv_id] = {"invoice": inv, "entries": []}
+            inv_groups_map[inv_id]["entries"].append(e)
+        # Sort groups newest invoice first
+        def _inv_sort_key(g):
+            inv = g["invoice"]
+            return inv.get("issued_date", "") if inv else ""
+        invoiced_groups = sorted(inv_groups_map.values(), key=_inv_sort_key, reverse=True)
 
         return render_template("time.html",
                                view=view,
@@ -895,6 +924,9 @@ def create_app(config=None):
                                list_entries=list_entries,
                                list_total_hours=list_total_hours,
                                list_total_amount=list_total_amount,
+                               uninvoiced_entries=uninvoiced_entries,
+                               invoiced_entries=invoiced_entries,
+                               invoiced_groups=invoiced_groups,
                                lf_project=lf_project,
                                lf_from=lf_from,
                                lf_to=lf_to,

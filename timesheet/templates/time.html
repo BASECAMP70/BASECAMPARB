@@ -222,8 +222,11 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
 {# ══════════════════════════════════════════════════════════════════════
    LIST VIEW
 ══════════════════════════════════════════════════════════════════════ #}
-<form method="get" style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:1rem">
+
+{# Shared filter form #}
+<form method="get" id="list-filter-form" style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:1rem">
   <input type="hidden" name="view" value="list">
+  <input type="hidden" name="lf_tab" id="lf_tab_input" value="{{ request.args.get('lf_tab','uninvoiced') }}">
   <div class="form-group" style="margin:0;min-width:160px;flex:1">
     <label>Project</label>
     <select name="lf_project" onchange="this.form.submit()">
@@ -242,18 +245,27 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
     <label>To</label>
     <input type="date" name="lf_to" value="{{ lf_to }}" onchange="this.form.submit()">
   </div>
-  <div class="form-group" style="margin:0;min-width:120px">
-    <label>Status</label>
-    <select name="lf_invoiced" onchange="this.form.submit()">
-      <option value="" {{ 'selected' if lf_invoiced == '' }}>All</option>
-      <option value="0" {{ 'selected' if lf_invoiced == '0' }}>Uninvoiced</option>
-      <option value="1" {{ 'selected' if lf_invoiced == '1' }}>Invoiced</option>
-    </select>
-  </div>
   <a class="btn btn-secondary" href="/time?view=list">Clear</a>
 </form>
 
-{% if list_entries %}
+{# Section tabs #}
+{% set active_tab = request.args.get('lf_tab', 'uninvoiced') %}
+<div class="lst-tabs" style="display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid #e5e5e5">
+  <button class="lst-tab-btn{% if active_tab == 'uninvoiced' %} active{% endif %}"
+    onclick="switchListTab('uninvoiced')">
+    Uninvoiced
+    {% if uninvoiced_entries %}<span class="lst-tab-count">{{ uninvoiced_entries|length }}</span>{% endif %}
+  </button>
+  <button class="lst-tab-btn{% if active_tab == 'invoiced' %} active{% endif %}"
+    onclick="switchListTab('invoiced')">
+    Invoiced
+    {% if invoiced_groups %}<span class="lst-tab-count" style="background:#888">{{ invoiced_groups|length }} invoices</span>{% endif %}
+  </button>
+</div>
+
+{# ── UNINVOICED SECTION ───────────────────────────────────────────── #}
+<div id="lst-sec-uninvoiced" {% if active_tab == 'invoiced' %}style="display:none"{% endif %}>
+{% if uninvoiced_entries %}
 <div style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden">
 <table>
   <thead><tr>
@@ -267,7 +279,7 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
     <th></th>
   </tr></thead>
   <tbody>
-  {% for e in list_entries %}
+  {% for e in uninvoiced_entries %}
   {% set p = project_map.get(e.project_id, {}) %}
   {% set _par = project_map.get(p.get('parent_id')) if p.get('parent_id') else none %}
   {% set pname = (_par.name ~ ' › ' ~ p.name) if _par else p.get('name','—') %}
@@ -281,20 +293,18 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
     <td class="text-right" style="color:#666;font-size:0.85rem">${{ "%.0f"|format(rate) }}/hr</td>
     <td class="text-right" style="font-weight:600">${{ "%.2f"|format(e.hours * rate) }}</td>
     <td style="text-align:right;white-space:nowrap">
-      {% if not e.invoiced %}
       <button class="btn btn-sm btn-secondary" type="button"
         onclick="openListEdit('{{ e.id }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}','{{ p.id }}',{{ rate }},'{{ e.get("task_id") or "" }}','{{ e.date }}')">Edit</button>
       <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
         <button class="btn btn-sm btn-danger" type="submit">Delete</button>
       </form>
-      {% else %}<span style="font-size:0.75rem;color:#aaa">Invoiced</span>{% endif %}
     </td>
   </tr>
   {% endfor %}
   </tbody>
   <tfoot>
     <tr style="background:#f8f8f8;border-top:2px solid #e5e5e5">
-      <td colspan="{% if settings.get('enable_tasks', True) %}4{% else %}3{% endif %}" style="font-weight:700;padding:10px 12px">Total ({{ list_entries|length }} entries)</td>
+      <td colspan="{% if settings.get('enable_tasks', True) %}4{% else %}3{% endif %}" style="font-weight:700;padding:10px 12px">Total ({{ uninvoiced_entries|length }} entries)</td>
       <td class="text-right"><span class="row-total" style="background:#555">{{ list_total_hours }}h</span></td>
       <td></td>
       <td class="text-right" style="font-weight:700">${{ "%.2f"|format(list_total_amount) }}</td>
@@ -304,8 +314,82 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
 </table>
 </div>
 {% else %}
-<p class="text-muted" style="padding:2rem;text-align:center">No time entries match your filters.</p>
+<p class="text-muted" style="padding:2rem;text-align:center">No uninvoiced time entries{% if lf_project or lf_from or lf_to %} match your filters{% endif %}.</p>
 {% endif %}
+</div>
+
+{# ── INVOICED SECTION ─────────────────────────────────────────────── #}
+<div id="lst-sec-invoiced" {% if active_tab != 'invoiced' %}style="display:none"{% endif %}>
+{% if invoiced_groups %}
+  {% for grp in invoiced_groups %}
+  {% set inv = grp.invoice %}
+  {% set grp_hours = grp.entries | sum(attribute='hours') %}
+  {% set grp_amount = namespace(v=0) %}
+  {% for e in grp.entries %}{% set grp_amount.v = grp_amount.v + e.hours * e.get('rate', project_map.get(e.get('project_id',''), {}).get('rate', 0)) %}{% endfor %}
+  <div style="margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 1rem;background:#f0f4ff;border-radius:8px 8px 0 0;border:1px solid #dce4f7;border-bottom:none">
+      {% if inv %}
+      <span style="font-weight:700;font-size:0.95rem">{{ inv.invoice_number }}</span>
+      <span style="color:#666;font-size:0.85rem">{{ inv.client_name }}</span>
+      <span style="color:#999;font-size:0.82rem">{{ inv.issued_date or '' }}</span>
+      <span class="badge badge-{{ inv.status }}" style="margin-left:auto">{{ inv.status|title }}</span>
+      {% else %}
+      <span style="font-weight:700;color:#999">Unknown Invoice</span>
+      {% endif %}
+      <span class="row-total" style="background:#555{% if inv %};margin-left:{% if inv %}0{% else %}auto{% endif %}{% endif %}">{{ grp_hours }}h</span>
+      <span style="font-weight:700;font-size:0.9rem">${{ "%.2f"|format(grp_amount.v) }}</span>
+    </div>
+    <div style="background:#fff;border-radius:0 0 8px 8px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;border:1px solid #e5e5e5;border-top:none">
+    <table>
+      <thead><tr>
+        <th>Date</th>
+        <th>Project</th>
+        <th>Description</th>
+        {% if settings.get('enable_tasks', True) %}<th>Task</th>{% endif %}
+        <th class="text-right">Hours</th>
+        <th class="text-right">Rate</th>
+        <th class="text-right">Amount</th>
+      </tr></thead>
+      <tbody>
+      {% for e in grp.entries %}
+      {% set p = project_map.get(e.project_id, {}) %}
+      {% set _par = project_map.get(p.get('parent_id')) if p.get('parent_id') else none %}
+      {% set pname = (_par.name ~ ' › ' ~ p.name) if _par else p.get('name','—') %}
+      {% set rate = e.get('rate', p.get('rate', 0)) %}
+      <tr>
+        <td style="white-space:nowrap;color:#666">{{ e.date }}</td>
+        <td style="font-weight:600">{{ pname }}</td>
+        <td style="color:#333">{{ e.description or '—' }}</td>
+        {% if settings.get('enable_tasks', True) %}<td style="font-size:0.82rem;color:#888">{{ task_map.get(e.get('task_id',''), {}).get('name','—') }}</td>{% endif %}
+        <td class="text-right"><span class="hours-pill">{{ e.hours }}h</span></td>
+        <td class="text-right" style="color:#666;font-size:0.85rem">${{ "%.0f"|format(rate) }}/hr</td>
+        <td class="text-right" style="font-weight:600">${{ "%.2f"|format(e.hours * rate) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<p class="text-muted" style="padding:2rem;text-align:center">No invoiced time entries{% if lf_project or lf_from or lf_to %} match your filters{% endif %}.</p>
+{% endif %}
+</div>
+
+<style>
+.lst-tab-btn { background:none; border:none; border-bottom:3px solid transparent; padding:8px 18px; font-size:0.9rem; font-weight:600; color:#888; cursor:pointer; margin-bottom:-2px; transition:color .15s, border-color .15s; }
+.lst-tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+.lst-tab-btn:hover:not(.active) { color:#555; }
+.lst-tab-count { display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:10px;font-size:0.68rem;font-weight:700;min-width:18px;height:18px;padding:0 5px;margin-left:5px;vertical-align:middle; }
+</style>
+<script>
+function switchListTab(tab) {
+  document.getElementById('lst-sec-uninvoiced').style.display = tab === 'uninvoiced' ? '' : 'none';
+  document.getElementById('lst-sec-invoiced').style.display   = tab === 'invoiced'   ? '' : 'none';
+  document.querySelectorAll('.lst-tab-btn').forEach(b => b.classList.toggle('active', b.textContent.trim().startsWith(tab === 'uninvoiced' ? 'Uninvoiced' : 'Invoiced')));
+  document.getElementById('lf_tab_input').value = tab;
+}
+</script>
 
 {% else %}
 {# ══════════════════════════════════════════════════════════════════════

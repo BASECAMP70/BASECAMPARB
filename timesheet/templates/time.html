@@ -332,14 +332,16 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
   {% for grp in invoiced_groups %}
   {% set inv = grp.invoice %}
   {% set status = (inv.status if inv.status is defined else ('sent' if inv.sent else 'draft')) if inv else '' %}
-  <tr style="background:#f4f6fb;border-top:2px solid #dce4f7">
+  {% set grp_id = 'invgrp-' ~ loop.index %}
+  <tr class="inv-grp-hdr" style="background:#f4f6fb;border-top:2px solid #dce4f7;cursor:pointer;user-select:none" onclick="toggleInvGrp('{{ grp_id }}', this)">
     <td colspan="{% if settings.get('enable_tasks', True) %}7{% else %}6{% endif %}" style="padding:7px 12px">
+      <span class="inv-grp-arrow" style="display:inline-block;margin-right:6px;font-size:0.75rem;color:#999;transition:transform .15s">&#9654;</span>
       {% if inv %}
       <span style="font-weight:700;font-size:0.88rem">{{ inv.invoice_number }}</span>
       <span style="color:#666;font-size:0.82rem;margin-left:8px">{{ inv.client_name }}</span>
       <span style="color:#999;font-size:0.8rem;margin-left:6px">{{ inv.issued_date or '' }}</span>
       <span class="badge badge-{{ status }}" style="margin-left:8px">{{ status|capitalize }}</span>
-      <a href="/invoices/{{ inv.id }}/edit" style="margin-left:auto;float:right;font-size:0.8rem;color:var(--accent);text-decoration:none;font-weight:600">View invoice ›</a>
+      <a href="/invoices/{{ inv.id }}/edit" onclick="event.stopPropagation()" style="margin-left:auto;float:right;font-size:0.8rem;color:var(--accent);text-decoration:none;font-weight:600">View invoice ›</a>
       {% else %}
       <span style="color:#999;font-weight:600">Unknown Invoice</span>
       {% endif %}
@@ -350,7 +352,7 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
   {% set _par = project_map.get(p.get('parent_id')) if p.get('parent_id') else none %}
   {% set pname = (_par.name ~ ' › ' ~ p.name) if _par else p.get('name','—') %}
   {% set rate = e.get('rate', p.get('rate', 0)) %}
-  <tr>
+  <tr class="{{ grp_id }}" style="display:none">
     <td style="white-space:nowrap;color:#666">{{ e.date }}</td>
     <td style="font-weight:600">{{ pname }}</td>
     <td style="color:#333">{{ e.description or '—' }}</td>
@@ -384,6 +386,13 @@ function switchListTab(tab) {
   document.getElementById('lst-sec-invoiced').style.display   = tab === 'invoiced'   ? '' : 'none';
   document.querySelectorAll('.tab-bar .tab-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === (tab === 'uninvoiced' ? 'Uninvoiced' : 'Invoiced')));
   document.getElementById('lf_tab_input').value = tab;
+}
+function toggleInvGrp(grpId, hdr) {
+  const rows = document.querySelectorAll('.' + grpId);
+  const open = rows[0] && rows[0].style.display !== 'none';
+  rows.forEach(r => r.style.display = open ? 'none' : '');
+  const arrow = hdr.querySelector('.inv-grp-arrow');
+  if (arrow) arrow.style.transform = open ? '' : 'rotate(90deg)';
 }
 </script>
 

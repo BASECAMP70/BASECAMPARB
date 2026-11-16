@@ -135,6 +135,12 @@ function dayTaskFillRate(sel) {
         {% if not e.invoiced %}
         <button class="btn btn-sm btn-secondary" type="button"
           onclick="openDayEdit('{{ e.id }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}','{{ p.id }}',{{ e.rate if e.rate is defined else p.rate }},'{{ e.get("task_id") or "" }}')">Edit</button>
+        {% if e.get('synced') %}
+        <span class="badge-synced">Synced</span>
+        {% else %}
+        <button class="btn btn-sm btn-secondary" type="button" data-sync-id="{{ e.id }}"
+          onclick="openSync('{{ e.id }}','{{ day_date.isoformat() }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}',{{ e.rate if e.rate is defined else p.rate }})">Sync</button>
+        {% endif %}
         <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
           <button class="btn btn-sm btn-danger">Delete</button>
         </form>

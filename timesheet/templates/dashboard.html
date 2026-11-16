@@ -6,7 +6,7 @@
 {# ── Summary cards ──────────────────────────────────────────────────────── #}
 <div class="dash-cards">
 
-  <a class="dash-card dash-card--amber" href="{{ url_for('time_entries') }}">
+  <a class="dash-card dash-card--amber" href="{{ url_for('time_entries', view='list') }}">
     <div class="dash-card__label">Uninvoiced Time</div>
     <div class="dash-card__value">${{ uninvoiced_billed|money }}</div>
     <div class="dash-card__sub">{{ uninvoiced_hours }}h unbilled</div>

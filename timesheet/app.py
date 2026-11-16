@@ -2033,7 +2033,13 @@ def create_app(config=None):
                                               "Content-Type": "application/x-www-form-urlencoded"})
         try:
             with urllib.request.urlopen(req, timeout=10) as r:
-                return jsonify(_json.loads(r.read()))
+                result = _json.loads(r.read())
+            for e in all_entries:
+                if e["id"] == entry_id:
+                    e["synced"] = True
+                    break
+            storage.save_time_entries(all_entries)
+            return jsonify(result)
         except urllib.error.HTTPError as e:
             return jsonify(_json.loads(e.read())), e.code
         except Exception as ex:

@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Time{% endblock %}
 {% block content %}
+<style>
+.badge-synced{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600;background:#e6f4ea;color:#2e7d32;border:1px solid #a5d6a7;}
+</style>
 
 {# ── Tab bar ─────────────────────────────────────────────────────────── #}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
@@ -291,8 +294,12 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
     <td style="text-align:right;white-space:nowrap">
       <button class="btn btn-sm btn-secondary" type="button"
         onclick="openListEdit('{{ e.id }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}','{{ p.id }}',{{ rate }},'{{ e.get("task_id") or "" }}','{{ e.date }}')">Edit</button>
-      <button class="btn btn-sm btn-secondary" type="button"
+      {% if e.get('synced') %}
+      <span class="badge-synced">Synced</span>
+      {% else %}
+      <button class="btn btn-sm btn-secondary" type="button" data-sync-id="{{ e.id }}"
         onclick="openSync('{{ e.id }}','{{ e.date }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}',{{ rate }})">Sync</button>
+      {% endif %}
       <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
         <button class="btn btn-sm btn-danger" type="submit">Delete</button>
       </form>
@@ -840,7 +847,13 @@ function submitSync() {
   .then(data => {
     if (data.success) {
       document.getElementById('sync-modal').classList.remove('open');
-      alert('Entry synced successfully.');
+      const btn = document.querySelector(`[data-sync-id="${_syncEntryId}"]`);
+      if (btn) {
+        const badge = document.createElement('span');
+        badge.className = 'badge-synced';
+        badge.textContent = 'Synced';
+        btn.replaceWith(badge);
+      }
     } else {
       errEl.textContent = data.error || 'Sync failed.';
       errEl.style.display = '';

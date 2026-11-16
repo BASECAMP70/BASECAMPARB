@@ -11,7 +11,7 @@
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
   <h1 style="margin:0">Time</h1>
   <div class="time-tabs">
-    <a class="time-tab{% if view == 'day' or view == 'week' or not view %} active{% endif %}"
+    <a class="time-tab{% if view == 'day' or view == 'week' %} active{% endif %}"
        href="/time?view=day&date={{ day_date.isoformat() }}">Day</a>
     <a class="time-tab{% if view == 'month' %} active{% endif %}"
        href="/time?view=month&month={{ '%04d-%02d'|format(m_year, m_month) }}">Month</a>

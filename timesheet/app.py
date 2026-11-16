@@ -709,7 +709,7 @@ def create_app(config=None):
     def time_entries():
         import calendar as cal_mod
         today = dt_date.today()
-        view = request.args.get("view", "day")
+        view = request.args.get("view", "list")
 
         all_projects = storage.load_projects()
         active_projects = [p for p in all_projects if p["active"]]

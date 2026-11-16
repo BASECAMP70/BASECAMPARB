@@ -271,6 +271,73 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
   </div>
 </div>
 
+{# ── LIST ADD FORM ────────────────────────────────────────────────── #}
+<div style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:16px;margin-bottom:1rem">
+  <form method="post" action="/time/add" style="display:grid;grid-template-columns:{% if settings.get('enable_tasks', True) %}2fr 1fr 1fr 1fr 1fr 3fr{% else %}2fr 1fr 1fr 1fr 3fr{% endif %} auto;gap:0.75rem;align-items:end">
+    <div class="form-group" style="margin:0">
+      <label>Project</label>
+      <select name="project_id" id="list-project" required onchange="listProjectChange(this)">
+        <option value="">— select —</option>
+        {% for g in project_groups %}
+          {% if g.subs %}
+            <optgroup label="{{ g.project.name }}">
+              {% for sp in g.subs %}<option value="{{ sp.id }}" data-rate="{{ sp.rate }}">{{ sp.name }}</option>{% endfor %}
+            </optgroup>
+          {% else %}
+            <option value="{{ g.project.id }}" data-rate="{{ g.project.rate }}">{{ g.project.name }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+    {% if settings.get('enable_tasks', True) %}
+    <div class="form-group" style="margin:0">
+      <label>Task</label>
+      <select name="task_id" id="list-task" onchange="listTaskFillRate(this)">
+        <option value="">— none —</option>
+      </select>
+    </div>
+    {% endif %}
+    <div class="form-group" style="margin:0">
+      <label>Date</label>
+      <input name="date" type="date" value="{{ today.isoformat() }}" required>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Hours</label>
+      <input name="hours" type="number" step="0.25" min="0.25" placeholder="0.00" required>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Rate ($/hr)</label>
+      <input name="rate" id="list-rate" type="number" step="0.01" min="0" placeholder="0.00">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Description</label>
+      <input name="description" placeholder="What did you work on?">
+    </div>
+    <input type="hidden" name="return_view" value="list">
+    <button class="btn btn-primary" type="submit" style="white-space:nowrap">Add</button>
+  </form>
+</div>
+<script>
+function listProjectChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const projectRate = opt.dataset.rate;
+  if (projectRate !== undefined) document.getElementById('list-rate').value = parseFloat(projectRate).toFixed(2);
+  const pid = sel.value;
+  const taskSel = document.getElementById('list-task');
+  if (!taskSel) return;
+  taskSel.innerHTML = '<option value="">— none —</option>';
+  (PROJECT_TASKS[pid] || []).forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.id; o.textContent = t.name; o.dataset.rate = t.rate != null ? t.rate : '';
+    taskSel.appendChild(o);
+  });
+}
+function listTaskFillRate(sel) {
+  const r = sel.options[sel.selectedIndex].dataset.rate;
+  if (r) document.getElementById('list-rate').value = parseFloat(r).toFixed(2);
+}
+</script>
+
 {# ── UNINVOICED SECTION ───────────────────────────────────────────── #}
 <div id="lst-sec-uninvoiced" {% if active_tab == 'invoiced' %}style="display:none"{% endif %}>
 {% if uninvoiced_entries %}

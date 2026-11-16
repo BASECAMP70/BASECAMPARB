@@ -986,6 +986,8 @@ def create_app(config=None):
             "invoiced": False,
         })
         storage.save_time_entries(entries)
+        if request.form.get("return_view") == "list":
+            return redirect(url_for("time_entries", view="list"))
         return _week_redirect(date)
 
     @app.route("/time/<eid>/edit", methods=["GET", "POST"])

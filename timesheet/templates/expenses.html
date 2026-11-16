@@ -75,7 +75,7 @@
       {% if not x.invoiced %}
       <a class="btn btn-sm btn-secondary" href="/expenses/{{ x.id }}/edit">Edit</a>
       <form class="inline" method="post" action="/expenses/{{ x.id }}/delete">
-        <button class="btn btn-sm btn-danger" onclick="return confirm('Delete?')">Delete</button>
+        <button class="btn btn-sm btn-secondary" onclick="return confirm('Delete?')">Delete</button>
       </form>
       {% endif %}
     </td>

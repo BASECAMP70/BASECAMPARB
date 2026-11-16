@@ -40,7 +40,7 @@
       <button class="btn btn-sm btn-secondary" onclick='openEdit({{ t|tojson }})'>Edit</button>
       <form class="inline" method="post" action="/tasks/{{ t.id }}/delete"
             onsubmit="return confirm('Delete task {{ t.name }}? This will remove it from all projects.')">
-        <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+        <button class="btn btn-sm btn-secondary" type="submit">Delete</button>
       </form>
     </td>
   </tr>

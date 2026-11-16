@@ -117,7 +117,7 @@
         onclick='openEdit({{ p|tojson }})'>Edit</button>
       {% if status != 'complete' %}
       <form class="inline" method="post" action="/projects/{{ p.id }}/deactivate">
-        <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Mark project as complete?')">Complete</button>
+        <button class="btn btn-sm btn-secondary" type="submit" onclick="return confirm('Mark project as complete?')">Complete</button>
       </form>
       {% else %}
       <form class="inline" method="post" action="/projects/{{ p.id }}/reactivate">
@@ -156,7 +156,7 @@
               <button class="btn btn-sm btn-secondary" onclick='openTaskEdit({{ t|tojson }})'>Edit</button>
               <form class="inline" method="post" action="/project-tasks/{{ t.pt_id }}/remove"
                     onsubmit="return confirm('Remove task {{ t.name }} from this project?')">
-                <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+                <button class="btn btn-sm btn-secondary" type="submit">Remove</button>
               </form>
             </td>
           </tr>
@@ -354,7 +354,7 @@ function openEdit(p) {
           <td style="padding:3px 0;text-align:right;white-space:nowrap">
             <button class="btn btn-sm btn-secondary" type="button" onclick="openTaskEdit(${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button>
             <form method="post" action="/project-tasks/${t.pt_id}/remove" style="display:inline" onsubmit="return confirm('Remove ${t.name.replace(/'/g,"\\'")} from this project?')">
-              <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+              <button class="btn btn-sm btn-secondary" type="submit">Remove</button>
             </form>
           </td>
         </tr>`;

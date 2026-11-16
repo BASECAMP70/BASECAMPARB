@@ -853,13 +853,7 @@ function submitSync() {
   .then(data => {
     if (data.success) {
       document.getElementById('sync-modal').classList.remove('open');
-      const btn = document.querySelector(`[data-sync-id="${_syncEntryId}"]`);
-      if (btn) {
-        const badge = document.createElement('span');
-        badge.className = 'badge-synced';
-        badge.textContent = 'Synced';
-        btn.replaceWith(badge);
-      }
+      window.location.reload();
     } else {
       errEl.textContent = data.error || 'Sync failed.';
       errEl.style.display = '';

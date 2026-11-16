@@ -1037,6 +1037,8 @@ def create_app(config=None):
         date = entry["date"] if entry else ""
         entries = [e for e in entries if e["id"] != eid]
         storage.save_time_entries(entries)
+        if request.form.get("return_view") == "list":
+            return redirect(url_for("time_entries", view="list"))
         return _week_redirect(date)
 
     # ── Expenses (by client) ──────────────────────────────────────────────────

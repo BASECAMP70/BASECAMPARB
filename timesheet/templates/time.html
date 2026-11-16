@@ -307,6 +307,7 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
       <button class="btn btn-sm btn-secondary" type="button"
         onclick="openListEdit('{{ e.id }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}','{{ p.id }}',{{ rate }},'{{ e.get("task_id") or "" }}','{{ e.date }}')">Edit</button>
       <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
+        <input type="hidden" name="return_view" value="list">
         <button class="btn btn-sm btn-secondary" type="submit">Delete</button>
       </form>
     </td>

@@ -2040,8 +2040,12 @@ def create_app(config=None):
                     break
             storage.save_time_entries(all_entries)
             return jsonify(result)
-        except urllib.error.HTTPError as e:
-            return jsonify(_json.loads(e.read())), e.code
+        except urllib.error.HTTPError as ex:
+            body = ex.read()
+            try:
+                return jsonify(_json.loads(body)), ex.code
+            except Exception:
+                return jsonify({"error": body.decode(errors="replace")}), ex.code
         except Exception as ex:
             return jsonify({"error": str(ex)}), 500
 

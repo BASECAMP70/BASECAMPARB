@@ -838,6 +838,7 @@ function submitSync() {
   const projectId = document.getElementById('sync-project').value;
   const taskId = document.getElementById('sync-task').value;
   const errEl = document.getElementById('sync-error');
+
   if (!projectId || !taskId) {
     errEl.textContent = 'Please select a project and task.';
     errEl.style.display = '';

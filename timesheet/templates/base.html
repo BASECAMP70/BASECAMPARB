@@ -91,7 +91,7 @@
       <img src="{{ url_for('static', filename='logo-5-icon.svg') }}" alt="Logo" style="height:28px;width:28px;object-fit:contain">
     </a>
     <div class="nav-links">
-      <a href="{{ url_for('time_entries') }}" class="{{ 'active' if request.endpoint == 'time_entries' }}">Time</a>
+      <a href="{{ url_for('time_entries', view='list') }}" class="{{ 'active' if request.endpoint == 'time_entries' }}">Time</a>
       <a href="{{ url_for('clients') }}" class="{{ 'active' if request.endpoint in ('clients',) }}">Clients</a>
       <a href="{{ url_for('projects') }}" class="{{ 'active' if request.endpoint == 'projects' }}">Projects</a>
       {% if settings.get('enable_tasks', True) %}<a href="{{ url_for('tasks') }}" class="{{ 'active' if request.endpoint == 'tasks' }}">Tasks</a>{% endif %}
@@ -105,7 +105,7 @@
     </button>
   </div>
   <div class="nav-mobile" id="nav-mobile">
-    <a href="{{ url_for('time_entries') }}" class="{{ 'active' if request.endpoint == 'time_entries' }}">Time</a>
+    <a href="{{ url_for('time_entries', view='list') }}" class="{{ 'active' if request.endpoint == 'time_entries' }}">Time</a>
     <a href="{{ url_for('clients') }}" class="{{ 'active' if request.endpoint in ('clients',) }}">Clients</a>
     <a href="{{ url_for('projects') }}" class="{{ 'active' if request.endpoint == 'projects' }}">Projects</a>
     {% if settings.get('enable_tasks', True) %}<a href="{{ url_for('tasks') }}" class="{{ 'active' if request.endpoint == 'tasks' }}">Tasks</a>{% endif %}

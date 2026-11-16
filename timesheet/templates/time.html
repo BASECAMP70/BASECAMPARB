@@ -139,7 +139,7 @@ function dayTaskFillRate(sel) {
         <span class="badge-synced" title="Synced"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 18a4.6 4.4 0 0 1 0 -9a5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1"/><path d="M9 15l3 -3l3 3"/><path d="M12 12l0 9"/></svg></span>
         {% else %}
         <button class="btn btn-sm btn-secondary" type="button" data-sync-id="{{ e.id }}"
-          onclick="openSync('{{ e.id }}','{{ day_date.isoformat() }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}',{{ e.rate if e.rate is defined else p.rate }})">Sync</button>
+          onclick="openSync('{{ e.id }}','{{ day_date.isoformat() }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}',{{ e.rate if e.rate is defined else p.rate }})"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3l18 18"/><path d="M7 7a4.6 4.4 0 0 0 -.7 11h11.7"/><path d="M20.682 14.341a4 4 0 0 0 -4.682 -6.341"/></svg>Sync</button>
         {% endif %}
         <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
           <button class="btn btn-sm btn-danger">Delete</button>
@@ -304,7 +304,7 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
       <span class="badge-synced" title="Synced"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 18a4.6 4.4 0 0 1 0 -9a5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1"/><path d="M9 15l3 -3l3 3"/><path d="M12 12l0 9"/></svg></span>
       {% else %}
       <button class="btn btn-sm btn-secondary" type="button" data-sync-id="{{ e.id }}"
-        onclick="openSync('{{ e.id }}','{{ e.date }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}',{{ rate }})">Sync</button>
+        onclick="openSync('{{ e.id }}','{{ e.date }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}',{{ rate }})"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3l18 18"/><path d="M7 7a4.6 4.4 0 0 0 -.7 11h11.7"/><path d="M20.682 14.341a4 4 0 0 0 -4.682 -6.341"/></svg>Sync</button>
       {% endif %}
       <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
         <button class="btn btn-sm btn-danger" type="submit">Delete</button>

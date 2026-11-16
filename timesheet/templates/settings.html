@@ -214,6 +214,17 @@
       <p class="text-muted" style="margin-top:0.35rem;font-size:0.85rem">Invoice page background.</p>
     </div>
 
+    <div class="form-group">
+      <label>Sync URL</label>
+      <input name="sync_url" value="{{ s.get('sync_url','') }}" placeholder="https://timesheet.yesenergy.ca">
+      <p class="text-muted" style="margin-top:0.35rem;font-size:0.85rem">Base URL of the remote timesheet app to sync entries to.</p>
+    </div>
+    <div class="form-group">
+      <label>Sync Token</label>
+      <input name="sync_token" type="password" value="{{ s.get('sync_token','') }}" placeholder="matches SYNC_TOKEN on the remote server">
+      <p class="text-muted" style="margin-top:0.35rem;font-size:0.85rem">Must match the <code>SYNC_TOKEN</code> environment variable set on the remote server.</p>
+    </div>
+
     <button class="btn btn-primary" type="submit">Save Settings</button>
   </form>
 </div>

@@ -1,4 +1,8 @@
 import os
+import urllib.request
+import urllib.parse
+import urllib.error
+import json as _json
 from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify
 from dotenv import load_dotenv
@@ -283,6 +287,8 @@ def create_app(config=None):
                 "app_accent_color": request.form.get("app_accent_color", s.get("app_accent_color", "#4f8ef7")).strip() or "#4f8ef7",
                 "enable_tasks": request.form.get("enable_tasks") == "1",
                 "enable_reports": request.form.get("enable_reports") == "1",
+                "sync_url": request.form.get("sync_url", "").strip().rstrip("/"),
+                "sync_token": request.form.get("sync_token", "").strip(),
             })
 
             # Logo upload
@@ -930,7 +936,8 @@ def create_app(config=None):
                                lf_project=lf_project,
                                lf_from=lf_from,
                                lf_to=lf_to,
-                               lf_invoiced=lf_invoiced)
+                               lf_invoiced=lf_invoiced,
+                               s=storage.load_settings())
 
     def _week_redirect(date_str):
         """Redirect to the weekly view containing date_str."""
@@ -1968,6 +1975,69 @@ def create_app(config=None):
         return send_file(buf,
                          mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                          as_attachment=True, download_name=filename)
+
+    # ── Sync proxy routes ─────────────────────────────────────────────────
+
+    def _sync_get(path):
+        s = storage.load_settings()
+        base = s.get("sync_url", "").rstrip("/")
+        token = s.get("sync_token", "")
+        if not base or not token:
+            return jsonify({"error": "Sync not configured"}), 400
+        req = urllib.request.Request(f"{base}{path}",
+                                     headers={"Authorization": f"Bearer {token}"})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return jsonify(_json.loads(r.read()))
+        except urllib.error.HTTPError as e:
+            return jsonify(_json.loads(e.read())), e.code
+        except Exception as ex:
+            return jsonify({"error": str(ex)}), 500
+
+    @app.route("/sync/projects")
+    def sync_projects():
+        return _sync_get("/api/sync/projects")
+
+    @app.route("/sync/tasks/<int:project_id>")
+    def sync_tasks(project_id):
+        return _sync_get(f"/api/sync/tasks/{project_id}")
+
+    @app.route("/sync/entry/<entry_id>", methods=["POST"])
+    def sync_entry(entry_id):
+        s = storage.load_settings()
+        base = s.get("sync_url", "").rstrip("/")
+        token = s.get("sync_token", "")
+        if not base or not token:
+            return jsonify({"error": "Sync not configured"}), 400
+
+        all_entries = storage.load_time_entries()
+        entry = next((e for e in all_entries if e["id"] == entry_id), None)
+        if not entry:
+            return jsonify({"error": "Entry not found"}), 404
+
+        body = request.get_json(silent=True) or {}
+        project_map = {p["id"]: p for p in storage.load_projects()}
+        p = project_map.get(entry.get("project_id", ""), {})
+        rate = entry.get("rate", p.get("rate", 0))
+
+        payload = urllib.parse.urlencode({
+            "project_id": body.get("project_id", ""),
+            "task_id": body.get("task_id", ""),
+            "date": entry["date"],
+            "hours": entry["hours"],
+            "rate": rate,
+            "description": entry.get("description", ""),
+        }).encode()
+        req = urllib.request.Request(f"{base}/api/sync/entry", data=payload,
+                                     headers={"Authorization": f"Bearer {token}",
+                                              "Content-Type": "application/x-www-form-urlencoded"})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return jsonify(_json.loads(r.read()))
+        except urllib.error.HTTPError as e:
+            return jsonify(_json.loads(e.read())), e.code
+        except Exception as ex:
+            return jsonify({"error": str(ex)}), 500
 
     return app
 

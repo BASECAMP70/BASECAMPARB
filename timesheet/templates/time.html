@@ -291,6 +291,10 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
     <td style="text-align:right;white-space:nowrap">
       <button class="btn btn-sm btn-secondary" type="button"
         onclick="openListEdit('{{ e.id }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}','{{ p.id }}',{{ rate }},'{{ e.get("task_id") or "" }}','{{ e.date }}')">Edit</button>
+      {% if s.get('sync_url') and s.get('sync_token') %}
+      <button class="btn btn-sm btn-secondary" type="button"
+        onclick="openSync('{{ e.id }}','{{ e.date }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}',{{ rate }})">Sync</button>
+      {% endif %}
       <form class="inline" method="post" action="/time/{{ e.id }}/delete" onsubmit="return confirm('Delete this entry?')">
         <button class="btn btn-sm btn-danger" type="submit">Delete</button>
       </form>
@@ -753,4 +757,100 @@ function fmtDate(s) {
   return d.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 </script>
+
+{# ── Sync modal ───────────────────────────────────────────────────────── #}
+{% if s.get('sync_url') and s.get('sync_token') %}
+<div class="modal-overlay" id="sync-modal">
+  <div class="modal">
+    <h2 style="margin-bottom:1rem">Sync to Remote</h2>
+    <div id="sync-details" style="background:#f8f8f8;border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.88rem;color:#555"></div>
+    <div class="form-group">
+      <label>Project</label>
+      <select id="sync-project" onchange="loadSyncTasks(this.value)">
+        <option value="">— loading projects —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Task</label>
+      <select id="sync-task">
+        <option value="">— select project first —</option>
+      </select>
+    </div>
+    <div id="sync-error" style="color:#e74c3c;font-size:0.85rem;margin-bottom:0.5rem;display:none"></div>
+    <div style="display:flex;gap:0.5rem;margin-top:1rem">
+      <button class="btn btn-primary" type="button" onclick="submitSync()">Sync</button>
+      <button class="btn btn-secondary" type="button" onclick="document.getElementById('sync-modal').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+<script>
+let _syncEntryId = null;
+
+function openSync(entryId, date, hours, description, rate) {
+  _syncEntryId = entryId;
+  document.getElementById('sync-details').innerHTML =
+    '<strong>' + date + '</strong> &nbsp;·&nbsp; ' + hours + 'h &nbsp;·&nbsp; $' + parseFloat(rate).toFixed(0) + '/hr' +
+    (description ? ' &nbsp;·&nbsp; ' + description : '');
+  document.getElementById('sync-error').style.display = 'none';
+  document.getElementById('sync-modal').classList.add('open');
+
+  const proj = document.getElementById('sync-project');
+  proj.innerHTML = '<option value="">— loading —</option>';
+  document.getElementById('sync-task').innerHTML = '<option value="">— select project first —</option>';
+
+  fetch('/sync/projects')
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { proj.innerHTML = '<option value="">Error: ' + data.error + '</option>'; return; }
+      proj.innerHTML = '<option value="">— select project —</option>' +
+        data.map(p => `<option value="${p.id}">${p.client_name} — ${p.name}</option>`).join('');
+    })
+    .catch(() => { proj.innerHTML = '<option value="">Failed to load</option>'; });
+}
+
+function loadSyncTasks(projectId) {
+  const sel = document.getElementById('sync-task');
+  if (!projectId) { sel.innerHTML = '<option value="">— select project first —</option>'; return; }
+  sel.innerHTML = '<option value="">— loading —</option>';
+  fetch('/sync/tasks/' + projectId)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error || !data.length) {
+        sel.innerHTML = '<option value="">No tasks found</option>'; return;
+      }
+      sel.innerHTML = '<option value="">— select task —</option>' +
+        data.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    })
+    .catch(() => { sel.innerHTML = '<option value="">Failed to load</option>'; });
+}
+
+function submitSync() {
+  const projectId = document.getElementById('sync-project').value;
+  const taskId = document.getElementById('sync-task').value;
+  const errEl = document.getElementById('sync-error');
+  if (!projectId || !taskId) {
+    errEl.textContent = 'Please select a project and task.';
+    errEl.style.display = '';
+    return;
+  }
+  errEl.style.display = 'none';
+  fetch('/sync/entry/' + _syncEntryId, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({project_id: projectId, task_id: taskId})
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById('sync-modal').classList.remove('open');
+      alert('Entry synced successfully.');
+    } else {
+      errEl.textContent = data.error || 'Sync failed.';
+      errEl.style.display = '';
+    }
+  })
+  .catch(() => { errEl.textContent = 'Network error.'; errEl.style.display = ''; });
+}
+</script>
+{% endif %}
 {% endblock %}

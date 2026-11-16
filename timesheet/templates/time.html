@@ -2,7 +2,7 @@
 {% block title %}Time{% endblock %}
 {% block content %}
 <style>
-.badge-synced{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600;background:#e6f4ea;color:#2e7d32;border:1px solid #a5d6a7;}
+.badge-synced{display:inline-block;font-size:1rem;color:#2e7d32;line-height:1;vertical-align:middle;}
 </style>
 
 {# ── Tab bar ─────────────────────────────────────────────────────────── #}
@@ -136,7 +136,7 @@ function dayTaskFillRate(sel) {
         <button class="btn btn-sm btn-secondary" type="button"
           onclick="openDayEdit('{{ e.id }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}','{{ p.id }}',{{ e.rate if e.rate is defined else p.rate }},'{{ e.get("task_id") or "" }}')">Edit</button>
         {% if e.get('synced') %}
-        <span class="badge-synced">Synced</span>
+        <span class="badge-synced" title="Synced">&#10003;</span>
         {% else %}
         <button class="btn btn-sm btn-secondary" type="button" data-sync-id="{{ e.id }}"
           onclick="openSync('{{ e.id }}','{{ day_date.isoformat() }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}',{{ e.rate if e.rate is defined else p.rate }})">Sync</button>
@@ -301,7 +301,7 @@ function openDayEdit(id, hours, description, projectId, rate, taskId) {
       <button class="btn btn-sm btn-secondary" type="button"
         onclick="openListEdit('{{ e.id }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}','{{ p.id }}',{{ rate }},'{{ e.get("task_id") or "" }}','{{ e.date }}')">Edit</button>
       {% if e.get('synced') %}
-      <span class="badge-synced">Synced</span>
+      <span class="badge-synced" title="Synced">&#10003;</span>
       {% else %}
       <button class="btn btn-sm btn-secondary" type="button" data-sync-id="{{ e.id }}"
         onclick="openSync('{{ e.id }}','{{ e.date }}',{{ e.hours }},'{{ e.description|replace("'","\\'")|default("") }}',{{ rate }})">Sync</button>

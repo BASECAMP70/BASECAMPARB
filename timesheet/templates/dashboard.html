@@ -9,7 +9,7 @@
   <a class="dash-card dash-card--amber" href="{{ url_for('time_entries', view='list') }}">
     <div class="dash-card__label">Uninvoiced Time</div>
     <div class="dash-card__value">${{ uninvoiced_billed|money }}</div>
-    <div class="dash-card__sub">{{ uninvoiced_hours }}h unbilled</div>
+    <div class="dash-card__sub">{{ uninvoiced_hours }}h unbilled{% if unsynced_count %} &nbsp;·&nbsp; <span style="color:#f59e0b;font-weight:700">{{ unsynced_count }} unsynced</span>{% endif %}</div>
   </a>
 
   <a class="dash-card dash-card--blue" href="{{ url_for('invoices') }}">

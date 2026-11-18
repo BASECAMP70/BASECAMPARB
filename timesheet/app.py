@@ -103,6 +103,7 @@ def create_app(config=None):
         # Uninvoiced time entries
         uninvoiced_entries = [e for e in all_entries if not e.get("invoiced")]
         uninvoiced_hours   = round(sum(e["hours"] for e in uninvoiced_entries), 2)
+        unsynced_count     = sum(1 for e in uninvoiced_entries if not e.get("synced"))
         uninvoiced_billed  = round(sum(
             e["hours"] * e.get("rate", project_map[e["project_id"]]["rate"])
             for e in uninvoiced_entries
@@ -219,6 +220,7 @@ def create_app(config=None):
             outstanding_by_client=list(outstanding_by_client.values()),
             uninvoiced_hours=uninvoiced_hours,
             uninvoiced_billed=uninvoiced_billed,
+            unsynced_count=unsynced_count,
             uninvoiced_exp_total=uninvoiced_exp_total,
             uninvoiced_exp_count=uninvoiced_exp_count,
             exp_invoices_by_client=list(exp_invoices_by_client.values()),

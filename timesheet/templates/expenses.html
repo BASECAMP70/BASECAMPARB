@@ -105,7 +105,7 @@ function showExpTab(tab, btn) {
     var show = tab === "invoiced" ? inv : !inv;
     row.style.display = show ? "" : "none";
     if (show) {
-      var amt = parseFloat(row.cells[2].dataset.val || 0);
+      var amt = parseFloat(row.cells[3].dataset.val || 0);
       total += amt;
     }
   });

@@ -63,7 +63,7 @@
     <td>{{ x.date }}</td>
     <td>{{ client_map[x.client_id].name if x.client_id and x.client_id in client_map else '—' }}</td>
     <td data-val="{{ x.amount }}">${{ "%.2f"|format(x.amount) }}</td>
-    <td style="text-align:center;color:#888;font-size:0.8rem">{{ 'Yes' if x.get('gst', True) else '—' }}</td>
+    <td style="text-align:center;color:#888;font-size:0.8rem">{{ '✓' if x.get('gst', True) else '—' }}</td>
     <td>
       {{ x.description }}
       {% if x.pdf_filename %}<a class="btn btn-sm btn-secondary" href="/expenses/{{ x.id }}/receipt" style="margin-left:6px">&#128206; Receipt</a>{% endif %}
